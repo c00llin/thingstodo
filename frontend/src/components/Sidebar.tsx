@@ -14,7 +14,7 @@ import {
   Plus,
 } from 'lucide-react'
 import * as Collapsible from '@radix-ui/react-collapsible'
-import { useState } from 'react'
+
 import { motion, AnimatePresence } from 'framer-motion'
 import { useAreas, useProjects, useTags, useCreateProject } from '../hooks/queries'
 import { useAppStore } from '../stores/app'
@@ -40,8 +40,8 @@ function SmartListNav() {
             className={({ isActive }) =>
               `flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
                 isActive
-                  ? 'bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400'
-                  : 'text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-800'
+                  ? 'bg-red-50 text-red-700 dark:bg-red-900/30 dark:text-red-400'
+                  : 'text-neutral-700 hover:bg-neutral-100 dark:text-neutral-300 dark:hover:bg-neutral-800'
               }`
             }
           >
@@ -65,14 +65,15 @@ function SmartListNav() {
 function AreaList() {
   const { data: areasData } = useAreas()
   const { data: projectsData } = useProjects()
-  const [open, setOpen] = useState(true)
+  const open = useAppStore((s) => s.sidebarAreasOpen)
+  const setOpen = useAppStore((s) => s.setSidebarAreasOpen)
 
   const areas = areasData?.areas ?? []
   const projects = projectsData?.projects ?? []
 
   return (
     <Collapsible.Root open={open} onOpenChange={setOpen}>
-      <Collapsible.Trigger className="flex w-full items-center gap-2 px-3 py-2 text-xs font-semibold uppercase tracking-wide text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300">
+      <Collapsible.Trigger className="flex w-full items-center gap-2 px-3 py-2 text-xs font-semibold uppercase tracking-wide text-neutral-500 hover:text-neutral-700 dark:text-neutral-400 dark:hover:text-neutral-300">
         <ChevronRight
           size={14}
           className={`transition-transform ${open ? 'rotate-90' : ''}`}
@@ -99,8 +100,8 @@ function AreaList() {
                         className={({ isActive }) =>
                           `flex items-center gap-2 rounded-lg px-3 py-1.5 text-sm ${
                             isActive
-                              ? 'bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400'
-                              : 'text-gray-600 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-800'
+                              ? 'bg-red-50 text-red-700 dark:bg-red-900/30 dark:text-red-400'
+                              : 'text-neutral-600 hover:bg-neutral-100 dark:text-neutral-400 dark:hover:bg-neutral-800'
                           }`
                         }
                       >
@@ -115,8 +116,8 @@ function AreaList() {
                           className={({ isActive }) =>
                             `flex items-center gap-2 rounded-lg py-1.5 pl-8 pr-3 text-sm ${
                               isActive
-                                ? 'bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400'
-                                : 'text-gray-500 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-800'
+                                ? 'bg-red-50 text-red-700 dark:bg-red-900/30 dark:text-red-400'
+                                : 'text-neutral-500 hover:bg-neutral-100 dark:text-neutral-400 dark:hover:bg-neutral-800'
                             }`
                           }
                         >
@@ -125,7 +126,7 @@ function AreaList() {
                               project.task_count > 0 &&
                               project.completed_task_count === project.task_count
                                 ? 'border-green-500 bg-green-500'
-                                : 'border-gray-400 dark:border-gray-500'
+                                : 'border-neutral-400 dark:border-neutral-500'
                             }`}
                           />
                           <span className="truncate">{project.title}</span>
@@ -144,8 +145,8 @@ function AreaList() {
                       className={({ isActive }) =>
                         `flex items-center gap-2 rounded-lg px-3 py-1.5 text-sm ${
                           isActive
-                            ? 'bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400'
-                            : 'text-gray-500 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-800'
+                            ? 'bg-red-50 text-red-700 dark:bg-red-900/30 dark:text-red-400'
+                            : 'text-neutral-500 hover:bg-neutral-100 dark:text-neutral-400 dark:hover:bg-neutral-800'
                         }`
                       }
                     >
@@ -154,7 +155,7 @@ function AreaList() {
                           project.task_count > 0 &&
                           project.completed_task_count === project.task_count
                             ? 'border-green-500 bg-green-500'
-                            : 'border-gray-400 dark:border-gray-500'
+                            : 'border-neutral-400 dark:border-neutral-500'
                         }`}
                       />
                       <span className="truncate">{project.title}</span>
@@ -171,14 +172,15 @@ function AreaList() {
 
 function TagList() {
   const { data } = useTags()
-  const [open, setOpen] = useState(false)
+  const open = useAppStore((s) => s.sidebarTagsOpen)
+  const setOpen = useAppStore((s) => s.setSidebarTagsOpen)
   const tags = data?.tags ?? []
 
   if (tags.length === 0) return null
 
   return (
     <Collapsible.Root open={open} onOpenChange={setOpen}>
-      <Collapsible.Trigger className="flex w-full items-center gap-2 px-3 py-2 text-xs font-semibold uppercase tracking-wide text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300">
+      <Collapsible.Trigger className="flex w-full items-center gap-2 px-3 py-2 text-xs font-semibold uppercase tracking-wide text-neutral-500 hover:text-neutral-700 dark:text-neutral-400 dark:hover:text-neutral-300">
         <ChevronRight
           size={14}
           className={`transition-transform ${open ? 'rotate-90' : ''}`}
@@ -206,15 +208,15 @@ function TagList() {
                         className={({ isActive }) =>
                           `flex items-center gap-2 rounded-lg px-3 py-1.5 text-sm ${
                             isActive
-                              ? 'bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400'
-                              : 'text-gray-600 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-800'
+                              ? 'bg-red-50 text-red-700 dark:bg-red-900/30 dark:text-red-400'
+                              : 'text-neutral-600 hover:bg-neutral-100 dark:text-neutral-400 dark:hover:bg-neutral-800'
                           }`
                         }
                       >
                         <Tag size={14} />
                         <span>{tag.title}</span>
                         {tag.task_count > 0 && (
-                          <span className="ml-auto text-xs text-gray-400">
+                          <span className="ml-auto text-xs text-neutral-400">
                             {tag.task_count}
                           </span>
                         )}
@@ -226,8 +228,8 @@ function TagList() {
                           className={({ isActive }) =>
                             `flex items-center gap-2 rounded-lg py-1.5 pl-8 pr-3 text-sm ${
                               isActive
-                                ? 'bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400'
-                                : 'text-gray-500 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-800'
+                                ? 'bg-red-50 text-red-700 dark:bg-red-900/30 dark:text-red-400'
+                                : 'text-neutral-500 hover:bg-neutral-100 dark:text-neutral-400 dark:hover:bg-neutral-800'
                             }`
                           }
                         >
@@ -253,10 +255,10 @@ export function Sidebar() {
 
   if (collapsed) {
     return (
-      <aside className="flex w-12 flex-col items-center border-r border-gray-200 bg-gray-50 py-3 dark:border-gray-700 dark:bg-gray-800">
+      <aside className="flex w-12 flex-col items-center border-r border-neutral-200 bg-neutral-50 py-3 dark:border-neutral-700 dark:bg-neutral-800">
         <button
           onClick={toggleSidebar}
-          className="rounded-lg p-1.5 text-gray-500 hover:bg-gray-200 dark:text-gray-400 dark:hover:bg-gray-700"
+          className="rounded-lg p-1.5 text-neutral-500 hover:bg-neutral-200 dark:text-neutral-400 dark:hover:bg-neutral-700"
           aria-label="Expand sidebar"
         >
           <PanelLeft size={18} />
@@ -269,13 +271,13 @@ export function Sidebar() {
               className={({ isActive }) =>
                 `group relative rounded-lg p-1.5 transition-colors ${
                   isActive
-                    ? 'bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400'
-                    : 'text-gray-500 hover:bg-gray-200 dark:text-gray-400 dark:hover:bg-gray-700'
+                    ? 'bg-red-50 text-red-700 dark:bg-red-900/30 dark:text-red-400'
+                    : 'text-neutral-500 hover:bg-neutral-200 dark:text-neutral-400 dark:hover:bg-neutral-700'
                 }`
               }
             >
               <Icon size={18} />
-              <span className="pointer-events-none absolute left-full top-1/2 z-50 ml-2 -translate-y-1/2 whitespace-nowrap rounded-md bg-gray-900 px-2 py-1 text-xs text-white opacity-0 transition-opacity group-hover:opacity-100 dark:bg-gray-700">
+              <span className="pointer-events-none absolute left-full top-1/2 z-50 ml-2 -translate-y-1/2 whitespace-nowrap rounded-md bg-neutral-900 px-2 py-1 text-xs text-white opacity-0 transition-opacity group-hover:opacity-100 dark:bg-neutral-700">
                 {label}
               </span>
             </NavLink>
@@ -286,14 +288,14 @@ export function Sidebar() {
   }
 
   return (
-    <aside className="flex w-64 flex-col border-r border-gray-200 bg-gray-50 dark:border-gray-700 dark:bg-gray-800">
-      <div className="flex items-center justify-between border-b border-gray-200 px-3 py-3 dark:border-gray-700">
-        <h1 className="text-sm font-semibold text-gray-900 dark:text-gray-100">ThingsToDo</h1>
+    <aside className="flex w-64 flex-col border-r border-neutral-200 bg-neutral-50 dark:border-neutral-700 dark:bg-neutral-800">
+      <div className="flex items-center justify-between border-b border-neutral-200 px-3 py-3 dark:border-neutral-700">
+        <h1 className="text-sm font-semibold text-neutral-900 dark:text-neutral-100">ThingsToDo</h1>
         <div className="flex gap-1">
           <ThemeToggle />
           <button
             onClick={toggleSidebar}
-            className="rounded-lg p-1.5 text-gray-500 hover:bg-gray-200 dark:text-gray-400 dark:hover:bg-gray-700"
+            className="rounded-lg p-1.5 text-neutral-500 hover:bg-neutral-200 dark:text-neutral-400 dark:hover:bg-neutral-700"
             aria-label="Collapse sidebar"
           >
             <PanelLeftClose size={16} />
@@ -302,14 +304,14 @@ export function Sidebar() {
       </div>
       <div className="flex-1 space-y-4 overflow-y-auto p-3">
         <SmartListNav />
-        <div className="border-t border-gray-200 pt-3 dark:border-gray-700">
+        <div className="border-t border-neutral-200 pt-3 dark:border-neutral-700">
           <AreaList />
         </div>
-        <div className="border-t border-gray-200 pt-3 dark:border-gray-700">
+        <div className="border-t border-neutral-200 pt-3 dark:border-neutral-700">
           <TagList />
         </div>
       </div>
-      <div className="border-t border-gray-200 p-3 dark:border-gray-700">
+      <div className="border-t border-neutral-200 p-3 dark:border-neutral-700">
         <button
           onClick={() => {
             const title = prompt('Project name:')
@@ -317,7 +319,7 @@ export function Sidebar() {
               createProject.mutate({ title: title.trim() })
             }
           }}
-          className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-gray-600 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-800"
+          className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-neutral-600 hover:bg-neutral-100 dark:text-neutral-400 dark:hover:bg-neutral-800"
         >
           <Plus size={16} />
           <span>New Project</span>

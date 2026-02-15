@@ -9,18 +9,18 @@ export function AreaView() {
   if (isLoading || !area) {
     return (
       <div className="p-6">
-        <p className="text-sm text-gray-400">Loading...</p>
+        <p className="text-sm text-neutral-400">Loading...</p>
       </div>
     )
   }
 
   return (
     <div className="mx-auto max-w-2xl p-6">
-      <h2 className="mb-6 text-2xl font-bold text-gray-900 dark:text-gray-100">{area.title}</h2>
+      <h2 className="mb-6 text-2xl font-bold text-neutral-900 dark:text-neutral-100">{area.title}</h2>
 
       {area.projects.length > 0 && (
         <div className="mb-6">
-          <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-500">
+          <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-neutral-500">
             Projects
           </h3>
           <div className="space-y-1">
@@ -35,16 +35,16 @@ export function AreaView() {
                 <Link
                   key={project.id}
                   to={`/project/${project.id}`}
-                  className="flex items-center gap-3 rounded-lg px-3 py-2 hover:bg-gray-50"
+                  className="flex items-center gap-3 rounded-lg px-3 py-2 hover:bg-neutral-50"
                 >
-                  <div className="h-2 w-16 overflow-hidden rounded-full bg-gray-200">
+                  <div className="h-2 w-16 overflow-hidden rounded-full bg-neutral-200">
                     <div
-                      className="h-full rounded-full bg-blue-500"
+                      className="h-full rounded-full bg-red-500"
                       style={{ width: `${progress}%` }}
                     />
                   </div>
-                  <span className="text-sm text-gray-900">{project.title}</span>
-                  <span className="ml-auto text-xs text-gray-400">
+                  <span className="text-sm text-neutral-900">{project.title}</span>
+                  <span className="ml-auto text-xs text-neutral-400">
                     {project.completed_task_count}/{project.task_count}
                   </span>
                 </Link>
@@ -56,7 +56,7 @@ export function AreaView() {
 
       {area.tasks.length > 0 && (
         <div>
-          <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-500">
+          <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-neutral-500">
             Tasks
           </h3>
           <div className="space-y-0.5">

@@ -1,24 +1,54 @@
-import { useState, useEffect, useRef, useCallback } from 'react'
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { createPortal } from 'react-dom'
-import { useTags } from '../hooks/queries'
+import { useProjects, useAreas } from '../hooks/queries'
 
-interface TagAutocompleteProps {
+interface ProjectAutocompleteProps {
   inputRef: React.RefObject<HTMLInputElement | null>
   value: string
   onChange: (value: string) => void
 }
 
-/** Detect if cursor is inside a #tag token. Returns the partial text after # or null. */
-function getHashToken(value: string, cursorPos: number): { start: number; partial: string } | null {
-  // Look backwards from cursor for a # that starts a tag token
-  const before = value.slice(0, cursorPos)
-  const match = before.match(/#([^\s#]*)$/)
-  if (!match) return null
-  return { start: cursorPos - match[0].length, partial: match[1] }
+interface AutocompleteItem {
+  id: string
+  title: string
+  type: 'project' | 'area'
 }
 
-export function TagAutocomplete({ inputRef, value, onChange }: TagAutocompleteProps) {
-  const { data: tags } = useTags()
+/**
+ * Detect if cursor is inside the first $token and the token is still being typed.
+ * Returns null if:
+ * - No $ in the text before cursor
+ * - The text after $ already matches a completed known name (followed by a space or at end)
+ */
+function getDollarToken(
+  value: string,
+  cursorPos: number,
+  knownNames: string[],
+): { start: number; partial: string } | null {
+  const before = value.slice(0, cursorPos)
+  const dollarIdx = before.indexOf('$')
+  if (dollarIdx === -1) return null
+
+  const partial = before.slice(dollarIdx + 1)
+
+  // Check if the partial already matches a completed name
+  // (i.e. known name followed by a space, meaning the user moved past it)
+  for (const name of knownNames) {
+    if (partial.toLowerCase().startsWith(name.toLowerCase() + ' ')) {
+      return null // completed token, don't trigger autocomplete
+    }
+    // Also check if cursor is right at the end of the name + trailing space
+    if (partial.toLowerCase() === name.toLowerCase() + ' ') {
+      return null
+    }
+  }
+
+  return { start: dollarIdx, partial }
+}
+
+export function ProjectAutocomplete({ inputRef, value, onChange }: ProjectAutocompleteProps) {
+  const { data: projectsData } = useProjects()
+  const { data: areasData } = useAreas()
   const [open, setOpen] = useState(false)
   const [highlightIndex, setHighlightIndex] = useState(0)
   const [token, setToken] = useState<{ start: number; partial: string } | null>(null)
@@ -26,24 +56,27 @@ export function TagAutocomplete({ inputRef, value, onChange }: TagAutocompletePr
   const measureRef = useRef<HTMLSpanElement>(null)
   const dropdownRef = useRef<HTMLDivElement>(null)
 
-  const allTags = tags?.tags ?? []
-  const hasTags = allTags.length > 0
-  const filtered = allTags.filter((t) =>
-    t.title.toLowerCase().includes(token?.partial.toLowerCase() ?? '')
+  const allItems: AutocompleteItem[] = useMemo(() => [
+    ...(projectsData?.projects ?? []).map((p) => ({ id: p.id, title: p.title, type: 'project' as const })),
+    ...(areasData?.areas ?? []).map((a) => ({ id: a.id, title: a.title, type: 'area' as const })),
+  ], [projectsData, areasData])
+
+  const knownNames = useMemo(() => allItems.map((i) => i.title), [allItems])
+  const hasItems = allItems.length > 0
+  const filtered = allItems.filter((item) =>
+    item.title.toLowerCase().includes(token?.partial.toLowerCase() ?? '')
   )
 
   const prevPartialRef = useRef<string | null>(null)
 
-  // Recompute token on value change or cursor movement
   const updateToken = useCallback(() => {
     const input = inputRef.current
     if (!input) return
     const cursorPos = input.selectionStart ?? value.length
-    const result = getHashToken(value, cursorPos)
+    const result = getDollarToken(value, cursorPos, knownNames)
     setToken(result)
-    if (result && hasTags) {
+    if (result && hasItems) {
       setOpen(true)
-      // Only reset highlight when the filter text actually changed
       if (result.partial !== prevPartialRef.current) {
         setHighlightIndex(0)
         prevPartialRef.current = result.partial
@@ -52,13 +85,13 @@ export function TagAutocomplete({ inputRef, value, onChange }: TagAutocompletePr
       setOpen(false)
       prevPartialRef.current = null
     }
-  }, [inputRef, value, hasTags])
+  }, [inputRef, value, hasItems, knownNames])
 
   useEffect(() => {
     updateToken()
   }, [updateToken])
 
-  // Position the dropdown at the # character
+  // Position the dropdown at the $ character
   useEffect(() => {
     if (!open || !token || !inputRef.current) {
       setDropdownPos(null)
@@ -67,7 +100,6 @@ export function TagAutocomplete({ inputRef, value, onChange }: TagAutocompletePr
     const input = inputRef.current
     const rect = input.getBoundingClientRect()
 
-    // Measure text width up to the # character
     const span = measureRef.current
     if (span) {
       const style = window.getComputedStyle(input)
@@ -78,7 +110,6 @@ export function TagAutocomplete({ inputRef, value, onChange }: TagAutocompletePr
       span.style.letterSpacing = style.letterSpacing
       span.textContent = value.slice(0, token.start)
       const textWidth = span.offsetWidth
-      // Account for padding and scroll
       const paddingLeft = parseFloat(style.paddingLeft)
       const scrollLeft = input.scrollLeft
 
@@ -89,22 +120,21 @@ export function TagAutocomplete({ inputRef, value, onChange }: TagAutocompletePr
     }
   }, [open, token, value, inputRef])
 
-  const selectTag = useCallback((tagTitle: string) => {
+  const selectItem = useCallback((itemTitle: string) => {
     if (!token) return
     const before = value.slice(0, token.start)
-    const after = value.slice(token.start + 1 + token.partial.length) // skip # + partial
-    const newValue = before + '#' + tagTitle + ' ' + after
+    const after = value.slice(token.start + 1 + token.partial.length) // skip $ + partial
+    const newValue = before + '$' + itemTitle + ' ' + after
     onChange(newValue)
     setOpen(false)
 
-    // Restore cursor position after React re-renders
-    const cursorPos = before.length + 1 + tagTitle.length + 1
+    const cursorPos = before.length + 1 + itemTitle.length + 1
     requestAnimationFrame(() => {
       inputRef.current?.setSelectionRange(cursorPos, cursorPos)
     })
   }, [token, value, onChange, inputRef])
 
-  // Keyboard handling — attach to the input element
+  // Keyboard handling
   useEffect(() => {
     const input = inputRef.current
     if (!input || !open || filtered.length === 0) return
@@ -124,7 +154,7 @@ export function TagAutocomplete({ inputRef, value, onChange }: TagAutocompletePr
         e.preventDefault()
         e.stopPropagation()
         if (filtered[highlightIndex]) {
-          selectTag(filtered[highlightIndex].title)
+          selectItem(filtered[highlightIndex].title)
         }
       } else if (e.key === 'Escape') {
         e.preventDefault()
@@ -133,12 +163,11 @@ export function TagAutocomplete({ inputRef, value, onChange }: TagAutocompletePr
       }
     }
 
-    // Use capture phase to intercept before the input's own handlers
     input.addEventListener('keydown', handleKeyDown, true)
     return () => input.removeEventListener('keydown', handleKeyDown, true)
-  }, [open, filtered, highlightIndex, selectTag, inputRef])
+  }, [open, filtered, highlightIndex, selectItem, inputRef])
 
-  // Listen for cursor movement (click, arrow keys) to re-evaluate token
+  // Listen for cursor movement
   useEffect(() => {
     const input = inputRef.current
     if (!input) return
@@ -177,7 +206,6 @@ export function TagAutocomplete({ inputRef, value, onChange }: TagAutocompletePr
 
   return (
     <>
-      {/* Hidden span for text measurement */}
       <span
         ref={measureRef}
         style={{
@@ -198,9 +226,9 @@ export function TagAutocomplete({ inputRef, value, onChange }: TagAutocompletePr
           }}
           className="max-h-48 min-w-[160px] overflow-y-auto rounded-lg border border-neutral-200 bg-white py-1 shadow-lg dark:border-neutral-600 dark:bg-neutral-800"
         >
-          {filtered.map((tag, i) => (
+          {filtered.map((item, i) => (
             <button
-              key={tag.id}
+              key={item.id}
               type="button"
               className={`flex w-full items-center justify-between px-3 py-1.5 text-left text-sm ${
                 i === highlightIndex
@@ -209,12 +237,12 @@ export function TagAutocomplete({ inputRef, value, onChange }: TagAutocompletePr
               }`}
               onMouseEnter={() => setHighlightIndex(i)}
               onMouseDown={(e) => {
-                e.preventDefault() // Prevent input blur
-                selectTag(tag.title)
+                e.preventDefault()
+                selectItem(item.title)
               }}
             >
-              <span>{tag.title}</span>
-              <span className="ml-3 text-xs text-neutral-400">{tag.task_count}</span>
+              <span>{item.title}</span>
+              <span className="ml-3 text-xs text-neutral-400">{item.type}</span>
             </button>
           ))}
         </div>,

@@ -28,8 +28,8 @@ const taskShortcuts = [
 function ShortcutRow({ keys, action }: { keys: string; action: string }) {
   return (
     <div className="flex items-center justify-between py-1.5">
-      <span className="text-sm text-gray-600 dark:text-gray-400">{action}</span>
-      <kbd className="rounded bg-gray-100 px-2 py-0.5 font-mono text-xs text-gray-700 dark:bg-gray-700 dark:text-gray-300">
+      <span className="text-sm text-neutral-600 dark:text-neutral-400">{action}</span>
+      <kbd className="rounded bg-neutral-100 px-2 py-0.5 font-mono text-xs text-neutral-700 dark:bg-neutral-700 dark:text-neutral-300">
         {keys}
       </kbd>
     </div>
@@ -44,32 +44,32 @@ export function ShortcutsHelp() {
     <Dialog.Root open={open} onOpenChange={toggleShortcutsHelp}>
       <Dialog.Portal>
         <Dialog.Overlay className="fixed inset-0 bg-black/40" />
-        <Dialog.Content className="fixed left-1/2 top-1/2 w-full max-w-md -translate-x-1/2 -translate-y-1/2 rounded-xl bg-white p-6 shadow-xl dark:bg-gray-800">
+        <Dialog.Content className="fixed left-1/2 top-1/2 w-full max-w-md -translate-x-1/2 -translate-y-1/2 rounded-xl bg-white p-6 shadow-xl dark:bg-neutral-800">
           <div className="mb-4 flex items-center justify-between">
-            <Dialog.Title className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+            <Dialog.Title className="text-lg font-semibold text-neutral-900 dark:text-neutral-100">
               Keyboard Shortcuts
             </Dialog.Title>
-            <Dialog.Close className="rounded-lg p-1 text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700">
+            <Dialog.Close className="rounded-lg p-1 text-neutral-400 hover:bg-neutral-100 dark:hover:bg-neutral-700">
               <X size={18} />
             </Dialog.Close>
           </div>
 
           <div className="space-y-4">
             <div>
-              <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-500">
+              <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-neutral-500">
                 Global
               </h3>
-              <div className="divide-y divide-gray-100 dark:divide-gray-700">
+              <div className="divide-y divide-neutral-100 dark:divide-neutral-700">
                 {globalShortcuts.map((s) => (
                   <ShortcutRow key={s.keys} {...s} />
                 ))}
               </div>
             </div>
             <div>
-              <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-500">
+              <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-neutral-500">
                 When a task is selected
               </h3>
-              <div className="divide-y divide-gray-100 dark:divide-gray-700">
+              <div className="divide-y divide-neutral-100 dark:divide-neutral-700">
                 {taskShortcuts.map((s) => (
                   <ShortcutRow key={s.keys} {...s} />
                 ))}

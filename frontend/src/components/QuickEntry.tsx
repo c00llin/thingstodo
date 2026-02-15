@@ -88,7 +88,7 @@ export function QuickEntry() {
         if (e.target === e.currentTarget) close()
       }}
     >
-      <div className="w-full max-w-lg rounded-xl bg-white shadow-2xl dark:bg-gray-800">
+      <div className="w-full max-w-lg rounded-xl bg-white shadow-2xl dark:bg-neutral-800">
         {mode === 'search' ? (
           <SearchMode
             query={searchQuery}
@@ -115,7 +115,7 @@ export function QuickEntry() {
             titleRef={titleRef}
           />
         )}
-        <div className="flex items-center justify-between border-t border-gray-200 px-4 py-2 text-xs text-gray-400 dark:border-gray-700 dark:text-gray-500">
+        <div className="flex items-center justify-between border-t border-neutral-200 px-4 py-2 text-xs text-neutral-400 dark:border-neutral-700 dark:text-neutral-500">
           <span>
             {mode === 'create' ? 'Enter to create' : 'Enter to open'}
           </span>
@@ -168,7 +168,7 @@ function CreateMode({
     >
       <div className="p-4">
         <div className="flex items-center gap-3">
-          <div className="flex h-5 w-5 items-center justify-center rounded-full border-2 border-gray-300 dark:border-gray-600" />
+          <div className="flex h-5 w-5 items-center justify-center rounded-full border-2 border-neutral-300 dark:border-neutral-600" />
           <input
             ref={titleRef}
             autoFocus
@@ -176,12 +176,12 @@ function CreateMode({
             placeholder="New task..."
             value={title}
             onChange={(e) => onTitleChange(e.target.value)}
-            className="flex-1 bg-transparent text-base outline-none placeholder:text-gray-400 dark:placeholder:text-gray-500"
+            className="flex-1 bg-transparent text-base outline-none placeholder:text-neutral-400 dark:placeholder:text-neutral-500"
             disabled={isSubmitting}
           />
           <button
             onClick={onSwitchToSearch}
-            className="rounded p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-gray-700 dark:hover:text-gray-300"
+            className="rounded p-1 text-neutral-400 hover:bg-neutral-100 hover:text-neutral-600 dark:hover:bg-neutral-700 dark:hover:text-neutral-300"
             title="Switch to search (Alt+F)"
           >
             <Search size={16} />
@@ -189,24 +189,24 @@ function CreateMode({
         </div>
       </div>
 
-      <div className="flex flex-wrap gap-2 border-t border-gray-200 px-4 py-3 dark:border-gray-700">
+      <div className="flex flex-wrap gap-2 border-t border-neutral-200 px-4 py-3 dark:border-neutral-700">
         <div className="flex items-center gap-1.5">
-          <Calendar size={14} className="text-gray-400" />
+          <Calendar size={14} className="text-neutral-400" />
           <input
             type="date"
             value={whenDate}
             onChange={(e) => onWhenDateChange(e.target.value)}
-            className="rounded border border-gray-200 bg-transparent px-2 py-1 text-xs text-gray-600 outline-none focus:border-blue-400 dark:border-gray-600 dark:text-gray-300"
+            className="rounded border border-neutral-200 bg-transparent px-2 py-1 text-xs text-neutral-600 outline-none focus:border-red-400 dark:border-neutral-600 dark:text-neutral-300"
             disabled={isSubmitting}
           />
         </div>
 
         <div className="flex items-center gap-1.5">
-          <FolderOpen size={14} className="text-gray-400" />
+          <FolderOpen size={14} className="text-neutral-400" />
           <select
             value={projectId ?? ''}
             onChange={(e) => onProjectChange(e.target.value || null)}
-            className="rounded border border-gray-200 bg-transparent px-2 py-1 text-xs text-gray-600 outline-none focus:border-blue-400 dark:border-gray-600 dark:text-gray-300 dark:bg-gray-800"
+            className="rounded border border-neutral-200 bg-transparent px-2 py-1 text-xs text-neutral-600 outline-none focus:border-red-400 dark:border-neutral-600 dark:text-neutral-300 dark:bg-neutral-800"
             disabled={isSubmitting}
           >
             <option value="">No project</option>
@@ -219,7 +219,7 @@ function CreateMode({
         </div>
 
         <div className="flex items-center gap-1.5">
-          <Tag size={14} className="text-gray-400" />
+          <Tag size={14} className="text-neutral-400" />
           <div className="flex flex-wrap gap-1">
             {tags.map((tag) => (
               <button
@@ -227,8 +227,8 @@ function CreateMode({
                 onClick={() => onToggleTag(tag.id)}
                 className={`rounded-full px-2 py-0.5 text-xs transition-colors ${
                   selectedTagIds.includes(tag.id)
-                    ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-400'
-                    : 'bg-gray-100 text-gray-500 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-400 dark:hover:bg-gray-600'
+                    ? 'bg-red-100 text-red-700 dark:bg-red-900/50 dark:text-red-400'
+                    : 'bg-neutral-100 text-neutral-500 hover:bg-neutral-200 dark:bg-neutral-700 dark:text-neutral-400 dark:hover:bg-neutral-600'
                 }`}
                 disabled={isSubmitting}
               >
@@ -257,25 +257,25 @@ function SearchMode({
 }) {
   return (
     <Command label="Search tasks" className="flex flex-col">
-      <div className="flex items-center gap-3 border-b border-gray-200 px-4 py-3 dark:border-gray-700">
-        <Search size={18} className="text-gray-400" />
+      <div className="flex items-center gap-3 border-b border-neutral-200 px-4 py-3 dark:border-neutral-700">
+        <Search size={18} className="text-neutral-400" />
         <Command.Input
           autoFocus
           placeholder="Search tasks..."
           value={query}
           onValueChange={onQueryChange}
-          className="flex-1 bg-transparent text-base outline-none placeholder:text-gray-400 dark:placeholder:text-gray-500"
+          className="flex-1 bg-transparent text-base outline-none placeholder:text-neutral-400 dark:placeholder:text-neutral-500"
         />
         <button
           onClick={onSwitchToCreate}
-          className="rounded px-2 py-1 text-xs text-gray-400 hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-gray-700 dark:hover:text-gray-300"
+          className="rounded px-2 py-1 text-xs text-neutral-400 hover:bg-neutral-100 hover:text-neutral-600 dark:hover:bg-neutral-700 dark:hover:text-neutral-300"
         >
           New task
         </button>
       </div>
 
       <Command.List className="max-h-72 overflow-y-auto p-2">
-        <Command.Empty className="px-4 py-8 text-center text-sm text-gray-400">
+        <Command.Empty className="px-4 py-8 text-center text-sm text-neutral-400">
           {query.length === 0
             ? 'Start typing to search...'
             : 'No tasks found.'}
@@ -286,13 +286,13 @@ function SearchMode({
             key={result.task.id}
             value={result.task.title}
             onSelect={() => onSelect(result)}
-            className="flex cursor-pointer flex-col gap-0.5 rounded-lg px-3 py-2 text-sm aria-selected:bg-gray-100 dark:aria-selected:bg-gray-700"
+            className="flex cursor-pointer flex-col gap-0.5 rounded-lg px-3 py-2 text-sm aria-selected:bg-neutral-100 dark:aria-selected:bg-neutral-700"
           >
-            <span className="font-medium text-gray-900 dark:text-gray-100">
+            <span className="font-medium text-neutral-900 dark:text-neutral-100">
               {result.title_snippet || result.task.title}
             </span>
             {result.notes_snippet && (
-              <span className="text-xs text-gray-500 dark:text-gray-400">
+              <span className="text-xs text-neutral-500 dark:text-neutral-400">
                 {result.notes_snippet}
               </span>
             )}

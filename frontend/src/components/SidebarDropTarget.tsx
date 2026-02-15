@@ -13,7 +13,7 @@ export function SidebarDropTarget({ id, children }: SidebarDropTargetProps) {
     <div
       ref={setNodeRef}
       className={`transition-colors ${
-        isOver ? 'rounded-lg bg-blue-100 dark:bg-blue-900/40' : ''
+        isOver ? 'rounded-lg bg-red-100 dark:bg-red-900/40' : ''
       }`}
     >
       {children}

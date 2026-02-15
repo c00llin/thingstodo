@@ -5,6 +5,7 @@ import { useTypeToCreate } from '../hooks/useTypeToCreate'
 import { useAppStore } from '../stores/app'
 import { useResolveTags } from '../hooks/useResolveTags'
 import { TagAutocomplete } from '../components/TagAutocomplete'
+import { ProjectAutocomplete } from '../components/ProjectAutocomplete'
 
 export function InboxView() {
   const { data, isLoading } = useInbox()
@@ -29,10 +30,15 @@ export function InboxView() {
     if (!raw) return
     setNewTitle('')
 
-    const { title, tagIds } = await resolveTags(raw)
+    const { title, tagIds, projectId, areaId } = await resolveTags(raw)
     if (!title) return
 
-    createTask.mutate({ title, tag_ids: tagIds.length > 0 ? tagIds : undefined })
+    createTask.mutate({
+      title,
+      tag_ids: tagIds.length > 0 ? tagIds : undefined,
+      project_id: projectId ?? undefined,
+      area_id: areaId ?? undefined,
+    })
   }
 
   function handleKeyDown(e: React.KeyboardEvent) {
@@ -48,7 +54,7 @@ export function InboxView() {
 
   return (
     <div className="mx-auto max-w-2xl p-6">
-      <h2 className="mb-6 text-2xl font-bold text-gray-900 dark:text-gray-100">Inbox</h2>
+      <h2 className="mb-6 text-2xl font-bold text-neutral-900 dark:text-neutral-100">Inbox</h2>
       <div className="mb-4">
         <input
           ref={inputRef}
@@ -59,15 +65,16 @@ export function InboxView() {
           onFocus={() => expandTask(null)}
           onKeyDown={handleKeyDown}
           placeholder="New task..."
-          className="w-full rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm placeholder:text-gray-400 focus:border-blue-400 focus:outline-none dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100 dark:placeholder:text-gray-500"
+          className="w-full rounded-lg border border-neutral-200 bg-white px-4 py-2.5 text-sm placeholder:text-neutral-400 focus:border-red-400 focus:outline-none dark:border-neutral-600 dark:bg-neutral-800 dark:text-neutral-100 dark:placeholder:text-neutral-500"
           autoFocus
         />
         <TagAutocomplete inputRef={inputRef} value={newTitle} onChange={setNewTitle} />
+        <ProjectAutocomplete inputRef={inputRef} value={newTitle} onChange={setNewTitle} />
       </div>
       {isLoading ? (
-        <p className="py-8 text-center text-sm text-gray-400">Loading...</p>
+        <p className="py-8 text-center text-sm text-neutral-400">Loading...</p>
       ) : data?.tasks.length === 0 ? (
-        <p className="py-12 text-center text-sm text-gray-400">
+        <p className="py-12 text-center text-sm text-neutral-400">
           Your inbox is empty. Nice work!
         </p>
       ) : (

@@ -9,13 +9,13 @@ export function TaskItemDragOverlay({ task }: TaskItemDragOverlayProps) {
   const isCompleted = task.status === 'completed'
 
   return (
-    <div className="rounded-lg border border-gray-200 bg-white px-3 py-2 shadow-lg dark:border-gray-600 dark:bg-gray-800">
+    <div className="rounded-lg border border-neutral-200 bg-white px-3 py-2 shadow-lg dark:border-neutral-600 dark:bg-neutral-800">
       <div className="flex items-center gap-3">
         <div
           className={`flex h-5 w-5 items-center justify-center rounded-full border-2 ${
             isCompleted
-              ? 'border-blue-500 bg-blue-500'
-              : 'border-gray-300 dark:border-gray-500'
+              ? 'border-red-500 bg-red-500'
+              : 'border-neutral-300 dark:border-neutral-500'
           }`}
         >
           {isCompleted && <Check size={12} className="text-white" />}
@@ -25,8 +25,8 @@ export function TaskItemDragOverlay({ task }: TaskItemDragOverlayProps) {
             <span
               className={`text-sm ${
                 isCompleted
-                  ? 'text-gray-400 line-through'
-                  : 'text-gray-900 dark:text-gray-100'
+                  ? 'text-neutral-400 line-through'
+                  : 'text-neutral-900 dark:text-neutral-100'
               }`}
             >
               {task.title}
@@ -34,12 +34,12 @@ export function TaskItemDragOverlay({ task }: TaskItemDragOverlayProps) {
             {task.tags.map((tag) => (
               <span
                 key={tag.id}
-                className="inline-flex items-center rounded-full bg-gray-100 px-2 py-0.5 text-xs text-gray-600 dark:bg-gray-700 dark:text-gray-300"
+                className="inline-flex items-center rounded-full bg-neutral-100 px-2 py-0.5 text-xs text-neutral-600 dark:bg-neutral-700 dark:text-neutral-300"
               >
                 {tag.title}
               </span>
             ))}
-            <div className="ml-auto flex items-center gap-2 text-xs text-gray-400">
+            <div className="ml-auto flex items-center gap-2 text-xs text-neutral-400">
               {task.deadline && (
                 <span className="flex items-center gap-1 text-red-500">
                   <AlertCircle size={12} />

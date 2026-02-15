@@ -7,18 +7,18 @@ export function SomedayView() {
   if (isLoading) {
     return (
       <div className="p-6">
-        <p className="text-sm text-gray-400">Loading...</p>
+        <p className="text-sm text-neutral-400">Loading...</p>
       </div>
     )
   }
 
   return (
     <div className="mx-auto max-w-2xl p-6">
-      <h2 className="mb-6 text-2xl font-bold text-gray-900 dark:text-gray-100">Someday</h2>
+      <h2 className="mb-6 text-2xl font-bold text-neutral-900 dark:text-neutral-100">Someday</h2>
 
       {data?.areas.map((areaGroup) => (
         <div key={areaGroup.area.id} className="mb-8">
-          <h3 className="mb-3 text-lg font-semibold text-gray-800">
+          <h3 className="mb-3 text-lg font-semibold text-neutral-800">
             {areaGroup.area.title}
           </h3>
           {areaGroup.projects.map((pg) => (

@@ -71,7 +71,7 @@ export function TaskDetail({ taskId }: TaskDetailProps) {
 
   if (isLoading || !task) {
     return (
-      <div className="border-t border-gray-100 px-6 py-4 text-sm text-gray-400 dark:border-gray-700">
+      <div className="border-t border-neutral-100 px-6 py-4 text-sm text-neutral-400 dark:border-neutral-700">
         Loading...
       </div>
     )
@@ -79,28 +79,28 @@ export function TaskDetail({ taskId }: TaskDetailProps) {
 
   return (
     <div
-      className="space-y-4 border-t border-gray-100 px-6 py-4 dark:border-gray-700"
+      className="space-y-4 border-t border-neutral-100 px-6 py-4 dark:border-neutral-700"
       onKeyDown={handleKeyDown}
     >
       {/* Notes */}
       <div>
-        <label className="mb-1 block text-xs font-medium text-gray-500 dark:text-gray-400">Notes</label>
+        <label className="mb-1 block text-xs font-medium text-neutral-500 dark:text-neutral-400">Notes</label>
         {editingNotes ? (
           <textarea
             ref={notesRef}
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
             onBlur={saveNotes}
-            className="w-full rounded-md border border-gray-200 bg-white px-3 py-2 text-sm focus:border-blue-400 focus:outline-none dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100"
+            className="w-full rounded-md border border-neutral-200 bg-white px-3 py-2 text-sm focus:border-red-400 focus:outline-none dark:border-neutral-600 dark:bg-neutral-800 dark:text-neutral-100"
             rows={3}
           />
         ) : (
           <div
             onClick={() => setEditingNotes(true)}
-            className="min-h-[2.5rem] cursor-text rounded-md border border-transparent px-3 py-2 text-sm text-gray-700 hover:border-gray-200 dark:text-gray-300 dark:hover:border-gray-600"
+            className="min-h-[2.5rem] cursor-text rounded-md border border-transparent px-3 py-2 text-sm text-neutral-700 hover:border-neutral-200 dark:text-neutral-300 dark:hover:border-neutral-600"
           >
             {task.notes || (
-              <span className="text-gray-400">Add notes...</span>
+              <span className="text-neutral-400">Add notes...</span>
             )}
           </div>
         )}
@@ -109,23 +109,23 @@ export function TaskDetail({ taskId }: TaskDetailProps) {
       {/* Dates */}
       <div className="flex gap-4">
         <div>
-          <label className="mb-1 block text-xs font-medium text-gray-500 dark:text-gray-400">When</label>
+          <label className="mb-1 block text-xs font-medium text-neutral-500 dark:text-neutral-400">When</label>
           <input
             type="date"
             value={task.when_date ?? ''}
             onChange={handleWhenDateChange}
-            className="rounded-md border border-gray-200 bg-white px-2 py-1 text-sm dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100"
+            className="rounded-md border border-neutral-200 bg-white px-2 py-1 text-sm dark:border-neutral-600 dark:bg-neutral-800 dark:text-neutral-100"
           />
         </div>
         <div>
-          <label className="mb-1 block text-xs font-medium text-gray-500 dark:text-gray-400">
+          <label className="mb-1 block text-xs font-medium text-neutral-500 dark:text-neutral-400">
             Deadline
           </label>
           <input
             type="date"
             value={task.deadline ?? ''}
             onChange={handleDeadlineChange}
-            className="rounded-md border border-gray-200 bg-white px-2 py-1 text-sm dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100"
+            className="rounded-md border border-neutral-200 bg-white px-2 py-1 text-sm dark:border-neutral-600 dark:bg-neutral-800 dark:text-neutral-100"
           />
         </div>
       </div>
@@ -133,12 +133,12 @@ export function TaskDetail({ taskId }: TaskDetailProps) {
       {/* Tags */}
       {task.tags.length > 0 && (
         <div>
-          <label className="mb-1 block text-xs font-medium text-gray-500 dark:text-gray-400">Tags</label>
+          <label className="mb-1 block text-xs font-medium text-neutral-500 dark:text-neutral-400">Tags</label>
           <div className="flex flex-wrap gap-1">
             {task.tags.map((tag) => (
               <span
                 key={tag.id}
-                className="inline-flex items-center rounded-full bg-gray-100 px-2.5 py-0.5 text-xs text-gray-700"
+                className="inline-flex items-center rounded-full bg-neutral-100 px-2.5 py-0.5 text-xs text-neutral-700"
               >
                 {tag.title}
               </span>
@@ -153,26 +153,26 @@ export function TaskDetail({ taskId }: TaskDetailProps) {
       {/* Attachments */}
       {task.attachments.length > 0 && (
         <div>
-          <label className="mb-1 block text-xs font-medium text-gray-500 dark:text-gray-400">
+          <label className="mb-1 block text-xs font-medium text-neutral-500 dark:text-neutral-400">
             Attachments
           </label>
           <div className="space-y-1">
             {task.attachments.map((att) => (
               <div
                 key={att.id}
-                className="flex items-center gap-2 rounded-md bg-gray-50 px-3 py-1.5 text-sm"
+                className="flex items-center gap-2 rounded-md bg-neutral-50 px-3 py-1.5 text-sm"
               >
                 {att.type === 'file' ? (
-                  <Paperclip size={14} className="text-gray-400" />
+                  <Paperclip size={14} className="text-neutral-400" />
                 ) : (
-                  <Link size={14} className="text-gray-400" />
+                  <Link size={14} className="text-neutral-400" />
                 )}
                 {att.type === 'file' ? (
                   <a
                     href={getFileUrl(att.id)}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-blue-600 hover:underline"
+                    className="text-red-600 hover:underline"
                   >
                     {att.title}
                   </a>
@@ -181,13 +181,13 @@ export function TaskDetail({ taskId }: TaskDetailProps) {
                     href={att.url}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-blue-600 hover:underline"
+                    className="text-red-600 hover:underline"
                   >
                     {att.title}
                   </a>
                 )}
                 {att.file_size > 0 && (
-                  <span className="text-xs text-gray-400">
+                  <span className="text-xs text-neutral-400">
                     ({(att.file_size / 1024 / 1024).toFixed(1)} MB)
                   </span>
                 )}
@@ -200,8 +200,8 @@ export function TaskDetail({ taskId }: TaskDetailProps) {
       {/* Repeat rule */}
       {task.repeat_rule && (
         <div>
-          <label className="mb-1 block text-xs font-medium text-gray-500 dark:text-gray-400">Repeat</label>
-          <p className="text-sm text-gray-700">
+          <label className="mb-1 block text-xs font-medium text-neutral-500 dark:text-neutral-400">Repeat</label>
+          <p className="text-sm text-neutral-700">
             {task.repeat_rule.frequency}
             {task.repeat_rule.interval_value > 1 &&
               ` every ${task.repeat_rule.interval_value}`}
@@ -213,7 +213,7 @@ export function TaskDetail({ taskId }: TaskDetailProps) {
       )}
 
       {/* Actions */}
-      <div className="flex items-center gap-2 border-t border-gray-100 pt-3 dark:border-gray-700">
+      <div className="flex items-center gap-2 border-t border-neutral-100 pt-3 dark:border-neutral-700">
         <button
           onClick={handleDelete}
           className="flex items-center gap-1 rounded-md px-2 py-1 text-xs text-red-600 hover:bg-red-50"
@@ -254,7 +254,7 @@ function ChecklistEditor({
 
   return (
     <div>
-      <label className="mb-1 block text-xs font-medium text-gray-500">Checklist</label>
+      <label className="mb-1 block text-xs font-medium text-neutral-500">Checklist</label>
       <div className="space-y-1">
         {items.map((item) => (
           <div key={item.id} className="group/item flex items-center gap-2">
@@ -266,7 +266,7 @@ function ChecklistEditor({
                   data: { completed: checked === true },
                 })
               }
-              className="flex h-4 w-4 items-center justify-center rounded border border-gray-300 data-[state=checked]:border-blue-500 data-[state=checked]:bg-blue-500"
+              className="flex h-4 w-4 items-center justify-center rounded border border-neutral-300 data-[state=checked]:border-red-500 data-[state=checked]:bg-red-500"
             >
               <Checkbox.Indicator>
                 <Check size={10} className="text-white" />
@@ -274,28 +274,28 @@ function ChecklistEditor({
             </Checkbox.Root>
             <span
               className={`flex-1 text-sm ${
-                item.completed ? 'text-gray-400 line-through' : 'text-gray-700'
+                item.completed ? 'text-neutral-400 line-through' : 'text-neutral-700'
               }`}
             >
               {item.title}
             </span>
             <button
               onClick={() => deleteItem.mutate(item.id)}
-              className="invisible text-gray-400 hover:text-red-500 group-hover/item:visible"
+              className="invisible text-neutral-400 hover:text-red-500 group-hover/item:visible"
             >
               <X size={14} />
             </button>
           </div>
         ))}
         <div className="flex items-center gap-2">
-          <Plus size={14} className="text-gray-400" />
+          <Plus size={14} className="text-neutral-400" />
           <input
             type="text"
             value={newTitle}
             onChange={(e) => setNewTitle(e.target.value)}
             onKeyDown={handleKeyDown}
             placeholder="Add item..."
-            className="flex-1 border-none bg-transparent py-1 text-sm text-gray-700 placeholder:text-gray-400 focus:outline-none"
+            className="flex-1 border-none bg-transparent py-1 text-sm text-neutral-700 placeholder:text-neutral-400 focus:outline-none"
           />
         </div>
       </div>

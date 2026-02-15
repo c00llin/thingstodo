@@ -24,7 +24,7 @@ export function ThemeToggle() {
   return (
     <button
       onClick={handleClick}
-      className="rounded-lg p-1.5 text-gray-500 hover:bg-gray-200 dark:text-gray-400 dark:hover:bg-gray-700"
+      className="rounded-lg p-1.5 text-neutral-500 hover:bg-neutral-200 dark:text-neutral-400 dark:hover:bg-neutral-700"
       aria-label={`Theme: ${current.label}`}
       title={`Theme: ${current.label}`}
     >

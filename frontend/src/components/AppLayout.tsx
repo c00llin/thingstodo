@@ -17,7 +17,7 @@ export function AppLayout() {
 
   return (
     <AppDndContext>
-      <div className="flex h-screen bg-white text-gray-900 dark:bg-gray-900 dark:text-gray-100">
+      <div className="flex h-screen bg-white text-neutral-900 dark:bg-neutral-900 dark:text-neutral-100">
         <Sidebar />
         <main className="flex-1 overflow-y-auto">
           <Outlet />

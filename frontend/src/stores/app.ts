@@ -6,6 +6,10 @@ interface AppStore {
   // Sidebar
   sidebarCollapsed: boolean
   toggleSidebar: () => void
+  sidebarAreasOpen: boolean
+  setSidebarAreasOpen: (open: boolean) => void
+  sidebarTagsOpen: boolean
+  setSidebarTagsOpen: (open: boolean) => void
 
   // Task selection & detail panel
   selectedTaskId: string | null
@@ -48,6 +52,16 @@ function getInitialTheme(): Theme {
 export const useAppStore = create<AppStore>((set) => ({
   sidebarCollapsed: false,
   toggleSidebar: () => set((s) => ({ sidebarCollapsed: !s.sidebarCollapsed })),
+  sidebarAreasOpen: localStorage.getItem('sidebarAreasOpen') !== 'false',
+  setSidebarAreasOpen: (open) => {
+    localStorage.setItem('sidebarAreasOpen', String(open))
+    set({ sidebarAreasOpen: open })
+  },
+  sidebarTagsOpen: localStorage.getItem('sidebarTagsOpen') !== 'false',
+  setSidebarTagsOpen: (open) => {
+    localStorage.setItem('sidebarTagsOpen', String(open))
+    set({ sidebarTagsOpen: open })
+  },
 
   selectedTaskId: null,
   selectTask: (id) => set({ selectedTaskId: id, expandedTaskId: null, editingTaskId: null }),

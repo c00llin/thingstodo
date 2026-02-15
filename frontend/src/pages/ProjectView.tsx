@@ -10,7 +10,7 @@ export function ProjectView() {
   if (isLoading || !project) {
     return (
       <div className="p-6">
-        <p className="text-sm text-gray-400">Loading...</p>
+        <p className="text-sm text-neutral-400">Loading...</p>
       </div>
     )
   }
@@ -22,18 +22,18 @@ export function ProjectView() {
 
   return (
     <div className="mx-auto max-w-2xl p-6">
-      <h2 className="mb-1 text-2xl font-bold text-gray-900 dark:text-gray-100">{project.title}</h2>
+      <h2 className="mb-1 text-2xl font-bold text-neutral-900 dark:text-neutral-100">{project.title}</h2>
       {project.notes && (
-        <p className="mb-4 text-sm text-gray-600">{project.notes}</p>
+        <p className="mb-4 text-sm text-neutral-600">{project.notes}</p>
       )}
       <div className="mb-6 flex items-center gap-3">
-        <div className="h-2 flex-1 overflow-hidden rounded-full bg-gray-200">
+        <div className="h-2 flex-1 overflow-hidden rounded-full bg-neutral-200">
           <div
-            className="h-full rounded-full bg-blue-500 transition-all"
+            className="h-full rounded-full bg-red-500 transition-all"
             style={{ width: `${progress}%` }}
           />
         </div>
-        <span className="text-xs text-gray-500">
+        <span className="text-xs text-neutral-500">
           {project.completed_task_count}/{project.task_count}
         </span>
       </div>
