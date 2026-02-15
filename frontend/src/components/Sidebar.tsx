@@ -266,9 +266,8 @@ export function Sidebar() {
             <NavLink
               key={to}
               to={to}
-              title={label}
               className={({ isActive }) =>
-                `rounded-lg p-1.5 transition-colors ${
+                `group relative rounded-lg p-1.5 transition-colors ${
                   isActive
                     ? 'bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400'
                     : 'text-gray-500 hover:bg-gray-200 dark:text-gray-400 dark:hover:bg-gray-700'
@@ -276,6 +275,9 @@ export function Sidebar() {
               }
             >
               <Icon size={18} />
+              <span className="pointer-events-none absolute left-full top-1/2 z-50 ml-2 -translate-y-1/2 whitespace-nowrap rounded-md bg-gray-900 px-2 py-1 text-xs text-white opacity-0 transition-opacity group-hover:opacity-100 dark:bg-gray-700">
+                {label}
+              </span>
             </NavLink>
           ))}
         </nav>
