@@ -47,6 +47,10 @@ export function useGlobalShortcuts() {
 export function useTaskShortcuts() {
   const selectedTaskId = useAppStore((s) => s.selectedTaskId)
   const selectTask = useAppStore((s) => s.selectTask)
+  const expandedTaskId = useAppStore((s) => s.expandedTaskId)
+  const expandTask = useAppStore((s) => s.expandTask)
+  const startEditingTask = useAppStore((s) => s.startEditingTask)
+  const visibleTaskIds = useAppStore((s) => s.visibleTaskIds)
   const completeTask = useCompleteTask()
   const cancelTask = useCancelTask()
   const deleteTask = useDeleteTask()
@@ -54,14 +58,55 @@ export function useTaskShortcuts() {
 
   const enabled = !!selectedTaskId
 
-  // Toggle detail
+  // Enter edits title
   useHotkeys('enter', (e) => {
     e.preventDefault()
-    // Toggle is handled by clicking - Enter opens/closes
     if (selectedTaskId) {
-      selectTask(null)
+      startEditingTask(selectedTaskId)
     }
   }, { enabled })
+
+  // Cmd+Enter opens detail
+  useHotkeys('meta+enter', (e) => {
+    e.preventDefault()
+    if (selectedTaskId) {
+      expandTask(selectedTaskId)
+    }
+  }, { enabled })
+
+  // Escape closes detail
+  useHotkeys('escape', (e) => {
+    e.preventDefault()
+    expandTask(null)
+  }, { enabled: !!expandedTaskId })
+
+  // Arrow down — select next task
+  useHotkeys('down', (e) => {
+    e.preventDefault()
+    if (visibleTaskIds.length === 0) return
+    if (!selectedTaskId) {
+      selectTask(visibleTaskIds[0])
+      return
+    }
+    const idx = visibleTaskIds.indexOf(selectedTaskId)
+    if (idx < visibleTaskIds.length - 1) {
+      selectTask(visibleTaskIds[idx + 1])
+    }
+  }, { enabled: visibleTaskIds.length > 0 })
+
+  // Arrow up — select previous task
+  useHotkeys('up', (e) => {
+    e.preventDefault()
+    if (visibleTaskIds.length === 0) return
+    if (!selectedTaskId) {
+      selectTask(visibleTaskIds[visibleTaskIds.length - 1])
+      return
+    }
+    const idx = visibleTaskIds.indexOf(selectedTaskId)
+    if (idx > 0) {
+      selectTask(visibleTaskIds[idx - 1])
+    }
+  }, { enabled: visibleTaskIds.length > 0 })
 
   // Complete task
   useHotkeys('alt+k', (e) => {

@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect } from 'react'
 import {
   DndContext,
   closestCenter,
@@ -20,6 +20,7 @@ import type { Task, SortField } from '../api/types'
 import { SortableTaskItem } from './SortableTaskItem'
 import { TaskItemDragOverlay } from './TaskItemDragOverlay'
 import { reorderTasks } from '../api/tasks'
+import { useAppStore } from '../stores/app'
 
 interface SortableTaskListProps {
   tasks: Task[]
@@ -86,6 +87,11 @@ export function SortableTaskList({ tasks, sortField, showProject }: SortableTask
   )
 
   const taskIds = tasks.map((t) => t.id)
+  const setVisibleTaskIds = useAppStore((s) => s.setVisibleTaskIds)
+
+  useEffect(() => {
+    setVisibleTaskIds(taskIds)
+  }, [taskIds.join(','), setVisibleTaskIds])
 
   return (
     <DndContext

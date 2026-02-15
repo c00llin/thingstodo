@@ -7,12 +7,12 @@ import { useAppStore } from '../stores/app'
 export function TaskPermalinkView() {
   const { slug } = useParams<{ slug: string }>()
   const { data: task, isLoading, error } = useTask(slug!)
-  const selectTask = useAppStore((s) => s.selectTask)
+  const expandTask = useAppStore((s) => s.expandTask)
 
   useEffect(() => {
-    if (slug) selectTask(slug)
-    return () => selectTask(null)
-  }, [slug, selectTask])
+    if (slug) expandTask(slug)
+    return () => expandTask(null)
+  }, [slug, expandTask])
 
   if (isLoading) {
     return (

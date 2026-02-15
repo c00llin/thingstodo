@@ -21,7 +21,7 @@ export function TaskDetail({ taskId }: TaskDetailProps) {
   const { data: task, isLoading } = useTask(taskId)
   const updateTask = useUpdateTask()
   const deleteTask = useDeleteTask()
-  const selectTask = useAppStore((s) => s.selectTask)
+  const expandTask = useAppStore((s) => s.expandTask)
 
   const [editingNotes, setEditingNotes] = useState(false)
   const [notes, setNotes] = useState('')
@@ -39,7 +39,7 @@ export function TaskDetail({ taskId }: TaskDetailProps) {
 
   function handleKeyDown(e: React.KeyboardEvent) {
     if (e.key === 'Escape') {
-      selectTask(null)
+      expandTask(null)
     }
   }
 
@@ -66,7 +66,7 @@ export function TaskDetail({ taskId }: TaskDetailProps) {
 
   function handleDelete() {
     deleteTask.mutate(taskId)
-    selectTask(null)
+    expandTask(null)
   }
 
   if (isLoading || !task) {

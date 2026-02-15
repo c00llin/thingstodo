@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from 'react'
 import { useInbox, useCreateTask } from '../hooks/queries'
 import { SortableTaskList } from '../components/SortableTaskList'
 import { useTypeToCreate } from '../hooks/useTypeToCreate'
+import { useAppStore } from '../stores/app'
 
 export function InboxView() {
   const { data, isLoading } = useInbox()
@@ -9,6 +10,7 @@ export function InboxView() {
   const [newTitle, setNewTitle] = useState('')
   const inputRef = useRef<HTMLInputElement>(null)
   const typeToCreate = useTypeToCreate()
+  const expandTask = useAppStore((s) => s.expandTask)
 
   // When type-to-create fires, focus the input with the typed chars
   useEffect(() => {
@@ -47,6 +49,7 @@ export function InboxView() {
           type="text"
           value={newTitle}
           onChange={(e) => setNewTitle(e.target.value)}
+          onFocus={() => expandTask(null)}
           onKeyDown={handleKeyDown}
           placeholder="New task..."
           className="w-full rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm placeholder:text-gray-400 focus:border-blue-400 focus:outline-none dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100 dark:placeholder:text-gray-500"

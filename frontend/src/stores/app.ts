@@ -7,9 +7,13 @@ interface AppStore {
   sidebarCollapsed: boolean
   toggleSidebar: () => void
 
-  // Task detail panel
+  // Task selection & detail panel
   selectedTaskId: string | null
   selectTask: (id: string | null) => void
+  expandedTaskId: string | null
+  expandTask: (id: string | null) => void
+  editingTaskId: string | null
+  startEditingTask: (id: string | null) => void
 
   // Quick entry
   quickEntryOpen: boolean
@@ -23,6 +27,10 @@ interface AppStore {
   // Theme
   theme: Theme
   setTheme: (theme: Theme) => void
+
+  // Visible task list for keyboard navigation
+  visibleTaskIds: string[]
+  setVisibleTaskIds: (ids: string[]) => void
 
   // Multi-select for DnD
   selectedTaskIds: Set<string>
@@ -42,7 +50,11 @@ export const useAppStore = create<AppStore>((set) => ({
   toggleSidebar: () => set((s) => ({ sidebarCollapsed: !s.sidebarCollapsed })),
 
   selectedTaskId: null,
-  selectTask: (id) => set({ selectedTaskId: id }),
+  selectTask: (id) => set({ selectedTaskId: id, expandedTaskId: null, editingTaskId: null }),
+  expandedTaskId: null,
+  expandTask: (id) => set({ expandedTaskId: id, selectedTaskId: id }),
+  editingTaskId: null,
+  startEditingTask: (id) => set({ editingTaskId: id }),
 
   quickEntryOpen: false,
   openQuickEntry: () => set({ quickEntryOpen: true }),
@@ -56,6 +68,9 @@ export const useAppStore = create<AppStore>((set) => ({
     localStorage.setItem('theme', theme)
     set({ theme })
   },
+
+  visibleTaskIds: [],
+  setVisibleTaskIds: (ids) => set({ visibleTaskIds: ids }),
 
   selectedTaskIds: new Set(),
   toggleTaskSelection: (id, multi) =>
