@@ -261,6 +261,24 @@ export function Sidebar() {
         >
           <PanelLeft size={18} />
         </button>
+        <nav className="mt-4 flex flex-col items-center gap-1">
+          {smartLists.map(({ to, label, icon: Icon }) => (
+            <NavLink
+              key={to}
+              to={to}
+              title={label}
+              className={({ isActive }) =>
+                `rounded-lg p-1.5 transition-colors ${
+                  isActive
+                    ? 'bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400'
+                    : 'text-gray-500 hover:bg-gray-200 dark:text-gray-400 dark:hover:bg-gray-700'
+                }`
+              }
+            >
+              <Icon size={18} />
+            </NavLink>
+          ))}
+        </nav>
       </aside>
     )
   }
