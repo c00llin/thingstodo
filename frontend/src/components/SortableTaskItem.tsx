@@ -3,7 +3,7 @@ import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { motion } from 'framer-motion'
 import * as Checkbox from '@radix-ui/react-checkbox'
-import { Check, Calendar, AlertCircle, GripVertical, ChevronDown, X } from 'lucide-react'
+import { Check, Calendar, Flag, GripVertical, ChevronDown, X, ListChecks } from 'lucide-react'
 import type { Task } from '../api/types'
 import { useCompleteTask, useReopenTask, useUpdateTask } from '../hooks/queries'
 import { useAppStore } from '../stores/app'
@@ -258,7 +258,7 @@ export function SortableTaskItem({
               <div className="ml-auto flex items-center gap-2 text-xs text-neutral-400">
                 {task.deadline && (
                   <span className="flex items-center gap-1 text-red-500">
-                    <AlertCircle size={12} />
+                    <Flag size={12} />
                     {task.deadline}
                   </span>
                 )}
@@ -269,7 +269,8 @@ export function SortableTaskItem({
                   </span>
                 )}
                 {task.checklist_count > 0 && (
-                  <span>
+                  <span className="flex items-center gap-1">
+                    <ListChecks size={12} />
                     {task.checklist_done}/{task.checklist_count}
                   </span>
                 )}

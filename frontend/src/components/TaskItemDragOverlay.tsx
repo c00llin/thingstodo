@@ -1,4 +1,4 @@
-import { Check, Calendar, AlertCircle } from 'lucide-react'
+import { Check, Calendar, Flag } from 'lucide-react'
 import type { Task } from '../api/types'
 
 interface TaskItemDragOverlayProps {
@@ -42,7 +42,7 @@ export function TaskItemDragOverlay({ task }: TaskItemDragOverlayProps) {
             <div className="ml-auto flex items-center gap-2 text-xs text-neutral-400">
               {task.deadline && (
                 <span className="flex items-center gap-1 text-red-500">
-                  <AlertCircle size={12} />
+                  <Flag size={12} />
                   {task.deadline}
                 </span>
               )}
