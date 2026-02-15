@@ -1,0 +1,102 @@
+package repository
+
+import (
+	"database/sql"
+	"fmt"
+
+	"github.com/collinjanssen/thingstodo/internal/model"
+)
+
+type TagRepository struct {
+	db *sql.DB
+}
+
+func NewTagRepository(db *sql.DB) *TagRepository {
+	return &TagRepository{db: db}
+}
+
+func (r *TagRepository) List() ([]model.Tag, error) {
+	rows, err := r.db.Query(`
+		SELECT t.id, t.title, t.parent_tag_id, t.sort_order,
+			COALESCE((SELECT COUNT(*) FROM task_tags WHERE tag_id = t.id), 0)
+		FROM tags t ORDER BY t.sort_order ASC`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var tags []model.Tag
+	for rows.Next() {
+		var t model.Tag
+		rows.Scan(&t.ID, &t.Title, &t.ParentTagID, &t.SortOrder, &t.TaskCount)
+		tags = append(tags, t)
+	}
+	if tags == nil {
+		tags = []model.Tag{}
+	}
+	return tags, rows.Err()
+}
+
+func (r *TagRepository) Create(input model.CreateTagInput) (*model.Tag, error) {
+	id := model.NewID()
+	var maxSort float64
+	r.db.QueryRow("SELECT COALESCE(MAX(sort_order), 0) FROM tags").Scan(&maxSort)
+
+	_, err := r.db.Exec("INSERT INTO tags (id, title, parent_tag_id, sort_order) VALUES (?, ?, ?, ?)",
+		id, input.Title, input.ParentTagID, maxSort+1024)
+	if err != nil {
+		return nil, fmt.Errorf("create tag: %w", err)
+	}
+
+	var t model.Tag
+	r.db.QueryRow("SELECT id, title, parent_tag_id, sort_order FROM tags WHERE id = ?", id).
+		Scan(&t.ID, &t.Title, &t.ParentTagID, &t.SortOrder)
+	return &t, nil
+}
+
+func (r *TagRepository) Update(id string, input model.UpdateTagInput) (*model.Tag, error) {
+	if input.Title != nil {
+		r.db.Exec("UPDATE tags SET title = ? WHERE id = ?", *input.Title, id)
+	}
+	if _, ok := input.Raw["parent_tag_id"]; ok {
+		r.db.Exec("UPDATE tags SET parent_tag_id = ? WHERE id = ?", input.ParentTagID, id)
+	}
+	if input.SortOrder != nil {
+		r.db.Exec("UPDATE tags SET sort_order = ? WHERE id = ?", *input.SortOrder, id)
+	}
+
+	var t model.Tag
+	err := r.db.QueryRow("SELECT id, title, parent_tag_id, sort_order FROM tags WHERE id = ?", id).
+		Scan(&t.ID, &t.Title, &t.ParentTagID, &t.SortOrder)
+	if err == sql.ErrNoRows {
+		return nil, nil
+	}
+	return &t, err
+}
+
+func (r *TagRepository) Delete(id string) error {
+	_, err := r.db.Exec("DELETE FROM tags WHERE id = ?", id)
+	return err
+}
+
+func (r *TagRepository) GetTasksByTag(tagID string) ([]model.TaskListItem, error) {
+	rows, err := r.db.Query(`
+		SELECT t.id, t.title, t.notes, t.status, t.when_date, t.when_evening,
+			t.deadline, t.project_id, t.area_id, t.heading_id,
+			t.sort_order_today, t.sort_order_project, t.sort_order_heading,
+			t.completed_at, t.canceled_at, t.created_at, t.updated_at,
+			COALESCE((SELECT COUNT(*) FROM checklist_items WHERE task_id = t.id), 0),
+			COALESCE((SELECT COUNT(*) FROM checklist_items WHERE task_id = t.id AND completed = 1), 0),
+			CASE WHEN t.notes != '' THEN 1 ELSE 0 END,
+			CASE WHEN EXISTS(SELECT 1 FROM attachments WHERE task_id = t.id) THEN 1 ELSE 0 END,
+			CASE WHEN EXISTS(SELECT 1 FROM repeat_rules WHERE task_id = t.id) THEN 1 ELSE 0 END
+		FROM tasks t
+		JOIN task_tags tt ON t.id = tt.task_id
+		WHERE tt.tag_id = ?
+		ORDER BY t.sort_order_today`, tagID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	return scanTaskListItems(r.db, rows), nil
+}

@@ -1,0 +1,154 @@
+package router
+
+import (
+	"database/sql"
+	"encoding/json"
+	"io/fs"
+	"net/http"
+
+	"github.com/collinjanssen/thingstodo/internal/config"
+	"github.com/collinjanssen/thingstodo/internal/frontend"
+	"github.com/collinjanssen/thingstodo/internal/handler"
+	mw "github.com/collinjanssen/thingstodo/internal/middleware"
+	"github.com/collinjanssen/thingstodo/internal/repository"
+	"github.com/collinjanssen/thingstodo/internal/sse"
+	"github.com/go-chi/chi/v5"
+)
+
+func New(db *sql.DB, cfg config.Config, broker *sse.Broker) http.Handler {
+	r := chi.NewRouter()
+	r.Use(mw.Logger)
+
+	// Repositories
+	taskRepo := repository.NewTaskRepository(db)
+	projectRepo := repository.NewProjectRepository(db)
+	areaRepo := repository.NewAreaRepository(db)
+	tagRepo := repository.NewTagRepository(db)
+	headingRepo := repository.NewHeadingRepository(db)
+	checklistRepo := repository.NewChecklistRepository(db)
+	attachmentRepo := repository.NewAttachmentRepository(db)
+	repeatRuleRepo := repository.NewRepeatRuleRepository(db)
+	searchRepo := repository.NewSearchRepository(db)
+	viewRepo := repository.NewViewRepository(db)
+	userRepo := repository.NewUserRepository(db)
+
+	// Handlers
+	taskH := handler.NewTaskHandler(taskRepo, broker)
+	projectH := handler.NewProjectHandler(projectRepo, broker)
+	areaH := handler.NewAreaHandler(areaRepo, broker)
+	tagH := handler.NewTagHandler(tagRepo, broker)
+	headingH := handler.NewHeadingHandler(headingRepo, broker)
+	checklistH := handler.NewChecklistHandler(checklistRepo, broker)
+	attachmentH := handler.NewAttachmentHandler(attachmentRepo, broker, cfg.AttachmentsPath, cfg.MaxUploadSize)
+	repeatRuleH := handler.NewRepeatRuleHandler(repeatRuleRepo, broker)
+	searchH := handler.NewSearchHandler(searchRepo)
+	viewH := handler.NewViewHandler(viewRepo)
+	authH := handler.NewAuthHandler(userRepo, cfg)
+	eventH := handler.NewEventHandler(broker)
+
+	// Health check
+	r.Get("/health", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]string{"status": "ok"})
+	})
+
+	// API routes
+	r.Route("/api", func(r chi.Router) {
+		// Auth endpoints (no middleware)
+		r.Post("/auth/login", authH.Login)
+		r.Delete("/auth/logout", authH.Logout)
+
+		// SSE events (before auth middleware so it can connect)
+		r.Get("/events", eventH.Stream)
+
+		// Protected routes
+		r.Group(func(r chi.Router) {
+			r.Use(mw.Auth(cfg))
+
+			// Auth
+			r.Get("/auth/me", authH.Me)
+
+			// Tasks
+			r.Get("/tasks", taskH.List)
+			r.Post("/tasks", taskH.Create)
+			r.Get("/tasks/{id}", taskH.Get)
+			r.Patch("/tasks/{id}", taskH.Update)
+			r.Delete("/tasks/{id}", taskH.Delete)
+			r.Patch("/tasks/{id}/complete", taskH.Complete)
+			r.Patch("/tasks/{id}/cancel", taskH.Cancel)
+			r.Patch("/tasks/{id}/wontdo", taskH.WontDo)
+			r.Patch("/tasks/{id}/reopen", taskH.Reopen)
+			r.Patch("/tasks/{id}/move", taskH.Move)
+			r.Patch("/tasks/reorder", taskH.Reorder)
+
+			// Checklist
+			r.Get("/tasks/{id}/checklist", checklistH.List)
+			r.Post("/tasks/{id}/checklist", checklistH.Create)
+			r.Patch("/checklist/{id}", checklistH.Update)
+			r.Delete("/checklist/{id}", checklistH.Delete)
+
+			// Attachments
+			r.Get("/tasks/{id}/attachments", attachmentH.List)
+			r.Post("/tasks/{id}/attachments", attachmentH.Create)
+			r.Patch("/attachments/{id}", attachmentH.Update)
+			r.Delete("/attachments/{id}", attachmentH.Delete)
+			r.Get("/attachments/{id}/file", attachmentH.Download)
+
+			// Repeat rules
+			r.Get("/tasks/{id}/repeat", repeatRuleH.Get)
+			r.Put("/tasks/{id}/repeat", repeatRuleH.Upsert)
+			r.Delete("/tasks/{id}/repeat", repeatRuleH.Delete)
+
+			// Projects
+			r.Get("/projects", projectH.List)
+			r.Post("/projects", projectH.Create)
+			r.Get("/projects/{id}", projectH.Get)
+			r.Patch("/projects/{id}", projectH.Update)
+			r.Delete("/projects/{id}", projectH.Delete)
+			r.Patch("/projects/{id}/complete", projectH.Complete)
+			r.Patch("/projects/reorder", projectH.Reorder)
+
+			// Headings
+			r.Get("/projects/{id}/headings", headingH.List)
+			r.Post("/projects/{id}/headings", headingH.Create)
+			r.Patch("/headings/{id}", headingH.Update)
+			r.Delete("/headings/{id}", headingH.Delete)
+			r.Patch("/headings/reorder", headingH.Reorder)
+
+			// Areas
+			r.Get("/areas", areaH.List)
+			r.Post("/areas", areaH.Create)
+			r.Get("/areas/{id}", areaH.Get)
+			r.Patch("/areas/{id}", areaH.Update)
+			r.Delete("/areas/{id}", areaH.Delete)
+
+			// Tags
+			r.Get("/tags", tagH.List)
+			r.Post("/tags", tagH.Create)
+			r.Patch("/tags/{id}", tagH.Update)
+			r.Delete("/tags/{id}", tagH.Delete)
+			r.Get("/tags/{id}/tasks", tagH.GetTasks)
+
+			// Views
+			r.Get("/views/inbox", viewH.Inbox)
+			r.Get("/views/today", viewH.Today)
+			r.Get("/views/upcoming", viewH.Upcoming)
+			r.Get("/views/anytime", viewH.Anytime)
+			r.Get("/views/someday", viewH.Someday)
+			r.Get("/views/logbook", viewH.Logbook)
+
+			// Search
+			r.Get("/search", searchH.Search)
+		})
+	})
+
+	// Serve embedded frontend static files (SPA fallback)
+	staticFS, err := fs.Sub(frontend.StaticFiles, "dist")
+	if err != nil {
+		panic("failed to create sub filesystem for frontend: " + err.Error())
+	}
+	fileServer := http.FileServer(http.FS(staticFS))
+	r.Handle("/*", fileServer)
+
+	return r
+}

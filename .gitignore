@@ -1,0 +1,44 @@
+# Go
+bin/
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Frontend
+frontend/node_modules/
+frontend/dist/
+internal/frontend/dist/
+
+# Environment
+.env
+
+# Database
+data/*.db
+data/*.db-wal
+data/*.db-shm
+
+# Attachments
+attachments/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Coverage
+coverage/
+*.out
+*.coverprofile
+
+# IDE
+.idea/
+*.swp
+*.swo
+*~
+
+# Built binary
+server
+
+# Notes
+notes.md

@@ -1,0 +1,712 @@
+# ThingsToDo API Contract
+
+Base URL: `/api`
+
+All endpoints return JSON. All mutations broadcast SSE events. Authentication via httpOnly JWT cookie (builtin mode) or proxy header (proxy mode).
+
+---
+
+## Common Patterns
+
+### Error Response
+```json
+{
+  "error": "Human-readable error message",
+  "code": "ERROR_CODE"
+}
+```
+
+### Pagination (where applicable)
+Query params: `?limit=50&offset=0`
+
+### Sort Order
+All entities with `sort_order` use REAL (float) for fractional positioning. New items default to max(sort_order) + 1024. Insert-between uses (before + after) / 2.
+
+### IDs
+All entity IDs are nanoid strings (8-10 chars). Task IDs double as permalink slugs.
+
+---
+
+## Authentication
+
+### POST /api/auth/login
+**Mode: builtin only**
+
+Request:
+```json
+{ "username": "string", "password": "string" }
+```
+
+Response (200): Sets httpOnly JWT cookie
+```json
+{ "user": { "id": "string", "username": "string" } }
+```
+
+### DELETE /api/auth/logout
+**Mode: builtin only**
+
+Response (200): Clears JWT cookie
+```json
+{ "ok": true }
+```
+
+### GET /api/auth/me
+Response (200):
+```json
+{ "user": { "id": "string", "username": "string" } }
+```
+
+---
+
+## Tasks
+
+### GET /api/tasks
+Query params: `status`, `project_id`, `area_id`, `heading_id`, `tag_ids` (comma-separated), `when_date`, `when_before`, `when_after`, `has_deadline`, `is_evening`, `search`
+
+Response (200):
+```json
+{
+  "tasks": [
+    {
+      "id": "string",
+      "title": "string",
+      "notes": "string",
+      "status": "open|completed|canceled|wont_do",
+      "when_date": "string|null",
+      "when_evening": false,
+      "deadline": "string|null",
+      "project_id": "string|null",
+      "area_id": "string|null",
+      "heading_id": "string|null",
+      "sort_order_today": 0.0,
+      "sort_order_project": 0.0,
+      "sort_order_heading": 0.0,
+      "completed_at": "string|null",
+      "canceled_at": "string|null",
+      "created_at": "string",
+      "updated_at": "string",
+      "tags": [{ "id": "string", "title": "string" }],
+      "checklist_count": 0,
+      "checklist_done": 0,
+      "has_notes": false,
+      "has_attachments": false,
+      "has_repeat_rule": false
+    }
+  ]
+}
+```
+
+### POST /api/tasks
+Request:
+```json
+{
+  "title": "string (required)",
+  "notes": "string",
+  "when_date": "string|null",
+  "when_evening": false,
+  "deadline": "string|null",
+  "project_id": "string|null",
+  "area_id": "string|null",
+  "heading_id": "string|null",
+  "tag_ids": ["string"]
+}
+```
+
+Response (201): Full task object (same shape as list item)
+
+### GET /api/tasks/:id
+Response (200): Full task object with nested checklist, attachments, tags, repeat_rule
+```json
+{
+  "id": "string",
+  "title": "string",
+  "notes": "string",
+  "status": "open|completed|canceled|wont_do",
+  "when_date": "string|null",
+  "when_evening": false,
+  "deadline": "string|null",
+  "project_id": "string|null",
+  "project": { "id": "string", "title": "string" },
+  "area_id": "string|null",
+  "area": { "id": "string", "title": "string" },
+  "heading_id": "string|null",
+  "heading": { "id": "string", "title": "string" },
+  "sort_order_today": 0.0,
+  "sort_order_project": 0.0,
+  "sort_order_heading": 0.0,
+  "completed_at": "string|null",
+  "canceled_at": "string|null",
+  "created_at": "string",
+  "updated_at": "string",
+  "tags": [{ "id": "string", "title": "string" }],
+  "checklist": [
+    {
+      "id": "string",
+      "title": "string",
+      "completed": false,
+      "sort_order": 0.0
+    }
+  ],
+  "attachments": [
+    {
+      "id": "string",
+      "type": "file|link",
+      "title": "string",
+      "url": "string",
+      "mime_type": "string",
+      "file_size": 0,
+      "sort_order": 0.0,
+      "created_at": "string"
+    }
+  ],
+  "repeat_rule": {
+    "id": "string",
+    "frequency": "daily|weekly|monthly|yearly",
+    "interval_value": 1,
+    "mode": "fixed|after_completion",
+    "day_constraints": ["mon", "wed", "fri"]
+  }
+}
+```
+
+### PATCH /api/tasks/:id
+Request: Partial update (any subset of task fields)
+```json
+{
+  "title": "string",
+  "notes": "string",
+  "when_date": "string|null",
+  "when_evening": false,
+  "deadline": "string|null",
+  "project_id": "string|null",
+  "area_id": "string|null",
+  "heading_id": "string|null",
+  "tag_ids": ["string"]
+}
+```
+
+Response (200): Updated full task object
+
+### DELETE /api/tasks/:id
+Response (204): No content
+
+### PATCH /api/tasks/:id/complete
+Response (200): Updated task with status=completed, completed_at set
+
+### PATCH /api/tasks/:id/cancel
+Response (200): Updated task with status=canceled, canceled_at set
+
+### PATCH /api/tasks/:id/wontdo
+Response (200): Updated task with status=wont_do
+
+### PATCH /api/tasks/:id/reopen
+Response (200): Updated task with status=open
+
+### PATCH /api/tasks/reorder
+Request:
+```json
+{
+  "items": [
+    { "id": "string", "sort_field": "sort_order_today|sort_order_project|sort_order_heading", "sort_order": 0.0 }
+  ]
+}
+```
+
+Response (200):
+```json
+{ "ok": true }
+```
+
+---
+
+## Checklist Items
+
+### GET /api/tasks/:id/checklist
+Response (200):
+```json
+{
+  "items": [
+    { "id": "string", "title": "string", "completed": false, "sort_order": 0.0 }
+  ]
+}
+```
+
+### POST /api/tasks/:id/checklist
+Request:
+```json
+{ "title": "string (required)" }
+```
+
+Response (201): Checklist item object
+
+### PATCH /api/checklist/:id
+Request:
+```json
+{ "title": "string", "completed": true, "sort_order": 0.0 }
+```
+
+Response (200): Updated checklist item
+
+### DELETE /api/checklist/:id
+Response (204): No content
+
+---
+
+## Attachments
+
+### GET /api/tasks/:id/attachments
+Response (200):
+```json
+{
+  "attachments": [
+    {
+      "id": "string",
+      "type": "file|link",
+      "title": "string",
+      "url": "string",
+      "mime_type": "string",
+      "file_size": 0,
+      "sort_order": 0.0,
+      "created_at": "string"
+    }
+  ]
+}
+```
+
+### POST /api/tasks/:id/attachments
+**For files:** multipart/form-data with `file` field
+**For links:**
+```json
+{ "type": "link", "title": "string", "url": "string" }
+```
+
+Response (201): Attachment object
+
+### PATCH /api/attachments/:id
+Request:
+```json
+{ "title": "string", "sort_order": 0.0 }
+```
+
+Response (200): Updated attachment
+
+### DELETE /api/attachments/:id
+Response (204): No content
+
+### GET /api/attachments/:id/file
+Response: Binary file stream with appropriate Content-Type
+
+---
+
+## Projects
+
+### GET /api/projects
+Query params: `area_id`, `status` (open|completed|canceled)
+
+Response (200):
+```json
+{
+  "projects": [
+    {
+      "id": "string",
+      "title": "string",
+      "notes": "string",
+      "area_id": "string|null",
+      "area": { "id": "string", "title": "string" },
+      "status": "open|completed|canceled",
+      "when_date": "string|null",
+      "deadline": "string|null",
+      "sort_order": 0.0,
+      "task_count": 0,
+      "completed_task_count": 0,
+      "tags": [{ "id": "string", "title": "string" }],
+      "created_at": "string",
+      "updated_at": "string"
+    }
+  ]
+}
+```
+
+### POST /api/projects
+Request:
+```json
+{
+  "title": "string (required)",
+  "notes": "string",
+  "area_id": "string|null",
+  "when_date": "string|null",
+  "deadline": "string|null",
+  "tag_ids": ["string"]
+}
+```
+
+Response (201): Full project object
+
+### GET /api/projects/:id
+Response (200): Project with nested headings and tasks
+```json
+{
+  "id": "string",
+  "title": "string",
+  "notes": "string",
+  "area_id": "string|null",
+  "area": { "id": "string", "title": "string" },
+  "status": "open|completed|canceled",
+  "when_date": "string|null",
+  "deadline": "string|null",
+  "sort_order": 0.0,
+  "task_count": 0,
+  "completed_task_count": 0,
+  "tags": [{ "id": "string", "title": "string" }],
+  "created_at": "string",
+  "updated_at": "string",
+  "headings": [
+    {
+      "id": "string",
+      "title": "string",
+      "sort_order": 0.0,
+      "tasks": [/* task objects */]
+    }
+  ],
+  "tasks_without_heading": [/* task objects */]
+}
+```
+
+### PATCH /api/projects/:id
+Request: Partial update
+Response (200): Updated project
+
+### DELETE /api/projects/:id
+Response (204): No content
+
+### PATCH /api/projects/:id/complete
+Response (200): Updated project with status=completed
+
+---
+
+## Headings
+
+### GET /api/projects/:id/headings
+Response (200):
+```json
+{
+  "headings": [
+    { "id": "string", "title": "string", "project_id": "string", "sort_order": 0.0 }
+  ]
+}
+```
+
+### POST /api/projects/:id/headings
+Request:
+```json
+{ "title": "string (required)" }
+```
+
+Response (201): Heading object
+
+### PATCH /api/headings/:id
+Request:
+```json
+{ "title": "string", "sort_order": 0.0 }
+```
+
+Response (200): Updated heading
+
+### DELETE /api/headings/:id
+Response (204): No content
+
+---
+
+## Areas
+
+### GET /api/areas
+Response (200):
+```json
+{
+  "areas": [
+    {
+      "id": "string",
+      "title": "string",
+      "sort_order": 0.0,
+      "project_count": 0,
+      "task_count": 0,
+      "created_at": "string",
+      "updated_at": "string"
+    }
+  ]
+}
+```
+
+### POST /api/areas
+Request:
+```json
+{ "title": "string (required)" }
+```
+
+Response (201): Area object
+
+### GET /api/areas/:id
+Response (200): Area with nested projects
+```json
+{
+  "id": "string",
+  "title": "string",
+  "sort_order": 0.0,
+  "created_at": "string",
+  "updated_at": "string",
+  "projects": [/* project objects */],
+  "tasks": [/* standalone tasks in this area (no project) */]
+}
+```
+
+### PATCH /api/areas/:id
+Request:
+```json
+{ "title": "string", "sort_order": 0.0 }
+```
+
+Response (200): Updated area
+
+### DELETE /api/areas/:id
+Response (204): No content
+
+---
+
+## Tags
+
+### GET /api/tags
+Response (200):
+```json
+{
+  "tags": [
+    {
+      "id": "string",
+      "title": "string",
+      "parent_tag_id": "string|null",
+      "sort_order": 0.0,
+      "task_count": 0
+    }
+  ]
+}
+```
+
+### POST /api/tags
+Request:
+```json
+{ "title": "string (required)", "parent_tag_id": "string|null" }
+```
+
+Response (201): Tag object
+
+### PATCH /api/tags/:id
+Request:
+```json
+{ "title": "string", "parent_tag_id": "string|null", "sort_order": 0.0 }
+```
+
+Response (200): Updated tag
+
+### DELETE /api/tags/:id
+Response (204): No content
+
+### GET /api/tags/:id/tasks
+Response (200): Tasks with this tag
+```json
+{ "tasks": [/* task objects */] }
+```
+
+---
+
+## Repeat Rules
+
+### GET /api/tasks/:id/repeat
+Response (200):
+```json
+{
+  "repeat_rule": {
+    "id": "string",
+    "frequency": "daily|weekly|monthly|yearly",
+    "interval_value": 1,
+    "mode": "fixed|after_completion",
+    "day_constraints": ["mon", "wed", "fri"]
+  }
+}
+```
+Response (200, no rule): `{ "repeat_rule": null }`
+
+### PUT /api/tasks/:id/repeat
+Request:
+```json
+{
+  "frequency": "daily|weekly|monthly|yearly (required)",
+  "interval_value": 1,
+  "mode": "fixed|after_completion (required)",
+  "day_constraints": ["mon", "wed", "fri"]
+}
+```
+
+Response (200): Repeat rule object
+
+### DELETE /api/tasks/:id/repeat
+Response (204): No content
+
+---
+
+## View Endpoints
+
+Pre-structured data for each smart list. Complex grouping/filtering happens server-side.
+
+### GET /api/views/inbox
+Tasks with no project, no area, no when_date, status=open.
+```json
+{
+  "tasks": [/* task objects ordered by sort_order_today */]
+}
+```
+
+### GET /api/views/today
+```json
+{
+  "sections": [
+    {
+      "title": "Today",
+      "groups": [
+        {
+          "project": { "id": "string", "title": "string" } | null,
+          "tasks": [/* task objects */]
+        }
+      ]
+    },
+    {
+      "title": "This Evening",
+      "groups": [
+        {
+          "project": { "id": "string", "title": "string" } | null,
+          "tasks": [/* task objects */]
+        }
+      ]
+    }
+  ],
+  "overdue": [/* tasks with deadline < today */]
+}
+```
+
+### GET /api/views/upcoming
+Query params: `from` (ISO date, default today), `days` (default 30)
+```json
+{
+  "dates": [
+    {
+      "date": "2024-03-15",
+      "tasks": [/* task objects */]
+    }
+  ]
+}
+```
+
+### GET /api/views/anytime
+```json
+{
+  "areas": [
+    {
+      "area": { "id": "string", "title": "string" },
+      "projects": [
+        {
+          "project": { "id": "string", "title": "string" },
+          "tasks": [/* task objects */]
+        }
+      ],
+      "standalone_tasks": [/* tasks in area but no project */]
+    }
+  ],
+  "no_area": {
+    "projects": [/* projects with no area */],
+    "standalone_tasks": [/* tasks with no area, no project, but with when_date or not inbox */]
+  }
+}
+```
+
+### GET /api/views/someday
+Same structure as anytime but filtered to someday-deferred items.
+```json
+{
+  "areas": [/* same structure as anytime */],
+  "no_area": {/* same structure as anytime */}
+}
+```
+
+### GET /api/views/logbook
+Query params: `limit` (default 50), `offset` (default 0)
+```json
+{
+  "groups": [
+    {
+      "date": "2024-03-15",
+      "tasks": [/* completed/canceled/wont_do task objects */]
+    }
+  ],
+  "total": 150
+}
+```
+
+---
+
+## Search
+
+### GET /api/search
+Query params: `q` (required, FTS5 query string), `limit` (default 20)
+
+Response (200):
+```json
+{
+  "results": [
+    {
+      "task": {/* task object */},
+      "title_snippet": "string with <mark>highlights</mark>",
+      "notes_snippet": "string with <mark>highlights</mark>",
+      "rank": -1.5
+    }
+  ]
+}
+```
+
+---
+
+## SSE Events
+
+### GET /api/events
+Response: text/event-stream
+
+Event types:
+```
+event: task_created
+data: {"id": "string", "task": {/* task object */}}
+
+event: task_updated
+data: {"id": "string", "task": {/* task object */}}
+
+event: task_deleted
+data: {"id": "string"}
+
+event: project_updated
+data: {"id": "string", "project": {/* project object */}}
+
+event: area_updated
+data: {"id": "string", "area": {/* area object */}}
+
+event: tag_updated
+data: {"id": "string", "tag": {/* tag object */}}
+
+event: bulk_change
+data: {"type": "reorder|move|delete", "entity": "task|project|heading", "ids": ["string"]}
+```
+
+---
+
+## Health
+
+### GET /health
+Response (200):
+```json
+{ "status": "ok" }
+```
