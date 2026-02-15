@@ -5,6 +5,8 @@ import type { Task } from '../api/types'
 import { useCompleteTask, useReopenTask, useUpdateTask } from '../hooks/queries'
 import { useAppStore } from '../stores/app'
 import { TaskDetail } from './TaskDetail'
+import { useResolveTags } from '../hooks/useResolveTags'
+import { TagAutocomplete } from './TagAutocomplete'
 
 interface TaskItemProps {
   task: Task
@@ -21,6 +23,7 @@ export function TaskItem({ task, showProject = true }: TaskItemProps) {
   const completeTask = useCompleteTask()
   const reopenTask = useReopenTask()
   const updateTask = useUpdateTask()
+  const resolveTags = useResolveTags()
   const isSelected = selectedTaskId === task.id
   const isExpanded = expandedTaskId === task.id
   const isCompleted = task.status === 'completed'
@@ -72,14 +75,19 @@ export function TaskItem({ task, showProject = true }: TaskItemProps) {
     setEditing(true)
   }
 
-  function saveTitle() {
+  async function saveTitle() {
     setEditing(false)
     const trimmed = title.trim()
-    if (trimmed && trimmed !== task.title) {
-      updateTask.mutate({ id: task.id, data: { title: trimmed } })
-    } else {
+    if (!trimmed || trimmed === task.title) {
       setTitle(task.title)
+      return
     }
+    const { title: cleanTitle, tagIds } = await resolveTags(trimmed)
+    if (!cleanTitle) {
+      setTitle(task.title)
+      return
+    }
+    updateTask.mutate({ id: task.id, data: { title: cleanTitle, tag_ids: tagIds } })
   }
 
   function toggleExpand(e: React.MouseEvent) {
@@ -112,27 +120,30 @@ export function TaskItem({ task, showProject = true }: TaskItemProps) {
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2">
             {editing ? (
-              <input
-                ref={inputRef}
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                onBlur={saveTitle}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') {
-                    e.preventDefault()
-                    saveTitle()
-                  }
-                  if (e.key === 'Escape') {
-                    setTitle(task.title)
-                    setEditing(false)
-                  }
-                }}
-                onClick={(e) => e.stopPropagation()}
-                onDoubleClick={(e) => e.stopPropagation()}
-                className={`min-w-0 flex-1 border-none bg-transparent text-sm leading-5 focus:outline-none ${
-                  isCompleted ? 'text-gray-400 line-through' : 'text-gray-900 dark:text-gray-100'
-                }`}
-              />
+              <>
+                <input
+                  ref={inputRef}
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
+                  onBlur={saveTitle}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault()
+                      saveTitle()
+                    }
+                    if (e.key === 'Escape') {
+                      setTitle(task.title)
+                      setEditing(false)
+                    }
+                  }}
+                  onClick={(e) => e.stopPropagation()}
+                  onDoubleClick={(e) => e.stopPropagation()}
+                  className={`min-w-0 flex-1 border-none bg-transparent text-sm leading-5 focus:outline-none ${
+                    isCompleted ? 'text-gray-400 line-through' : 'text-gray-900 dark:text-gray-100'
+                  }`}
+                />
+                <TagAutocomplete inputRef={inputRef} value={title} onChange={setTitle} />
+              </>
             ) : (
               <span
                 className={`text-sm leading-5 ${

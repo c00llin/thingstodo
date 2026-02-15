@@ -184,10 +184,14 @@ function rollbackViews(
 }
 
 export function useCreateTask() {
+  const queryClient = useQueryClient()
   const invalidate = useInvalidateViews()
   return useMutation({
     mutationFn: (data: CreateTaskRequest) => tasksApi.createTask(data),
-    onSuccess: invalidate,
+    onSuccess: () => {
+      invalidate()
+      queryClient.invalidateQueries({ queryKey: queryKeys.tags.all })
+    },
   })
 }
 
@@ -214,7 +218,10 @@ export function useUpdateTask() {
     onSuccess: (result) => {
       queryClient.setQueryData(queryKeys.tasks.detail(result.id), result)
     },
-    onSettled: invalidate,
+    onSettled: () => {
+      invalidate()
+      queryClient.invalidateQueries({ queryKey: queryKeys.tags.all })
+    },
   })
 }
 
