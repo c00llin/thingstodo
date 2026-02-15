@@ -1,0 +1,18 @@
+{
+    "env": {
+        "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1"
+    },
+    "teammateMode": "tmux",
+    "hooks": {
+        "TaskCompleted": [
+            {
+                "hooks": [
+                    {
+                        "type": "command",
+                        "command": "go test ./... 2>&1 | tail -5 && cd frontend && npm run lint 2>&1 | tail -5"
+                    }
+                ]
+            }
+        ]
+    }
+}
