@@ -27,6 +27,11 @@ export function TaskDetail({ taskId }: TaskDetailProps) {
   const deleteTask = useDeleteTask()
   const expandTask = useAppStore((s) => s.expandTask)
 
+  const detailFocusField = useAppStore((s) => s.detailFocusField)
+  const setDetailFocusField = useAppStore((s) => s.setDetailFocusField)
+  const setDetailFieldCompleted = useAppStore((s) => s.setDetailFieldCompleted)
+  const triggeredByTitleRef = useRef(false)
+
   const [editingNotes, setEditingNotes] = useState(false)
   const [showNotes, setShowNotes] = useState(false)
   const [notes, setNotes] = useState('')
@@ -34,17 +39,80 @@ export function TaskDetail({ taskId }: TaskDetailProps) {
   const [showWhen, setShowWhen] = useState(false)
   const [showDeadline, setShowDeadline] = useState(false)
   const [showChecklist, setShowChecklist] = useState(false)
+  const whenDateInputRef = useRef<HTMLDivElement>(null)
+  const deadlineDateInputRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- syncing server state into local draft
     if (task) setNotes(task.notes)
   }, [task])
 
   useEffect(() => {
     if (editingNotes && notesRef.current) {
       notesRef.current.focus()
+      // Auto-size to fit existing content
+      notesRef.current.style.height = 'auto'
+      notesRef.current.style.height = notesRef.current.scrollHeight + 'px'
     }
   }, [editingNotes])
+
+  // Handle focus field signal from inline title editing triggers (@, ^, *)
+  useEffect(() => {
+    if (!detailFocusField || !task) return
+    const field = detailFocusField
+    setDetailFocusField(null)
+    triggeredByTitleRef.current = true
+
+    if (field === 'notes') {
+      setShowNotes(true)
+      setEditingNotes(true)
+    } else if (field === 'when') {
+      setShowWhen(true)
+      requestAnimationFrame(() => {
+        const container = whenDateInputRef.current
+        // If date already set, DateInput renders a button — click it to activate input mode
+        const btn = container?.querySelector('button')
+        if (btn) {
+          btn.click()
+        } else {
+          container?.querySelector('input')?.focus()
+        }
+      })
+    } else if (field === 'deadline') {
+      setShowDeadline(true)
+      requestAnimationFrame(() => {
+        const container = deadlineDateInputRef.current
+        const btn = container?.querySelector('button')
+        if (btn) {
+          btn.click()
+        } else {
+          container?.querySelector('input')?.focus()
+        }
+      })
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [detailFocusField, task])
+
+  function returnToTitle() {
+    if (triggeredByTitleRef.current) {
+      triggeredByTitleRef.current = false
+      setDetailFieldCompleted(true)
+    }
+  }
+
+  function handleWhenComplete() {
+    // Hide section if no date exists (Escape without selecting)
+    if (!task?.when_date) {
+      setShowWhen(false)
+    }
+    returnToTitle()
+  }
+
+  function handleDeadlineComplete() {
+    if (!task?.deadline) {
+      setShowDeadline(false)
+    }
+    returnToTitle()
+  }
 
   function handleKeyDown(e: React.KeyboardEvent) {
     if (e.key === 'Escape') {
@@ -110,39 +178,73 @@ export function TaskDetail({ taskId }: TaskDetailProps) {
     >
       {/* Notes — shown when has notes or toggled */}
       {(hasNotes || showNotes) && (
-        editingNotes ? (
-          <textarea
-            ref={notesRef}
-            value={notes}
-            onChange={(e) => setNotes(e.target.value)}
-            onBlur={saveNotes}
-            className="w-full resize-none border-none bg-transparent px-0 py-0 text-sm focus:outline-none dark:text-neutral-100 dark:placeholder:text-neutral-500"
-            placeholder="Notes"
-            rows={3}
-          />
-        ) : (
-          <div
-            onClick={() => setEditingNotes(true)}
-            className="min-h-[1.5rem] cursor-text text-sm text-neutral-700 dark:text-neutral-300"
-          >
-            {task.notes || (
-              <span className="text-neutral-400">Notes</span>
-            )}
-          </div>
-        )
+        <div className="flex gap-2">
+          <StickyNote size={14} className="mt-0.5 shrink-0 text-neutral-400" />
+          {editingNotes ? (
+            <textarea
+              ref={notesRef}
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              onBlur={() => {
+                saveNotes()
+                if (!notes.trim()) setShowNotes(false)
+                returnToTitle()
+              }}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.stopPropagation()
+                } else if (e.key === 'Escape') {
+                  e.preventDefault()
+                  e.stopPropagation()
+                  const trimmed = notes.split('\n').filter((l) => l.trim() !== '').join('\n')
+                  setNotes(trimmed)
+                  if (!trimmed) {
+                    setShowNotes(false)
+                  } else if (notesRef.current) {
+                    notesRef.current.value = trimmed
+                    notesRef.current.style.height = 'auto'
+                    notesRef.current.style.height = notesRef.current.scrollHeight + 'px'
+                  }
+                  saveNotes()
+                  returnToTitle()
+                }
+              }}
+              onInput={(e) => {
+                const el = e.currentTarget
+                el.style.height = 'auto'
+                el.style.height = el.scrollHeight + 'px'
+              }}
+              className="w-full resize-none border-none bg-transparent px-0 py-0 text-sm focus:outline-none dark:text-neutral-100 dark:placeholder:text-neutral-500"
+              placeholder="Notes"
+              rows={1}
+            />
+          ) : (
+            <div
+              onClick={() => setEditingNotes(true)}
+              className="min-h-[1.5rem] cursor-text text-sm text-neutral-700 dark:text-neutral-300"
+            >
+              {task.notes || (
+                <span className="text-neutral-400">Notes</span>
+              )}
+            </div>
+          )}
+        </div>
       )}
 
       {/* When date — shown when set or toggled */}
       {(hasWhen || showWhen) && (
         <div className="flex items-center gap-2">
           <Calendar size={14} className="shrink-0 text-neutral-400" />
-          <DateInput
-            variant="when"
-            value={task.when_date ?? ''}
-            evening={task.when_evening}
-            onChange={handleWhenDateChange}
-            autoFocus={showWhen && !hasWhen}
-          />
+          <div ref={whenDateInputRef}>
+            <DateInput
+              variant="when"
+              value={task.when_date ?? ''}
+              evening={task.when_evening}
+              onChange={handleWhenDateChange}
+              autoFocus={showWhen && !hasWhen}
+              onComplete={handleWhenComplete}
+            />
+          </div>
           {hasWhen && (
             <button
               onClick={clearWhen}
@@ -159,12 +261,15 @@ export function TaskDetail({ taskId }: TaskDetailProps) {
       {(hasDeadline || showDeadline) && (
         <div className="flex items-center gap-2">
           <Flag size={14} className="shrink-0 text-red-500" />
-          <DateInput
-            variant="deadline"
-            value={task.deadline ?? ''}
-            onChange={handleDeadlineChange}
-            autoFocus={showDeadline && !hasDeadline}
-          />
+          <div ref={deadlineDateInputRef}>
+            <DateInput
+              variant="deadline"
+              value={task.deadline ?? ''}
+              onChange={handleDeadlineChange}
+              autoFocus={showDeadline && !hasDeadline}
+              onComplete={handleDeadlineComplete}
+            />
+          </div>
           {hasDeadline && (
             <button
               onClick={clearDeadline}
@@ -188,7 +293,11 @@ export function TaskDetail({ taskId }: TaskDetailProps) {
       )}
 
       {/* Toolbar — icon buttons for adding when, deadline, file, link */}
-      <div className="flex items-center gap-1 border-t border-neutral-100 pt-3 dark:border-neutral-700">
+      <div className={`flex items-center gap-1 -ml-[6px] ${
+        (hasNotes || showNotes || hasWhen || showWhen || hasDeadline || showDeadline || hasChecklist || showChecklist || task.attachments.length > 0)
+          ? 'border-t border-neutral-100 pt-3 dark:border-neutral-700'
+          : ''
+      }`}>
         {!hasNotes && !showNotes && (
           <button
             onClick={() => { setShowNotes(true); setEditingNotes(true) }}
@@ -472,7 +581,7 @@ function ChecklistEditor({
             </Checkbox.Root>
             <span
               className={`flex-1 text-sm ${
-                item.completed ? 'text-neutral-400 line-through' : 'text-neutral-700'
+                item.completed ? 'text-neutral-400 line-through' : 'text-neutral-900 dark:text-neutral-100'
               }`}
             >
               {item.title}
@@ -493,7 +602,7 @@ function ChecklistEditor({
             onChange={(e) => setNewTitle(e.target.value)}
             onKeyDown={handleKeyDown}
             placeholder="Add item..."
-            className="flex-1 border-none bg-transparent py-1 text-sm text-neutral-700 placeholder:text-neutral-400 focus:outline-none"
+            className="flex-1 border-none bg-transparent py-1 text-sm text-neutral-900 placeholder:text-neutral-400 focus:outline-none dark:text-neutral-100"
           />
         </div>
       </div>

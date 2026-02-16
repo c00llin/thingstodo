@@ -1,25 +1,18 @@
 import { useState, useCallback, useRef, useEffect } from 'react'
-import { Command } from 'cmdk'
-import { useNavigate } from 'react-router'
 import { useAppStore } from '../stores/app'
-import { useCreateTask, useSearch } from '../hooks/queries'
+import { useCreateTask } from '../hooks/queries'
 import { useResolveTags } from '../hooks/useResolveTags'
 import { TagAutocomplete } from './TagAutocomplete'
 import { ProjectAutocomplete } from './ProjectAutocomplete'
-import type { SearchResult } from '../api/types'
-import { Search, StickyNote, Calendar, Flag, X } from 'lucide-react'
+import { StickyNote, Calendar, Flag, X } from 'lucide-react'
 import { DateInput } from './DateInput'
-
-type Mode = 'create' | 'search'
 
 export function QuickEntry() {
   const open = useAppStore((s) => s.quickEntryOpen)
   const close = useAppStore((s) => s.closeQuickEntry)
   const initialValue = useAppStore((s) => s.quickEntryInitialValue)
 
-  const [mode, setMode] = useState<Mode>('create')
   const [title, setTitle] = useState('')
-  const [searchQuery, setSearchQuery] = useState('')
 
   // Detail fields
   const [notes, setNotes] = useState('')
@@ -32,13 +25,9 @@ export function QuickEntry() {
 
   const createTask = useCreateTask()
   const resolveTags = useResolveTags()
-  const { data: searchData } = useSearch(searchQuery)
-  const navigate = useNavigate()
 
   const inputRef = useRef<HTMLInputElement>(null)
   const notesRef = useRef<HTMLTextAreaElement>(null)
-
-  const searchResults: SearchResult[] = searchData?.results ?? []
 
   useEffect(() => {
     if (open) {
@@ -47,8 +36,6 @@ export function QuickEntry() {
         // eslint-disable-next-line react-hooks/set-state-in-effect
         setTitle(initialValue)
       }
-      setMode('create')
-      setSearchQuery('')
     }
   }, [open, initialValue])
 
@@ -111,19 +98,6 @@ export function QuickEntry() {
     )
   }, [title, notes, whenDate, whenEvening, deadline, resolveTags, createTask, close])
 
-  const handleSearchSelect = useCallback(
-    (result: SearchResult) => {
-      close()
-      navigate(`/task/${result.task.id}`)
-    },
-    [close, navigate]
-  )
-
-  const switchToSearch = useCallback(() => {
-    setMode('search')
-    setSearchQuery('')
-  }, [])
-
   if (!open) return null
 
   return (
@@ -138,52 +112,56 @@ export function QuickEntry() {
           e.stopPropagation()
           close()
         }
+        if (e.key === 'Tab') {
+          const modal = e.currentTarget.querySelector<HTMLElement>('.quick-entry-modal')
+          if (!modal) return
+          const focusable = modal.querySelectorAll<HTMLElement>(
+            'input:not([disabled]), textarea:not([disabled]), button:not([disabled])'
+          )
+          if (focusable.length === 0) return
+          const first = focusable[0]
+          const last = focusable[focusable.length - 1]
+          if (e.shiftKey && document.activeElement === first) {
+            e.preventDefault()
+            last.focus()
+          } else if (!e.shiftKey && document.activeElement === last) {
+            e.preventDefault()
+            first.focus()
+          }
+        }
       }}
     >
-      <div className="w-full max-w-lg rounded-xl bg-white shadow-2xl dark:bg-neutral-800">
-        {mode === 'search' ? (
-          <SearchMode
-            query={searchQuery}
-            onQueryChange={setSearchQuery}
-            results={searchResults}
-            onSelect={handleSearchSelect}
-            onSwitchToCreate={() => setMode('create')}
-          />
-        ) : (
-          <CreateMode
-            title={title}
-            onTitleChange={setTitle}
-            onSubmit={handleSubmit}
-            onSwitchToSearch={switchToSearch}
-            isSubmitting={createTask.isPending}
-            inputRef={inputRef}
-            notes={notes}
-            onNotesChange={setNotes}
-            notesRef={notesRef}
-            whenDate={whenDate}
-            whenEvening={whenEvening}
-            onWhenDateChange={(date, evening) => {
-              setWhenDate(date ?? '')
-              setWhenEvening(evening ?? false)
-              if (!date) setShowWhen(false)
-            }}
-            deadline={deadline}
-            onDeadlineChange={(date) => {
-              setDeadline(date ?? '')
-              if (!date) setShowDeadline(false)
-            }}
-            showNotes={showNotes}
-            onToggleNotes={setShowNotes}
-            showWhen={showWhen}
-            onToggleWhen={setShowWhen}
-            showDeadline={showDeadline}
-            onToggleDeadline={setShowDeadline}
-          />
-        )}
+      <div className="quick-entry-modal w-full max-w-lg rounded-xl bg-white shadow-2xl dark:bg-neutral-800">
+        <CreateMode
+          title={title}
+          onTitleChange={setTitle}
+          onSubmit={handleSubmit}
+          isSubmitting={createTask.isPending}
+          inputRef={inputRef}
+          notes={notes}
+          onNotesChange={setNotes}
+          notesRef={notesRef}
+          whenDate={whenDate}
+          whenEvening={whenEvening}
+          onWhenDateChange={(date, evening) => {
+            setWhenDate(date ?? '')
+            setWhenEvening(evening ?? false)
+            if (!date) setShowWhen(false)
+          }}
+          deadline={deadline}
+          onDeadlineChange={(date) => {
+            setDeadline(date ?? '')
+            if (!date) setShowDeadline(false)
+          }}
+          showNotes={showNotes}
+          onToggleNotes={setShowNotes}
+          showWhen={showWhen}
+          onToggleWhen={setShowWhen}
+          showDeadline={showDeadline}
+          onToggleDeadline={setShowDeadline}
+        />
         <div className="flex items-center justify-between border-t border-neutral-200 px-4 py-2 text-xs text-neutral-400 dark:border-neutral-700 dark:text-neutral-500">
-          <span>
-            {mode === 'create' ? 'Enter to create · #tag $project' : 'Enter to open'}
-          </span>
+          <span>Enter to create · #tag $project *notes @when ^deadline</span>
           <span>Esc to close</span>
         </div>
       </div>
@@ -195,7 +173,6 @@ function CreateMode({
   title,
   onTitleChange,
   onSubmit,
-  onSwitchToSearch,
   isSubmitting,
   inputRef,
   notes,
@@ -216,7 +193,6 @@ function CreateMode({
   title: string
   onTitleChange: (v: string) => void
   onSubmit: () => void
-  onSwitchToSearch: () => void
   isSubmitting: boolean
   inputRef: React.RefObject<HTMLInputElement | null>
   notes: string
@@ -236,6 +212,64 @@ function CreateMode({
 }) {
   const showToolbar = title.trim().length >= 2
 
+  // Track cursor position when a trigger character is used, so we can restore it after field completion
+  const triggerCursorRef = useRef<number | null>(null)
+  const whenDateInputRef = useRef<HTMLDivElement>(null)
+  const deadlineDateInputRef = useRef<HTMLDivElement>(null)
+
+  const handleTitleChange = useCallback((value: string) => {
+    const cursorPos = inputRef.current?.selectionStart ?? value.length
+    const lastChar = value[cursorPos - 1]
+
+    if (lastChar === '@') {
+      const withoutTrigger = value.slice(0, cursorPos - 1) + value.slice(cursorPos)
+      triggerCursorRef.current = cursorPos - 1
+      onTitleChange(withoutTrigger)
+      onToggleWhen(true)
+      requestAnimationFrame(() => {
+        const input = whenDateInputRef.current?.querySelector('input')
+        input?.focus()
+      })
+      return
+    }
+
+    if (lastChar === '^') {
+      const withoutTrigger = value.slice(0, cursorPos - 1) + value.slice(cursorPos)
+      triggerCursorRef.current = cursorPos - 1
+      onTitleChange(withoutTrigger)
+      onToggleDeadline(true)
+      requestAnimationFrame(() => {
+        const input = deadlineDateInputRef.current?.querySelector('input')
+        input?.focus()
+      })
+      return
+    }
+
+    if (lastChar === '*') {
+      const withoutTrigger = value.slice(0, cursorPos - 1) + value.slice(cursorPos)
+      triggerCursorRef.current = cursorPos - 1
+      onTitleChange(withoutTrigger)
+      onToggleNotes(true)
+      requestAnimationFrame(() => {
+        notesRef.current?.focus()
+      })
+      return
+    }
+
+    onTitleChange(value)
+  }, [inputRef, onTitleChange, onToggleWhen, onToggleDeadline, onToggleNotes, notesRef])
+
+  const returnFocusToTitle = useCallback(() => {
+    const pos = triggerCursorRef.current
+    triggerCursorRef.current = null
+    requestAnimationFrame(() => {
+      inputRef.current?.focus()
+      if (pos != null) {
+        inputRef.current?.setSelectionRange(pos, pos)
+      }
+    })
+  }, [inputRef])
+
   return (
     <div
       onKeyDown={(e) => {
@@ -252,19 +286,12 @@ function CreateMode({
             ref={inputRef}
             autoFocus
             type="text"
-            placeholder="New task... (#tag $project)"
+            placeholder="New task... (#tag $project *notes @when ^deadline)"
             value={title}
-            onChange={(e) => onTitleChange(e.target.value)}
+            onChange={(e) => handleTitleChange(e.target.value)}
             className="flex-1 bg-transparent text-base outline-none placeholder:text-neutral-400 dark:placeholder:text-neutral-500"
             disabled={isSubmitting}
           />
-          <button
-            onClick={onSwitchToSearch}
-            className="rounded p-1 text-neutral-400 hover:bg-neutral-100 hover:text-neutral-600 dark:hover:bg-neutral-700 dark:hover:text-neutral-300"
-            title="Switch to search (Alt+F)"
-          >
-            <Search size={16} />
-          </button>
         </div>
       </div>
       <TagAutocomplete inputRef={inputRef} value={title} onChange={onTitleChange} />
@@ -272,30 +299,56 @@ function CreateMode({
 
       {/* Detail sections — shown when toggled */}
       {showToolbar && (showNotes || showWhen || showDeadline) && (
-        <div className="space-y-3 border-t border-neutral-200 px-4 py-3 dark:border-neutral-700">
+        <div className="space-y-3 border-t border-neutral-200 px-4 py-3 pl-[48px] dark:border-neutral-700">
           {showNotes && (
-            <textarea
-              ref={notesRef}
-              value={notes}
-              onChange={(e) => onNotesChange(e.target.value)}
-              className="w-full resize-none border-none bg-transparent px-0 py-0 text-sm focus:outline-none dark:text-neutral-100 dark:placeholder:text-neutral-500"
-              placeholder="Notes"
-              rows={3}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') e.stopPropagation()
-              }}
-            />
+            <div className="flex gap-2">
+              <StickyNote size={14} className="mt-0.5 shrink-0 text-neutral-400" />
+              <textarea
+                ref={notesRef}
+                value={notes}
+                onChange={(e) => onNotesChange(e.target.value)}
+                className="w-full resize-none border-none bg-transparent px-0 py-0 text-sm focus:outline-none dark:text-neutral-100 dark:placeholder:text-neutral-500"
+                placeholder="Notes"
+                rows={1}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.stopPropagation()
+                  } else if (e.key === 'Escape') {
+                    e.preventDefault()
+                    e.stopPropagation()
+                    const trimmed = notes.split('\n').filter((l) => l.trim() !== '').join('\n')
+                    onNotesChange(trimmed)
+                    if (!trimmed) {
+                      onToggleNotes(false)
+                    } else if (notesRef.current) {
+                      notesRef.current.value = trimmed
+                      notesRef.current.style.height = 'auto'
+                      notesRef.current.style.height = notesRef.current.scrollHeight + 'px'
+                    }
+                    returnFocusToTitle()
+                  }
+                }}
+                onInput={(e) => {
+                  const el = e.currentTarget
+                  el.style.height = 'auto'
+                  el.style.height = el.scrollHeight + 'px'
+                }}
+              />
+            </div>
           )}
           {showWhen && (
             <div className="flex items-center gap-2">
               <Calendar size={14} className="shrink-0 text-neutral-400" />
-              <DateInput
-                variant="when"
-                value={whenDate}
-                evening={whenEvening}
-                onChange={onWhenDateChange}
-                autoFocus={!whenDate}
-              />
+              <div ref={whenDateInputRef}>
+                <DateInput
+                  variant="when"
+                  value={whenDate}
+                  evening={whenEvening}
+                  onChange={onWhenDateChange}
+                  autoFocus={!whenDate}
+                  onComplete={returnFocusToTitle}
+                />
+              </div>
               {whenDate && (
                 <button
                   onClick={() => { onWhenDateChange(null); onToggleWhen(false) }}
@@ -310,12 +363,15 @@ function CreateMode({
           {showDeadline && (
             <div className="flex items-center gap-2">
               <Flag size={14} className="shrink-0 text-red-500" />
-              <DateInput
-                variant="deadline"
-                value={deadline}
-                onChange={onDeadlineChange}
-                autoFocus={!deadline}
-              />
+              <div ref={deadlineDateInputRef}>
+                <DateInput
+                  variant="deadline"
+                  value={deadline}
+                  onChange={onDeadlineChange}
+                  autoFocus={!deadline}
+                  onComplete={returnFocusToTitle}
+                />
+              </div>
               {deadline && (
                 <button
                   onClick={() => { onDeadlineChange(null); onToggleDeadline(false) }}
@@ -330,9 +386,9 @@ function CreateMode({
         </div>
       )}
 
-      {/* Icon toolbar — appears after 2+ characters */}
-      {showToolbar && (
-        <div className="flex items-center gap-1 border-t border-neutral-200 px-4 py-2 dark:border-neutral-700">
+      {/* Icon toolbar — appears after 2+ characters, hidden when all sections active */}
+      {showToolbar && (!showNotes || !showWhen || !showDeadline) && (
+        <div className="flex items-center gap-1 border-t border-neutral-200 py-2 pl-[42px] pr-4 dark:border-neutral-700">
           {!showNotes && (
             <button
               onClick={() => onToggleNotes(true)}
@@ -369,63 +425,3 @@ function CreateMode({
   )
 }
 
-function SearchMode({
-  query,
-  onQueryChange,
-  results,
-  onSelect,
-  onSwitchToCreate,
-}: {
-  query: string
-  onQueryChange: (v: string) => void
-  results: SearchResult[]
-  onSelect: (result: SearchResult) => void
-  onSwitchToCreate: () => void
-}) {
-  return (
-    <Command label="Search tasks" className="flex flex-col">
-      <div className="flex items-center gap-3 border-b border-neutral-200 px-4 py-3 dark:border-neutral-700">
-        <Search size={18} className="text-neutral-400" />
-        <Command.Input
-          autoFocus
-          placeholder="Search tasks..."
-          value={query}
-          onValueChange={onQueryChange}
-          className="flex-1 bg-transparent text-base outline-none placeholder:text-neutral-400 dark:placeholder:text-neutral-500"
-        />
-        <button
-          onClick={onSwitchToCreate}
-          className="rounded px-2 py-1 text-xs text-neutral-400 hover:bg-neutral-100 hover:text-neutral-600 dark:hover:bg-neutral-700 dark:hover:text-neutral-300"
-        >
-          New task
-        </button>
-      </div>
-
-      <Command.List className="max-h-72 overflow-y-auto p-2">
-        <Command.Empty className="px-4 py-8 text-center text-sm text-neutral-400">
-          {query.length === 0
-            ? 'Start typing to search...'
-            : 'No tasks found.'}
-        </Command.Empty>
-
-        {results.map((result) => (
-          <Command.Item
-            key={result.task.id}
-            value={result.task.title}
-            onSelect={() => onSelect(result)}
-            className="flex cursor-pointer flex-col gap-0.5 rounded-lg px-3 py-2 text-sm aria-selected:bg-neutral-100 dark:aria-selected:bg-neutral-700"
-          >
-            <span className="font-medium text-neutral-900 dark:text-neutral-100">
-              {result.title_snippet || result.task.title}
-            </span>
-            {result.notes_snippet && (
-              <span className="text-xs text-neutral-500 dark:text-neutral-400">
-                {result.notes_snippet}
-              </span>
-            )}
-          </Command.Item>
-        ))}
-      </Command.List>
-    </Command>
-  )
-}

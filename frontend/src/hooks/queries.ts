@@ -263,6 +263,7 @@ export function useUpdateTask() {
     },
     onSuccess: (result) => {
       queryClient.setQueryData(queryKeys.tasks.detail(result.id), result)
+      updateTaskInCache(queryClient, result.id, result as Partial<Task>)
     },
     onSettled: () => {
       invalidate()

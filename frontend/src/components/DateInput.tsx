@@ -8,6 +8,7 @@ interface DateInputProps {
   onChange: (date: string | null, evening?: boolean) => void
   variant: 'when' | 'deadline'
   autoFocus?: boolean
+  onComplete?: () => void
 }
 
 interface Suggestion {
@@ -61,7 +62,7 @@ function getTypedSuggestion(text: string): Suggestion | null {
   }
 }
 
-export function DateInput({ value, evening, onChange, variant, autoFocus }: DateInputProps) {
+export function DateInput({ value, evening, onChange, variant, autoFocus, onComplete }: DateInputProps) {
   const [active, setActive] = useState(false)
   const [text, setText] = useState('')
   const [highlightIndex, setHighlightIndex] = useState(0)
@@ -98,7 +99,8 @@ export function DateInput({ value, evening, onChange, variant, autoFocus }: Date
     setActive(false)
     setText('')
     inputRef.current?.blur()
-  }, [onChange])
+    onComplete?.()
+  }, [onChange, onComplete])
 
   // Auto-focus on mount
   useEffect(() => {
@@ -114,11 +116,12 @@ export function DateInput({ value, evening, onChange, variant, autoFocus }: Date
       if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
         setActive(false)
         setText('')
+        onComplete?.()
       }
     }
     document.addEventListener('mousedown', handleMouseDown)
     return () => document.removeEventListener('mousedown', handleMouseDown)
-  }, [active])
+  }, [active, onComplete])
 
   // Reset highlight when text changes
   // eslint-disable-next-line react-hooks/set-state-in-effect -- derived reset, not cascading
@@ -145,6 +148,7 @@ export function DateInput({ value, evening, onChange, variant, autoFocus }: Date
       setActive(false)
       setText('')
       inputRef.current?.blur()
+      onComplete?.()
     }
   }
 

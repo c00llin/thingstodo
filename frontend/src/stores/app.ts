@@ -49,6 +49,14 @@ interface AppStore {
   // Task departing animation — task ID fading out before view refresh
   departingTaskId: string | null
   setDepartingTaskId: (id: string | null) => void
+
+  // Signal TaskDetail to auto-focus a specific field after expanding
+  detailFocusField: 'notes' | 'when' | 'deadline' | null
+  setDetailFocusField: (field: 'notes' | 'when' | 'deadline' | null) => void
+
+  // Signal that a detail field interaction completed — title editing should resume
+  detailFieldCompleted: boolean
+  setDetailFieldCompleted: (v: boolean) => void
 }
 
 function getInitialTheme(): Theme {
@@ -101,6 +109,12 @@ export const useAppStore = create<AppStore>((set) => ({
 
   departingTaskId: null,
   setDepartingTaskId: (id) => set({ departingTaskId: id }),
+
+  detailFocusField: null,
+  setDetailFocusField: (field) => set({ detailFocusField: field }),
+
+  detailFieldCompleted: false,
+  setDetailFieldCompleted: (v) => set({ detailFieldCompleted: v }),
 
   selectedTaskIds: new Set(),
   toggleTaskSelection: (id, multi) =>

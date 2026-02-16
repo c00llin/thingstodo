@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
 import * as Checkbox from '@radix-ui/react-checkbox'
-import { Check, Calendar, Flag, ChevronDown, X, ListChecks } from 'lucide-react'
+import { Check, Calendar, Flag, X, ListChecks } from 'lucide-react'
 import type { Task } from '../api/types'
 import { useCompleteTask, useReopenTask, useUpdateTask } from '../hooks/queries'
 import { useAppStore } from '../stores/app'
@@ -40,6 +40,9 @@ export function TaskItem({ task, showProject = true }: TaskItemProps) {
   const expandTask = useAppStore((s) => s.expandTask)
   const editingTaskId = useAppStore((s) => s.editingTaskId)
   const startEditingTask = useAppStore((s) => s.startEditingTask)
+  const setDetailFocusField = useAppStore((s) => s.setDetailFocusField)
+  const detailFieldCompleted = useAppStore((s) => s.detailFieldCompleted)
+  const setDetailFieldCompleted = useAppStore((s) => s.setDetailFieldCompleted)
   const completeTask = useCompleteTask()
   const reopenTask = useReopenTask()
   const updateTask = useUpdateTask()
@@ -53,6 +56,9 @@ export function TaskItem({ task, showProject = true }: TaskItemProps) {
   const [editing, setEditing] = useState(false)
   const [title, setTitle] = useState(task.title)
   const inputRef = useRef<HTMLInputElement>(null)
+  const clickTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const skipBlurRef = useRef(false)
+  const triggerCursorRef = useRef<number | null>(null)
 
   function getEditTitle() {
     let prefix = ''
@@ -79,10 +85,10 @@ export function TaskItem({ task, showProject = true }: TaskItemProps) {
     }
   }, [editing])
 
-  // Stop editing when task is deselected
+  // Stop editing when task is deselected and not expanded
   useEffect(() => {
-    if (!isSelected) setEditing(false)
-  }, [isSelected])
+    if (!isSelected && !isExpanded) setEditing(false)
+  }, [isSelected, isExpanded])
 
   // Respond to store-level edit trigger (Enter key)
   useEffect(() => {
@@ -93,6 +99,21 @@ export function TaskItem({ task, showProject = true }: TaskItemProps) {
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [editingTaskId, task.id, startEditingTask])
+
+  // Return focus to title after a detail field completes (triggered by @, ^, *)
+  useEffect(() => {
+    if (detailFieldCompleted && editing && isExpanded) {
+      setDetailFieldCompleted(false)
+      const pos = triggerCursorRef.current
+      triggerCursorRef.current = null
+      requestAnimationFrame(() => {
+        inputRef.current?.focus()
+        if (pos != null) {
+          inputRef.current?.setSelectionRange(pos, pos)
+        }
+      })
+    }
+  }, [detailFieldCompleted, editing, isExpanded, setDetailFieldCompleted])
 
   function handleCheck(checked: boolean | 'indeterminate') {
     if (checked === true) {
@@ -107,12 +128,21 @@ export function TaskItem({ task, showProject = true }: TaskItemProps) {
       selectTask(isSelected ? null : task.id)
       return
     }
-    expandTask(isExpanded ? null : task.id)
+    // Delay single-click so double-click can cancel it
+    if (clickTimerRef.current) clearTimeout(clickTimerRef.current)
+    clickTimerRef.current = setTimeout(() => {
+      clickTimerRef.current = null
+      expandTask(isExpanded ? null : task.id)
+    }, 200)
   }
 
   function handleDoubleClick(e: React.MouseEvent) {
     e.preventDefault()
-    selectTask(task.id)
+    if (clickTimerRef.current) {
+      clearTimeout(clickTimerRef.current)
+      clickTimerRef.current = null
+    }
+    expandTask(task.id)
     setTitle(getEditTitle())
     setEditing(true)
   }
@@ -140,10 +170,30 @@ export function TaskItem({ task, showProject = true }: TaskItemProps) {
     })
   }
 
-  function toggleExpand(e: React.MouseEvent) {
-    e.stopPropagation()
-    expandTask(isExpanded ? null : task.id)
+  function handleTitleChange(value: string) {
+    const cursorPos = inputRef.current?.selectionStart ?? value.length
+    const lastChar = value[cursorPos - 1]
+
+    const triggerMap: Record<string, 'when' | 'deadline' | 'notes'> = {
+      '@': 'when',
+      '^': 'deadline',
+      '*': 'notes',
+    }
+
+    const field = lastChar ? triggerMap[lastChar] : undefined
+    if (field) {
+      const withoutTrigger = value.slice(0, cursorPos - 1) + value.slice(cursorPos)
+      setTitle(withoutTrigger)
+      triggerCursorRef.current = cursorPos - 1
+      skipBlurRef.current = true
+      setDetailFocusField(field)
+      expandTask(task.id)
+      return
+    }
+
+    setTitle(value)
   }
+
 
   return (
     <div className="group">
@@ -174,14 +224,22 @@ export function TaskItem({ task, showProject = true }: TaskItemProps) {
                 <input
                   ref={inputRef}
                   value={title}
-                  onChange={(e) => setTitle(e.target.value)}
-                  onBlur={saveTitle}
+                  onChange={(e) => handleTitleChange(e.target.value)}
+                  onBlur={() => {
+                    if (skipBlurRef.current) {
+                      skipBlurRef.current = false
+                      return
+                    }
+                    saveTitle()
+                  }}
                   onKeyDown={(e) => {
                     if (e.key === 'Enter') {
                       e.preventDefault()
+                      skipBlurRef.current = true
                       saveTitle()
                     }
                     if (e.key === 'Escape') {
+                      skipBlurRef.current = true
                       setTitle(task.title)
                       setEditing(false)
                     }
@@ -254,16 +312,6 @@ export function TaskItem({ task, showProject = true }: TaskItemProps) {
             </p>
           )}
         </div>
-        {/* Expand detail button — visible on hover or when selected */}
-        <button
-          onClick={toggleExpand}
-          className={`shrink-0 rounded p-0.5 text-neutral-400 transition-all hover:text-neutral-600 dark:text-neutral-500 dark:hover:text-neutral-300 ${
-            isSelected || isExpanded ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
-          } ${isExpanded ? 'rotate-180' : ''}`}
-          aria-label={isExpanded ? 'Collapse details' : 'Expand details'}
-        >
-          <ChevronDown size={16} />
-        </button>
       </div>
       {isExpanded && (
         <DelayedReveal>

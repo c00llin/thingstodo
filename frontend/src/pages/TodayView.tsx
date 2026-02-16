@@ -15,8 +15,6 @@ export function TodayView() {
 
   return (
     <div className="mx-auto max-w-2xl p-6">
-      <h2 className="mb-6 text-2xl font-bold text-neutral-900 dark:text-neutral-100">Today</h2>
-
       {/* Overdue tasks */}
       {data?.overdue && data.overdue.length > 0 && (
         <TaskGroup title="Overdue" tasks={data.overdue} sortable sortField="sort_order_today" />
