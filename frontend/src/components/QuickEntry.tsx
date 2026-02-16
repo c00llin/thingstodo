@@ -286,7 +286,7 @@ function CreateMode({
             ref={inputRef}
             autoFocus
             type="text"
-            placeholder="New task... (#tag $project *notes @when ^deadline)"
+            placeholder="New task..."
             value={title}
             onChange={(e) => handleTitleChange(e.target.value)}
             className="flex-1 bg-transparent text-base outline-none placeholder:text-neutral-400 dark:placeholder:text-neutral-500"

@@ -131,9 +131,13 @@ export function useTask(id: string) {
 function useInvalidateViews() {
   const queryClient = useQueryClient()
   return () => {
+    // Always invalidate project/area/task detail caches immediately
+    queryClient.invalidateQueries({ queryKey: queryKeys.projects.all })
+    queryClient.invalidateQueries({ queryKey: queryKeys.areas.all })
+
     const { expandedTaskId, setPendingInvalidation } = useAppStore.getState()
     if (expandedTaskId) {
-      // Defer invalidation until the detail panel closes
+      // Defer view invalidation until the detail panel closes (for departing animation)
       setPendingInvalidation(true)
       return
     }
@@ -193,31 +197,47 @@ function updateTaskInCache(
   )
 
   // Update all view caches that may contain this task
+  const deepUpdateTask = (old: Record<string, unknown> | undefined) => {
+    if (!old) return old
+    return JSON.parse(
+      JSON.stringify(old, (_key, value) => {
+        if (
+          value &&
+          typeof value === 'object' &&
+          'id' in value &&
+          value.id === taskId &&
+          'status' in value
+        ) {
+          return { ...value, ...updates }
+        }
+        return value
+      }),
+    )
+  }
+
   queryClient.setQueriesData<Record<string, unknown>>(
     { queryKey: ['views'] },
-    (old) => {
-      if (!old) return old
-      return JSON.parse(
-        JSON.stringify(old, (_key, value) => {
-          if (
-            value &&
-            typeof value === 'object' &&
-            'id' in value &&
-            value.id === taskId &&
-            'status' in value
-          ) {
-            return { ...value, ...updates }
-          }
-          return value
-        }),
-      )
-    },
+    deepUpdateTask,
+  )
+
+  // Also update project and area detail caches
+  queryClient.setQueriesData<Record<string, unknown>>(
+    { queryKey: queryKeys.projects.all },
+    deepUpdateTask,
+  )
+  queryClient.setQueriesData<Record<string, unknown>>(
+    { queryKey: queryKeys.areas.all },
+    deepUpdateTask,
   )
 }
 
-// Snapshot all view queries for rollback
+// Snapshot all view, project, and area queries for rollback
 function snapshotViews(queryClient: ReturnType<typeof useQueryClient>) {
-  return queryClient.getQueriesData({ queryKey: ['views'] })
+  return [
+    ...queryClient.getQueriesData({ queryKey: ['views'] }),
+    ...queryClient.getQueriesData({ queryKey: queryKeys.projects.all }),
+    ...queryClient.getQueriesData({ queryKey: queryKeys.areas.all }),
+  ]
 }
 
 function rollbackViews(

@@ -9,7 +9,6 @@ import { useResolveTags } from '../hooks/useResolveTags'
 import { formatRelativeDate } from '../lib/format-date'
 import { TagAutocomplete } from './TagAutocomplete'
 import { ProjectAutocomplete } from './ProjectAutocomplete'
-import { useProjects, useAreas } from '../hooks/queries'
 
 function DelayedReveal({ children }: { children: React.ReactNode }) {
   const [visible, setVisible] = useState(false)
@@ -48,8 +47,6 @@ export function TaskItem({ task, showProject = true }: TaskItemProps) {
   const reopenTask = useReopenTask()
   const updateTask = useUpdateTask()
   const resolveTags = useResolveTags()
-  const { data: projectsData } = useProjects()
-  const { data: areasData } = useAreas()
   const isSelected = selectedTaskId === task.id
   const isExpanded = expandedTaskId === task.id
   const isCompleted = task.status === 'completed'
@@ -62,16 +59,8 @@ export function TaskItem({ task, showProject = true }: TaskItemProps) {
   const triggerCursorRef = useRef<number | null>(null)
 
   function getEditTitle() {
-    let prefix = ''
-    if (task.project_id) {
-      const project = (projectsData?.projects ?? []).find((p) => p.id === task.project_id)
-      if (project) prefix = `$${project.title} `
-    } else if (task.area_id) {
-      const area = (areasData?.areas ?? []).find((a) => a.id === task.area_id)
-      if (area) prefix = `$${area.title} `
-    }
     const tagSuffix = task.tags.map((t) => `#${t.title}`).join(' ')
-    return prefix + task.title + (tagSuffix ? ' ' + tagSuffix : '')
+    return task.title + (tagSuffix ? ' ' + tagSuffix : '')
   }
 
   useEffect(() => {
@@ -155,6 +144,7 @@ export function TaskItem({ task, showProject = true }: TaskItemProps) {
       setTitle(task.title)
       return
     }
+    const hasDollarToken = trimmed.includes('$')
     const { title: cleanTitle, tagIds, projectId, areaId } = await resolveTags(trimmed)
     if (!cleanTitle) {
       setTitle(task.title)
@@ -165,8 +155,8 @@ export function TaskItem({ task, showProject = true }: TaskItemProps) {
       data: {
         title: cleanTitle,
         tag_ids: tagIds,
-        project_id: projectId,
-        area_id: areaId,
+        project_id: hasDollarToken ? projectId : task.project_id,
+        area_id: hasDollarToken ? areaId : task.area_id,
       },
     })
   }

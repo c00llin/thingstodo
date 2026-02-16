@@ -11,7 +11,7 @@ export function InboxView() {
         <p className="py-8 text-center text-sm text-neutral-400">Loading...</p>
       ) : data?.tasks.length === 0 ? (
         <p className="py-12 text-center text-sm text-neutral-400">
-          Your inbox is empty. Nice work!
+          Your inbox is empty.
         </p>
       ) : (
         <SortableTaskList
