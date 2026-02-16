@@ -101,7 +101,7 @@ func TestHeadingReorder(t *testing.T) {
 
 	// Swap order by updating sort_order.
 	newOrder := float64(0)
-	repo.Update(h2.ID, model.UpdateHeadingInput{SortOrder: &newOrder})
+	_, _ = repo.Update(h2.ID, model.UpdateHeadingInput{SortOrder: &newOrder})
 
 	headings, _ := repo.ListByProject(projectID)
 	if headings[0].ID != h2.ID {

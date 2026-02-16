@@ -81,8 +81,8 @@ func TestProjectGetByIDWithTasks(t *testing.T) {
 	taskRepo := repository.NewTaskRepository(db)
 
 	created, _ := projRepo.Create(model.CreateProjectInput{Title: "With Tasks"})
-	taskRepo.Create(model.CreateTaskInput{Title: "Task 1", ProjectID: &created.ID})
-	taskRepo.Create(model.CreateTaskInput{Title: "Task 2", ProjectID: &created.ID})
+	_, _ = taskRepo.Create(model.CreateTaskInput{Title: "Task 1", ProjectID: &created.ID})
+	_, _ = taskRepo.Create(model.CreateTaskInput{Title: "Task 2", ProjectID: &created.ID})
 
 	p, _ := projRepo.GetByID(created.ID)
 	if p.TaskCount != 2 {
@@ -196,8 +196,8 @@ func TestProjectListFilterByStatus(t *testing.T) {
 	repo := repository.NewProjectRepository(db)
 
 	p1, _ := repo.Create(model.CreateProjectInput{Title: "Open"})
-	repo.Create(model.CreateProjectInput{Title: "Also open"})
-	repo.Complete(p1.ID)
+	_, _ = repo.Create(model.CreateProjectInput{Title: "Also open"})
+	_, _ = repo.Complete(p1.ID)
 
 	completed := "completed"
 	projects, _ := repo.List(nil, &completed)
@@ -214,7 +214,7 @@ func TestProjectTaskProgress(t *testing.T) {
 	created, _ := projRepo.Create(model.CreateProjectInput{Title: "Progress"})
 	t1, _ := taskRepo.Create(model.CreateTaskInput{Title: "Task 1", ProjectID: &created.ID})
 	taskRepo.Create(model.CreateTaskInput{Title: "Task 2", ProjectID: &created.ID})
-	taskRepo.Complete(t1.ID)
+	_, _ = taskRepo.Complete(t1.ID)
 
 	projects, _ := projRepo.List(nil, nil)
 	if len(projects) != 1 {

@@ -84,7 +84,7 @@ func TestTagDeleteCascadesJunctionRows(t *testing.T) {
 	tag, _ := tagRepo.Create(model.CreateTagInput{Title: "temp"})
 	task, _ := taskRepo.Create(model.CreateTaskInput{Title: "Task", TagIDs: []string{tag.ID}})
 
-	tagRepo.Delete(tag.ID)
+	_ = tagRepo.Delete(tag.ID)
 
 	// Task should still exist but without the tag.
 	detail, _ := taskRepo.GetByID(task.ID)

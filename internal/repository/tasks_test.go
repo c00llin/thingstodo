@@ -41,7 +41,7 @@ func TestTaskCreateWithProject(t *testing.T) {
 	repo := repository.NewTaskRepository(db)
 
 	// Create a project first.
-	db.Exec("INSERT INTO projects (id, title) VALUES ('p1', 'My Project')")
+	_, _ = db.Exec("INSERT INTO projects (id, title) VALUES ('p1', 'My Project')")
 
 	task, err := repo.Create(model.CreateTaskInput{
 		Title:     "Project task",
@@ -202,7 +202,7 @@ func TestTaskReopen(t *testing.T) {
 	repo := repository.NewTaskRepository(db)
 
 	created, _ := repo.Create(model.CreateTaskInput{Title: "Reopen me"})
-	repo.Complete(created.ID)
+	_, _ = repo.Complete(created.ID)
 
 	task, err := repo.Reopen(created.ID)
 	if err != nil {
@@ -252,7 +252,7 @@ func TestTaskListFilterByStatus(t *testing.T) {
 
 	t1, _ := repo.Create(model.CreateTaskInput{Title: "Open task"})
 	t2, _ := repo.Create(model.CreateTaskInput{Title: "Completed task"})
-	repo.Complete(t2.ID)
+	_, _ = repo.Complete(t2.ID)
 	_ = t1
 
 	tasks, err := repo.List(model.TaskFilters{Status: strPtr("completed")})
