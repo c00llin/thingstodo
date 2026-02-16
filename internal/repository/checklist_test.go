@@ -38,8 +38,8 @@ func TestChecklistCreate(t *testing.T) {
 func TestChecklistListByTask(t *testing.T) {
 	repo, _, taskID := setupTaskForChecklist(t)
 
-	repo.Create(taskID, model.CreateChecklistInput{Title: "Item 1"})
-	repo.Create(taskID, model.CreateChecklistInput{Title: "Item 2"})
+	_, _ = repo.Create(taskID, model.CreateChecklistInput{Title: "Item 1"})
+	_, _ = repo.Create(taskID, model.CreateChecklistInput{Title: "Item 2"})
 
 	items, err := repo.ListByTask(taskID)
 	if err != nil {
@@ -100,8 +100,8 @@ func TestChecklistDelete(t *testing.T) {
 func TestChecklistSortOrder(t *testing.T) {
 	repo, _, taskID := setupTaskForChecklist(t)
 
-	repo.Create(taskID, model.CreateChecklistInput{Title: "First"})
-	repo.Create(taskID, model.CreateChecklistInput{Title: "Second"})
+	_, _ = repo.Create(taskID, model.CreateChecklistInput{Title: "First"})
+	_, _ = repo.Create(taskID, model.CreateChecklistInput{Title: "Second"})
 
 	items, _ := repo.ListByTask(taskID)
 	if len(items) != 2 {

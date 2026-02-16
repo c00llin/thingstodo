@@ -101,8 +101,8 @@ func TestProjectGetByIDWithHeadings(t *testing.T) {
 
 	created, _ := projRepo.Create(model.CreateProjectInput{Title: "With Headings"})
 	h, _ := headingRepo.Create(created.ID, model.CreateHeadingInput{Title: "Section 1"})
-	taskRepo.Create(model.CreateTaskInput{Title: "Headed task", ProjectID: &created.ID, HeadingID: &h.ID})
-	taskRepo.Create(model.CreateTaskInput{Title: "No heading task", ProjectID: &created.ID})
+	_, _ = taskRepo.Create(model.CreateTaskInput{Title: "Headed task", ProjectID: &created.ID, HeadingID: &h.ID})
+	_, _ = taskRepo.Create(model.CreateTaskInput{Title: "No heading task", ProjectID: &created.ID})
 
 	p, _ := projRepo.GetByID(created.ID)
 	if len(p.Headings) != 1 {
@@ -179,8 +179,8 @@ func TestProjectListFilterByArea(t *testing.T) {
 	areaRepo := repository.NewAreaRepository(db)
 
 	area, _ := areaRepo.Create(model.CreateAreaInput{Title: "Work"})
-	projRepo.Create(model.CreateProjectInput{Title: "Work Project", AreaID: &area.ID})
-	projRepo.Create(model.CreateProjectInput{Title: "Personal Project"})
+	_, _ = projRepo.Create(model.CreateProjectInput{Title: "Work Project", AreaID: &area.ID})
+	_, _ = projRepo.Create(model.CreateProjectInput{Title: "Personal Project"})
 
 	projects, _ := projRepo.List(&area.ID, nil)
 	if len(projects) != 1 {
@@ -213,7 +213,7 @@ func TestProjectTaskProgress(t *testing.T) {
 
 	created, _ := projRepo.Create(model.CreateProjectInput{Title: "Progress"})
 	t1, _ := taskRepo.Create(model.CreateTaskInput{Title: "Task 1", ProjectID: &created.ID})
-	taskRepo.Create(model.CreateTaskInput{Title: "Task 2", ProjectID: &created.ID})
+	_, _ = taskRepo.Create(model.CreateTaskInput{Title: "Task 2", ProjectID: &created.ID})
 	_, _ = taskRepo.Complete(t1.ID)
 
 	projects, _ := projRepo.List(nil, nil)

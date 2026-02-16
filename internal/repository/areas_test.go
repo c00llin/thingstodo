@@ -60,8 +60,8 @@ func TestAreaGetByIDWithProjects(t *testing.T) {
 	projRepo := repository.NewProjectRepository(db)
 
 	area, _ := areaRepo.Create(model.CreateAreaInput{Title: "Work"})
-	projRepo.Create(model.CreateProjectInput{Title: "Project 1", AreaID: &area.ID})
-	projRepo.Create(model.CreateProjectInput{Title: "Project 2", AreaID: &area.ID})
+	_, _ = projRepo.Create(model.CreateProjectInput{Title: "Project 1", AreaID: &area.ID})
+	_, _ = projRepo.Create(model.CreateProjectInput{Title: "Project 2", AreaID: &area.ID})
 
 	detail, _ := areaRepo.GetByID(area.ID)
 	if len(detail.Projects) != 2 {
@@ -75,7 +75,7 @@ func TestAreaGetByIDWithTasks(t *testing.T) {
 	taskRepo := repository.NewTaskRepository(db)
 
 	area, _ := areaRepo.Create(model.CreateAreaInput{Title: "Home"})
-	taskRepo.Create(model.CreateTaskInput{Title: "Standalone task", AreaID: &area.ID})
+	_, _ = taskRepo.Create(model.CreateTaskInput{Title: "Standalone task", AreaID: &area.ID})
 
 	detail, _ := areaRepo.GetByID(area.ID)
 	if len(detail.Tasks) != 1 {
@@ -121,7 +121,7 @@ func TestAreaDeleteSetsNullOnProjects(t *testing.T) {
 	area, _ := areaRepo.Create(model.CreateAreaInput{Title: "To delete"})
 	created, _ := projRepo.Create(model.CreateProjectInput{Title: "Project", AreaID: &area.ID})
 
-	areaRepo.Delete(area.ID)
+	_ = areaRepo.Delete(area.ID)
 
 	p, _ := projRepo.GetByID(created.ID)
 	if p == nil {
@@ -152,8 +152,8 @@ func TestAreaListWithCounts(t *testing.T) {
 	taskRepo := repository.NewTaskRepository(db)
 
 	area, _ := areaRepo.Create(model.CreateAreaInput{Title: "Work"})
-	projRepo.Create(model.CreateProjectInput{Title: "Proj", AreaID: &area.ID})
-	taskRepo.Create(model.CreateTaskInput{Title: "Task", AreaID: &area.ID})
+	_, _ = projRepo.Create(model.CreateProjectInput{Title: "Proj", AreaID: &area.ID})
+	_, _ = taskRepo.Create(model.CreateTaskInput{Title: "Task", AreaID: &area.ID})
 
 	areas, _ := areaRepo.List()
 	if len(areas) != 1 {

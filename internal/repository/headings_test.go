@@ -38,8 +38,8 @@ func TestHeadingCreate(t *testing.T) {
 func TestHeadingListByProject(t *testing.T) {
 	repo, projectID := setupProjectForHeadings(t)
 
-	repo.Create(projectID, model.CreateHeadingInput{Title: "Section 1"})
-	repo.Create(projectID, model.CreateHeadingInput{Title: "Section 2"})
+	_, _ = repo.Create(projectID, model.CreateHeadingInput{Title: "Section 1"})
+	_, _ = repo.Create(projectID, model.CreateHeadingInput{Title: "Section 2"})
 
 	headings, err := repo.ListByProject(projectID)
 	if err != nil {
@@ -81,8 +81,8 @@ func TestHeadingDelete(t *testing.T) {
 func TestHeadingSortOrder(t *testing.T) {
 	repo, projectID := setupProjectForHeadings(t)
 
-	repo.Create(projectID, model.CreateHeadingInput{Title: "First"})
-	repo.Create(projectID, model.CreateHeadingInput{Title: "Second"})
+	_, _ = repo.Create(projectID, model.CreateHeadingInput{Title: "First"})
+	_, _ = repo.Create(projectID, model.CreateHeadingInput{Title: "Second"})
 
 	headings, _ := repo.ListByProject(projectID)
 	if len(headings) != 2 {

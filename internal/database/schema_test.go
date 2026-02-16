@@ -127,7 +127,7 @@ func TestSchemaCascadeDelete(t *testing.T) {
 	}
 
 	var count int
-	db.QueryRow(`SELECT COUNT(*) FROM headings WHERE id = 'h1'`).Scan(&count)
+	_ = db.QueryRow(`SELECT COUNT(*) FROM headings WHERE id = 'h1'`).Scan(&count)
 	if count != 0 {
 		t.Error("expected heading to be cascade-deleted with project")
 	}
@@ -175,7 +175,7 @@ func TestSchemaTaskCascadeDelete(t *testing.T) {
 
 	for _, tc := range tables {
 		var count int
-		db.QueryRow(tc.query).Scan(&count)
+		_ = db.QueryRow(tc.query).Scan(&count)
 		if count != 0 {
 			t.Errorf("expected %s to be cascade-deleted with task, got count=%d", tc.table, count)
 		}

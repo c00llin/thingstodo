@@ -15,18 +15,18 @@ func TestViewInboxShowsOnlyUnassignedOpenTasks(t *testing.T) {
 	viewRepo := repository.NewViewRepository(db)
 
 	// Inbox task: no project, no area, no when_date, status=open
-	taskRepo.Create(model.CreateTaskInput{Title: "Inbox task"})
+	_, _ = taskRepo.Create(model.CreateTaskInput{Title: "Inbox task"})
 
 	// Non-inbox: has project
-	db.Exec("INSERT INTO projects (id, title) VALUES ('p1', 'Project')")
-	taskRepo.Create(model.CreateTaskInput{Title: "Project task", ProjectID: strPtr("p1")})
+	_, _ = db.Exec("INSERT INTO projects (id, title) VALUES ('p1', 'Project')")
+	_, _ = taskRepo.Create(model.CreateTaskInput{Title: "Project task", ProjectID: strPtr("p1")})
 
 	// Non-inbox: has when_date
-	taskRepo.Create(model.CreateTaskInput{Title: "Scheduled", WhenDate: strPtr("2026-03-01")})
+	_, _ = taskRepo.Create(model.CreateTaskInput{Title: "Scheduled", WhenDate: strPtr("2026-03-01")})
 
 	// Non-inbox: has area
-	db.Exec("INSERT INTO areas (id, title) VALUES ('a1', 'Work')")
-	taskRepo.Create(model.CreateTaskInput{Title: "Area task", AreaID: strPtr("a1")})
+	_, _ = db.Exec("INSERT INTO areas (id, title) VALUES ('a1', 'Work')")
+	_, _ = taskRepo.Create(model.CreateTaskInput{Title: "Area task", AreaID: strPtr("a1")})
 
 	tasks, err := viewRepo.Inbox()
 	if err != nil {
@@ -74,8 +74,8 @@ func TestViewTodayStructure(t *testing.T) {
 	viewRepo := repository.NewViewRepository(db)
 
 	today := time.Now().Format("2006-01-02")
-	taskRepo.Create(model.CreateTaskInput{Title: "Today task", WhenDate: &today})
-	taskRepo.Create(model.CreateTaskInput{Title: "Evening task", WhenDate: &today, WhenEvening: true})
+	_, _ = taskRepo.Create(model.CreateTaskInput{Title: "Today task", WhenDate: &today})
+	_, _ = taskRepo.Create(model.CreateTaskInput{Title: "Evening task", WhenDate: &today, WhenEvening: true})
 
 	view, err := viewRepo.Today()
 	if err != nil {
@@ -101,7 +101,7 @@ func TestViewLogbook(t *testing.T) {
 	_, _ = taskRepo.Complete(t1.ID)
 	t2, _ := taskRepo.Create(model.CreateTaskInput{Title: "Canceled"})
 	_, _ = taskRepo.Cancel(t2.ID)
-	taskRepo.Create(model.CreateTaskInput{Title: "Still open"})
+	_, _ = taskRepo.Create(model.CreateTaskInput{Title: "Still open"})
 
 	view, err := viewRepo.Logbook(50, 0)
 	if err != nil {
@@ -143,8 +143,8 @@ func TestViewUpcoming(t *testing.T) {
 
 	tomorrow := time.Now().AddDate(0, 0, 1).Format("2006-01-02")
 	nextWeek := time.Now().AddDate(0, 0, 7).Format("2006-01-02")
-	taskRepo.Create(model.CreateTaskInput{Title: "Tomorrow", WhenDate: &tomorrow})
-	taskRepo.Create(model.CreateTaskInput{Title: "Next week", WhenDate: &nextWeek})
+	_, _ = taskRepo.Create(model.CreateTaskInput{Title: "Tomorrow", WhenDate: &tomorrow})
+	_, _ = taskRepo.Create(model.CreateTaskInput{Title: "Next week", WhenDate: &nextWeek})
 
 	today := time.Now().Format("2006-01-02")
 	view, err := viewRepo.Upcoming(today, 30)

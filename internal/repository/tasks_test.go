@@ -62,8 +62,8 @@ func TestTaskCreateWithTags(t *testing.T) {
 	db := testutil.SetupTestDB(t)
 	repo := repository.NewTaskRepository(db)
 
-	db.Exec("INSERT INTO tags (id, title) VALUES ('tag1', 'urgent')")
-	db.Exec("INSERT INTO tags (id, title) VALUES ('tag2', 'home')")
+	_, _ = db.Exec("INSERT INTO tags (id, title) VALUES ('tag1', 'urgent')")
+	_, _ = db.Exec("INSERT INTO tags (id, title) VALUES ('tag2', 'home')")
 
 	task, err := repo.Create(model.CreateTaskInput{
 		Title:  "Tagged task",
@@ -233,9 +233,9 @@ func TestTaskListAll(t *testing.T) {
 	db := testutil.SetupTestDB(t)
 	repo := repository.NewTaskRepository(db)
 
-	repo.Create(model.CreateTaskInput{Title: "Task 1"})
-	repo.Create(model.CreateTaskInput{Title: "Task 2"})
-	repo.Create(model.CreateTaskInput{Title: "Task 3"})
+	_, _ = repo.Create(model.CreateTaskInput{Title: "Task 1"})
+	_, _ = repo.Create(model.CreateTaskInput{Title: "Task 2"})
+	_, _ = repo.Create(model.CreateTaskInput{Title: "Task 3"})
 
 	tasks, err := repo.List(model.TaskFilters{})
 	if err != nil {
@@ -271,9 +271,9 @@ func TestTaskListFilterByProject(t *testing.T) {
 	db := testutil.SetupTestDB(t)
 	repo := repository.NewTaskRepository(db)
 
-	db.Exec("INSERT INTO projects (id, title) VALUES ('p1', 'Project 1')")
-	repo.Create(model.CreateTaskInput{Title: "Project task", ProjectID: strPtr("p1")})
-	repo.Create(model.CreateTaskInput{Title: "No project task"})
+	_, _ = db.Exec("INSERT INTO projects (id, title) VALUES ('p1', 'Project 1')")
+	_, _ = repo.Create(model.CreateTaskInput{Title: "Project task", ProjectID: strPtr("p1")})
+	_, _ = repo.Create(model.CreateTaskInput{Title: "No project task"})
 
 	tasks, err := repo.List(model.TaskFilters{ProjectID: strPtr("p1")})
 	if err != nil {
@@ -291,9 +291,9 @@ func TestTaskListFilterByTag(t *testing.T) {
 	db := testutil.SetupTestDB(t)
 	repo := repository.NewTaskRepository(db)
 
-	db.Exec("INSERT INTO tags (id, title) VALUES ('tag1', 'urgent')")
-	repo.Create(model.CreateTaskInput{Title: "Tagged", TagIDs: []string{"tag1"}})
-	repo.Create(model.CreateTaskInput{Title: "Untagged"})
+	_, _ = db.Exec("INSERT INTO tags (id, title) VALUES ('tag1', 'urgent')")
+	_, _ = repo.Create(model.CreateTaskInput{Title: "Tagged", TagIDs: []string{"tag1"}})
+	_, _ = repo.Create(model.CreateTaskInput{Title: "Untagged"})
 
 	tasks, err := repo.List(model.TaskFilters{TagIDs: []string{"tag1"}})
 	if err != nil {
@@ -311,9 +311,9 @@ func TestTaskListFilterByWhenDate(t *testing.T) {
 	db := testutil.SetupTestDB(t)
 	repo := repository.NewTaskRepository(db)
 
-	repo.Create(model.CreateTaskInput{Title: "Today", WhenDate: strPtr("2026-02-15")})
-	repo.Create(model.CreateTaskInput{Title: "Tomorrow", WhenDate: strPtr("2026-02-16")})
-	repo.Create(model.CreateTaskInput{Title: "No date"})
+	_, _ = repo.Create(model.CreateTaskInput{Title: "Today", WhenDate: strPtr("2026-02-15")})
+	_, _ = repo.Create(model.CreateTaskInput{Title: "Tomorrow", WhenDate: strPtr("2026-02-16")})
+	_, _ = repo.Create(model.CreateTaskInput{Title: "No date"})
 
 	tasks, err := repo.List(model.TaskFilters{WhenDate: strPtr("2026-02-15")})
 	if err != nil {
@@ -331,8 +331,8 @@ func TestTaskListFilterByEvening(t *testing.T) {
 	db := testutil.SetupTestDB(t)
 	repo := repository.NewTaskRepository(db)
 
-	repo.Create(model.CreateTaskInput{Title: "Evening", WhenEvening: true})
-	repo.Create(model.CreateTaskInput{Title: "Not evening"})
+	_, _ = repo.Create(model.CreateTaskInput{Title: "Evening", WhenEvening: true})
+	_, _ = repo.Create(model.CreateTaskInput{Title: "Not evening"})
 
 	tasks, err := repo.List(model.TaskFilters{IsEvening: boolPtr(true)})
 	if err != nil {
@@ -390,8 +390,8 @@ func TestTaskGetByIDWithChecklist(t *testing.T) {
 	repo := repository.NewTaskRepository(db)
 
 	created, _ := repo.Create(model.CreateTaskInput{Title: "With checklist"})
-	db.Exec("INSERT INTO checklist_items (id, task_id, title, sort_order) VALUES ('c1', ?, 'Item 1', 1)", created.ID)
-	db.Exec("INSERT INTO checklist_items (id, task_id, title, completed, sort_order) VALUES ('c2', ?, 'Item 2', 1, 2)", created.ID)
+	_, _ = db.Exec("INSERT INTO checklist_items (id, task_id, title, sort_order) VALUES ('c1', ?, 'Item 1', 1)", created.ID)
+	_, _ = db.Exec("INSERT INTO checklist_items (id, task_id, title, completed, sort_order) VALUES ('c2', ?, 'Item 2', 1, 2)", created.ID)
 
 	task, err := repo.GetByID(created.ID)
 	if err != nil {
@@ -410,7 +410,7 @@ func TestTaskGetByIDWithAttachments(t *testing.T) {
 	repo := repository.NewTaskRepository(db)
 
 	created, _ := repo.Create(model.CreateTaskInput{Title: "With attachment"})
-	db.Exec("INSERT INTO attachments (id, task_id, type, url, sort_order) VALUES ('a1', ?, 'link', 'https://example.com', 1)", created.ID)
+	_, _ = db.Exec("INSERT INTO attachments (id, task_id, type, url, sort_order) VALUES ('a1', ?, 'link', 'https://example.com', 1)", created.ID)
 
 	task, err := repo.GetByID(created.ID)
 	if err != nil {
@@ -432,8 +432,8 @@ func TestTaskListItemMetadata(t *testing.T) {
 		Title: "With metadata",
 		Notes: "Has notes",
 	})
-	db.Exec("INSERT INTO checklist_items (id, task_id, title, sort_order) VALUES ('c1', ?, 'Item', 1)", created.ID)
-	db.Exec("INSERT INTO attachments (id, task_id, type, url, sort_order) VALUES ('a1', ?, 'link', 'https://example.com', 1)", created.ID)
+	_, _ = db.Exec("INSERT INTO checklist_items (id, task_id, title, sort_order) VALUES ('c1', ?, 'Item', 1)", created.ID)
+	_, _ = db.Exec("INSERT INTO attachments (id, task_id, type, url, sort_order) VALUES ('a1', ?, 'link', 'https://example.com', 1)", created.ID)
 
 	tasks, err := repo.List(model.TaskFilters{})
 	if err != nil {

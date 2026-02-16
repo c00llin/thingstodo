@@ -94,8 +94,8 @@ func TestAttachmentGetByIDNotFound(t *testing.T) {
 func TestAttachmentListByTask(t *testing.T) {
 	repo, taskID := setupTaskForAttachments(t)
 
-	repo.Create(taskID, model.CreateAttachmentInput{Type: "link", URL: "https://a.com"})
-	repo.Create(taskID, model.CreateAttachmentInput{Type: "link", URL: "https://b.com"})
+	_, _ = repo.Create(taskID, model.CreateAttachmentInput{Type: "link", URL: "https://a.com"})
+	_, _ = repo.Create(taskID, model.CreateAttachmentInput{Type: "link", URL: "https://b.com"})
 
 	items, err := repo.ListByTask(taskID)
 	if err != nil {

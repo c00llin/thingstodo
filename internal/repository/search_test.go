@@ -13,8 +13,8 @@ func TestSearchByTitle(t *testing.T) {
 	taskRepo := repository.NewTaskRepository(db)
 	searchRepo := repository.NewSearchRepository(db)
 
-	taskRepo.Create(model.CreateTaskInput{Title: "Buy groceries at the store"})
-	taskRepo.Create(model.CreateTaskInput{Title: "Call the dentist"})
+	_, _ = taskRepo.Create(model.CreateTaskInput{Title: "Buy groceries at the store"})
+	_, _ = taskRepo.Create(model.CreateTaskInput{Title: "Call the dentist"})
 
 	results, err := searchRepo.Search("groceries", 20)
 	if err != nil {
@@ -33,8 +33,8 @@ func TestSearchByNotes(t *testing.T) {
 	taskRepo := repository.NewTaskRepository(db)
 	searchRepo := repository.NewSearchRepository(db)
 
-	taskRepo.Create(model.CreateTaskInput{Title: "Shopping", Notes: "milk eggs bread butter"})
-	taskRepo.Create(model.CreateTaskInput{Title: "Reading"})
+	_, _ = taskRepo.Create(model.CreateTaskInput{Title: "Shopping", Notes: "milk eggs bread butter"})
+	_, _ = taskRepo.Create(model.CreateTaskInput{Title: "Reading"})
 
 	results, err := searchRepo.Search("milk", 20)
 	if err != nil {
@@ -50,7 +50,7 @@ func TestSearchNoResults(t *testing.T) {
 	taskRepo := repository.NewTaskRepository(db)
 	searchRepo := repository.NewSearchRepository(db)
 
-	taskRepo.Create(model.CreateTaskInput{Title: "Something"})
+	_, _ = taskRepo.Create(model.CreateTaskInput{Title: "Something"})
 
 	results, err := searchRepo.Search("nonexistent", 20)
 	if err != nil {
@@ -66,7 +66,7 @@ func TestSearchSnippets(t *testing.T) {
 	taskRepo := repository.NewTaskRepository(db)
 	searchRepo := repository.NewSearchRepository(db)
 
-	taskRepo.Create(model.CreateTaskInput{Title: "Buy groceries", Notes: "Need to get milk"})
+	_, _ = taskRepo.Create(model.CreateTaskInput{Title: "Buy groceries", Notes: "Need to get milk"})
 
 	results, err := searchRepo.Search("groceries", 20)
 	if err != nil {
@@ -86,7 +86,7 @@ func TestSearchLimit(t *testing.T) {
 	searchRepo := repository.NewSearchRepository(db)
 
 	for i := 0; i < 5; i++ {
-		taskRepo.Create(model.CreateTaskInput{Title: "Test task for search"})
+		_, _ = taskRepo.Create(model.CreateTaskInput{Title: "Test task for search"})
 	}
 
 	results, err := searchRepo.Search("test", 3)

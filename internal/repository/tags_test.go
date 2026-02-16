@@ -25,7 +25,7 @@ func TestTagCreateUniqueness(t *testing.T) {
 	db := testutil.SetupTestDB(t)
 	repo := repository.NewTagRepository(db)
 
-	repo.Create(model.CreateTagInput{Title: "urgent"})
+	_, _ = repo.Create(model.CreateTagInput{Title: "urgent"})
 	_, err := repo.Create(model.CreateTagInput{Title: "urgent"})
 	if err == nil {
 		t.Error("expected error for duplicate tag title")
@@ -115,8 +115,8 @@ func TestTagListWithTaskCount(t *testing.T) {
 	taskRepo := repository.NewTaskRepository(db)
 
 	tag, _ := tagRepo.Create(model.CreateTagInput{Title: "important"})
-	taskRepo.Create(model.CreateTaskInput{Title: "Task 1", TagIDs: []string{tag.ID}})
-	taskRepo.Create(model.CreateTaskInput{Title: "Task 2", TagIDs: []string{tag.ID}})
+	_, _ = taskRepo.Create(model.CreateTaskInput{Title: "Task 1", TagIDs: []string{tag.ID}})
+	_, _ = taskRepo.Create(model.CreateTaskInput{Title: "Task 2", TagIDs: []string{tag.ID}})
 
 	tags, _ := tagRepo.List()
 	if len(tags) != 1 {
@@ -133,8 +133,8 @@ func TestTagGetTasksByTag(t *testing.T) {
 	taskRepo := repository.NewTaskRepository(db)
 
 	tag, _ := tagRepo.Create(model.CreateTagInput{Title: "work"})
-	taskRepo.Create(model.CreateTaskInput{Title: "Work task", TagIDs: []string{tag.ID}})
-	taskRepo.Create(model.CreateTaskInput{Title: "Other task"})
+	_, _ = taskRepo.Create(model.CreateTaskInput{Title: "Work task", TagIDs: []string{tag.ID}})
+	_, _ = taskRepo.Create(model.CreateTaskInput{Title: "Other task"})
 
 	tasks, err := tagRepo.GetTasksByTag(tag.ID)
 	if err != nil {

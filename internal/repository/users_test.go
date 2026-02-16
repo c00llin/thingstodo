@@ -27,7 +27,7 @@ func TestUserCreateDuplicateUsername(t *testing.T) {
 	db := testutil.SetupTestDB(t)
 	repo := repository.NewUserRepository(db)
 
-	repo.Create("admin", "hash1")
+	_, _ = repo.Create("admin", "hash1")
 	_, err := repo.Create("admin", "hash2")
 	if err == nil {
 		t.Error("expected error for duplicate username")
@@ -38,7 +38,7 @@ func TestUserGetByUsername(t *testing.T) {
 	db := testutil.SetupTestDB(t)
 	repo := repository.NewUserRepository(db)
 
-	repo.Create("testuser", "$2a$10$somehash")
+	_, _ = repo.Create("testuser", "$2a$10$somehash")
 
 	user, err := repo.GetByUsername("testuser")
 	if err != nil {
