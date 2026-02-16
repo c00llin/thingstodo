@@ -75,11 +75,15 @@ export function useTaskShortcuts() {
     }
   }, { enabled })
 
-  // Escape closes detail
+  // Escape closes detail and deselects
   useHotkeys('escape', (e) => {
     e.preventDefault()
-    expandTask(null)
-  }, { enabled: !!expandedTaskId })
+    if (expandedTaskId) {
+      expandTask(null)
+    } else if (selectedTaskId) {
+      selectTask(null)
+    }
+  }, { enabled: !!expandedTaskId || !!selectedTaskId })
 
   // Arrow down — select next task
   useHotkeys('down', (e) => {

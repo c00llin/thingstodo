@@ -30,7 +30,6 @@ export function SortableTaskItem({
   const expandTask = useAppStore((s) => s.expandTask)
   const editingTaskId = useAppStore((s) => s.editingTaskId)
   const startEditingTask = useAppStore((s) => s.startEditingTask)
-  const toggleTaskSelection = useAppStore((s) => s.toggleTaskSelection)
   const selectedTaskIds = useAppStore((s) => s.selectedTaskIds)
   const completeTask = useCompleteTask()
   const reopenTask = useReopenTask()
@@ -109,10 +108,10 @@ export function SortableTaskItem({
 
   function handleClick(e: React.MouseEvent) {
     if (e.metaKey || e.ctrlKey) {
-      toggleTaskSelection(task.id, true)
+      selectTask(isSelected ? null : task.id)
       return
     }
-    selectTask(isSelected ? null : task.id)
+    expandTask(isExpanded ? null : task.id)
   }
 
   function handleDoubleClick(e: React.MouseEvent) {
