@@ -7,7 +7,7 @@ import { useResolveTags } from '../hooks/useResolveTags'
 import { TagAutocomplete } from './TagAutocomplete'
 import { ProjectAutocomplete } from './ProjectAutocomplete'
 import type { SearchResult } from '../api/types'
-import { Search } from 'lucide-react'
+import { Search, StickyNote, Calendar, Flag, X } from 'lucide-react'
 
 type Mode = 'create' | 'search'
 
@@ -20,12 +20,23 @@ export function QuickEntry() {
   const [title, setTitle] = useState('')
   const [searchQuery, setSearchQuery] = useState('')
 
+  // Detail fields
+  const [notes, setNotes] = useState('')
+  const [whenDate, setWhenDate] = useState('')
+  const [deadline, setDeadline] = useState('')
+  const [showNotes, setShowNotes] = useState(false)
+  const [showWhen, setShowWhen] = useState(false)
+  const [showDeadline, setShowDeadline] = useState(false)
+
   const createTask = useCreateTask()
   const resolveTags = useResolveTags()
   const { data: searchData } = useSearch(searchQuery)
   const navigate = useNavigate()
 
   const inputRef = useRef<HTMLInputElement>(null)
+  const notesRef = useRef<HTMLTextAreaElement>(null)
+  const whenRef = useRef<HTMLInputElement>(null)
+  const deadlineRef = useRef<HTMLInputElement>(null)
 
   const searchResults: SearchResult[] = searchData?.results ?? []
 
@@ -43,6 +54,15 @@ export function QuickEntry() {
     }
   }, [open, initialValue])
 
+  // Reset detail fields when title is cleared
+  useEffect(() => {
+    if (title.trim().length === 0) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- resetting sections when title cleared
+      resetDetailFields()
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [title])
+
   // Place cursor at end of value when popup opens
   useEffect(() => {
     if (open && inputRef.current) {
@@ -50,6 +70,26 @@ export function QuickEntry() {
       inputRef.current.setSelectionRange(len, len)
     }
   }, [open])
+
+  // Auto-focus sections when toggled
+  useEffect(() => {
+    if (showNotes && notesRef.current) notesRef.current.focus()
+  }, [showNotes])
+  useEffect(() => {
+    if (showWhen && whenRef.current) whenRef.current.focus()
+  }, [showWhen])
+  useEffect(() => {
+    if (showDeadline && deadlineRef.current) deadlineRef.current.focus()
+  }, [showDeadline])
+
+  function resetDetailFields() {
+    setNotes('')
+    setWhenDate('')
+    setDeadline('')
+    setShowNotes(false)
+    setShowWhen(false)
+    setShowDeadline(false)
+  }
 
   const handleSubmit = useCallback(async () => {
     const raw = title.trim()
@@ -61,6 +101,9 @@ export function QuickEntry() {
     createTask.mutate(
       {
         title: parsedTitle,
+        notes: notes.trim() || undefined,
+        when_date: whenDate || undefined,
+        deadline: deadline || undefined,
         tag_ids: tagIds.length > 0 ? tagIds : undefined,
         project_id: projectId ?? undefined,
         area_id: areaId ?? undefined,
@@ -68,11 +111,12 @@ export function QuickEntry() {
       {
         onSuccess: () => {
           setTitle('')
+          resetDetailFields()
           close()
         },
       }
     )
-  }, [title, resolveTags, createTask, close])
+  }, [title, notes, whenDate, deadline, resolveTags, createTask, close])
 
   const handleSearchSelect = useCallback(
     (result: SearchResult) => {
@@ -120,6 +164,21 @@ export function QuickEntry() {
             onSwitchToSearch={switchToSearch}
             isSubmitting={createTask.isPending}
             inputRef={inputRef}
+            notes={notes}
+            onNotesChange={setNotes}
+            notesRef={notesRef}
+            whenDate={whenDate}
+            onWhenDateChange={setWhenDate}
+            whenRef={whenRef}
+            deadline={deadline}
+            onDeadlineChange={setDeadline}
+            deadlineRef={deadlineRef}
+            showNotes={showNotes}
+            onToggleNotes={setShowNotes}
+            showWhen={showWhen}
+            onToggleWhen={setShowWhen}
+            showDeadline={showDeadline}
+            onToggleDeadline={setShowDeadline}
           />
         )}
         <div className="flex items-center justify-between border-t border-neutral-200 px-4 py-2 text-xs text-neutral-400 dark:border-neutral-700 dark:text-neutral-500">
@@ -140,6 +199,21 @@ function CreateMode({
   onSwitchToSearch,
   isSubmitting,
   inputRef,
+  notes,
+  onNotesChange,
+  notesRef,
+  whenDate,
+  onWhenDateChange,
+  whenRef,
+  deadline,
+  onDeadlineChange,
+  deadlineRef,
+  showNotes,
+  onToggleNotes,
+  showWhen,
+  onToggleWhen,
+  showDeadline,
+  onToggleDeadline,
 }: {
   title: string
   onTitleChange: (v: string) => void
@@ -147,11 +221,28 @@ function CreateMode({
   onSwitchToSearch: () => void
   isSubmitting: boolean
   inputRef: React.RefObject<HTMLInputElement | null>
+  notes: string
+  onNotesChange: (v: string) => void
+  notesRef: React.RefObject<HTMLTextAreaElement | null>
+  whenDate: string
+  onWhenDateChange: (v: string) => void
+  whenRef: React.RefObject<HTMLInputElement | null>
+  deadline: string
+  onDeadlineChange: (v: string) => void
+  deadlineRef: React.RefObject<HTMLInputElement | null>
+  showNotes: boolean
+  onToggleNotes: (v: boolean) => void
+  showWhen: boolean
+  onToggleWhen: (v: boolean) => void
+  showDeadline: boolean
+  onToggleDeadline: (v: boolean) => void
 }) {
+  const showToolbar = title.trim().length >= 2
+
   return (
     <div
       onKeyDown={(e) => {
-        if (e.key === 'Enter' && !e.shiftKey) {
+        if (e.key === 'Enter' && !e.shiftKey && e.target === inputRef.current) {
           e.preventDefault()
           onSubmit()
         }
@@ -181,6 +272,103 @@ function CreateMode({
       </div>
       <TagAutocomplete inputRef={inputRef} value={title} onChange={onTitleChange} />
       <ProjectAutocomplete inputRef={inputRef} value={title} onChange={onTitleChange} />
+
+      {/* Detail sections — shown when toggled */}
+      {showToolbar && (showNotes || showWhen || showDeadline) && (
+        <div className="space-y-3 border-t border-neutral-200 px-4 py-3 dark:border-neutral-700">
+          {showNotes && (
+            <textarea
+              ref={notesRef}
+              value={notes}
+              onChange={(e) => onNotesChange(e.target.value)}
+              className="w-full resize-none border-none bg-transparent px-0 py-0 text-sm focus:outline-none dark:text-neutral-100 dark:placeholder:text-neutral-500"
+              placeholder="Notes"
+              rows={3}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') e.stopPropagation()
+              }}
+            />
+          )}
+          {showWhen && (
+            <div className="flex items-center gap-2">
+              <Calendar size={14} className="shrink-0 text-neutral-400" />
+              <input
+                ref={whenRef}
+                type="date"
+                value={whenDate}
+                onChange={(e) => onWhenDateChange(e.target.value)}
+                className="rounded-md border border-neutral-200 bg-white px-2 py-1 text-sm dark:border-neutral-600 dark:bg-neutral-800 dark:text-neutral-100"
+              />
+              {whenDate && (
+                <button
+                  onClick={() => { onWhenDateChange(''); onToggleWhen(false) }}
+                  className="text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-300"
+                  aria-label="Clear when date"
+                >
+                  <X size={14} />
+                </button>
+              )}
+            </div>
+          )}
+          {showDeadline && (
+            <div className="flex items-center gap-2">
+              <Flag size={14} className="shrink-0 text-red-500" />
+              <input
+                ref={deadlineRef}
+                type="date"
+                value={deadline}
+                onChange={(e) => onDeadlineChange(e.target.value)}
+                className="rounded-md border border-neutral-200 bg-white px-2 py-1 text-sm dark:border-neutral-600 dark:bg-neutral-800 dark:text-neutral-100"
+              />
+              {deadline && (
+                <button
+                  onClick={() => { onDeadlineChange(''); onToggleDeadline(false) }}
+                  className="text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-300"
+                  aria-label="Clear deadline"
+                >
+                  <X size={14} />
+                </button>
+              )}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Icon toolbar — appears after 2+ characters */}
+      {showToolbar && (
+        <div className="flex items-center gap-1 border-t border-neutral-200 px-4 py-2 dark:border-neutral-700">
+          {!showNotes && (
+            <button
+              onClick={() => onToggleNotes(true)}
+              className="rounded-md p-1.5 text-neutral-400 hover:bg-neutral-100 hover:text-neutral-600 dark:hover:bg-neutral-800 dark:hover:text-neutral-300"
+              aria-label="Add notes"
+              title="Notes"
+            >
+              <StickyNote size={16} />
+            </button>
+          )}
+          {!showWhen && (
+            <button
+              onClick={() => onToggleWhen(true)}
+              className="rounded-md p-1.5 text-neutral-400 hover:bg-neutral-100 hover:text-neutral-600 dark:hover:bg-neutral-800 dark:hover:text-neutral-300"
+              aria-label="Set when date"
+              title="When"
+            >
+              <Calendar size={16} />
+            </button>
+          )}
+          {!showDeadline && (
+            <button
+              onClick={() => onToggleDeadline(true)}
+              className="rounded-md p-1.5 text-neutral-400 hover:bg-neutral-100 hover:text-neutral-600 dark:hover:bg-neutral-800 dark:hover:text-neutral-300"
+              aria-label="Set deadline"
+              title="Deadline"
+            >
+              <Flag size={16} />
+            </button>
+          )}
+        </div>
+      )}
     </div>
   )
 }

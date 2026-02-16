@@ -88,10 +88,19 @@ export function SortableTaskList({ tasks, sortField, showProject }: SortableTask
 
   const taskIds = tasks.map((t) => t.id)
   const setVisibleTaskIds = useAppStore((s) => s.setVisibleTaskIds)
+  const expandedTaskId = useAppStore((s) => s.expandedTaskId)
+  const expandTask = useAppStore((s) => s.expandTask)
 
   useEffect(() => {
     setVisibleTaskIds(taskIds)
   }, [taskIds.join(','), setVisibleTaskIds])
+
+  // Close detail panel if the expanded task is no longer in this list
+  useEffect(() => {
+    if (expandedTaskId && !taskIds.includes(expandedTaskId)) {
+      expandTask(null)
+    }
+  }, [taskIds.join(','), expandedTaskId, expandTask])
 
   return (
     <DndContext
