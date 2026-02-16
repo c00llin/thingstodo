@@ -534,6 +534,89 @@ function LinkAddButton({ taskId }: { taskId: string }) {
   )
 }
 
+function ChecklistItemRow({
+  item,
+  onUpdate,
+  onDelete,
+}: {
+  item: ChecklistItem
+  onUpdate: (data: { title?: string; completed?: boolean }) => void
+  onDelete: () => void
+}) {
+  const [editing, setEditing] = useState(false)
+  const [title, setTitle] = useState(item.title)
+  const inputRef = useRef<HTMLInputElement>(null)
+
+  useEffect(() => {
+    if (editing && inputRef.current) {
+      inputRef.current.focus()
+      inputRef.current.select()
+    }
+  }, [editing])
+
+  function save() {
+    setEditing(false)
+    const trimmed = title.trim()
+    if (trimmed && trimmed !== item.title) {
+      onUpdate({ title: trimmed })
+    } else {
+      setTitle(item.title)
+    }
+  }
+
+  return (
+    <div className="group/item flex items-center gap-2">
+      <Checkbox.Root
+        checked={item.completed}
+        onCheckedChange={(checked) => onUpdate({ completed: checked === true })}
+        className="flex h-4 w-4 shrink-0 items-center justify-center rounded border border-neutral-300 data-[state=checked]:border-red-500 data-[state=checked]:bg-red-500"
+      >
+        <Checkbox.Indicator>
+          <Check size={10} className="text-white" />
+        </Checkbox.Indicator>
+      </Checkbox.Root>
+      {editing ? (
+        <input
+          ref={inputRef}
+          type="text"
+          value={title}
+          onChange={(e) => setTitle(e.target.value)}
+          onBlur={save}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') {
+              e.preventDefault()
+              save()
+            }
+            if (e.key === 'Escape') {
+              e.stopPropagation()
+              setTitle(item.title)
+              setEditing(false)
+            }
+          }}
+          className={`flex-1 border-none bg-transparent py-0 text-sm focus:outline-none ${
+            item.completed ? 'text-neutral-400 line-through' : 'text-neutral-900 dark:text-neutral-100'
+          }`}
+        />
+      ) : (
+        <span
+          onClick={() => setEditing(true)}
+          className={`flex-1 cursor-text text-sm ${
+            item.completed ? 'text-neutral-400 line-through' : 'text-neutral-900 dark:text-neutral-100'
+          }`}
+        >
+          {item.title}
+        </span>
+      )}
+      <button
+        onClick={onDelete}
+        className="invisible text-neutral-400 hover:text-red-500 group-hover/item:visible"
+      >
+        <X size={14} />
+      </button>
+    </div>
+  )
+}
+
 function ChecklistEditor({
   taskId,
   items,
@@ -564,35 +647,12 @@ function ChecklistEditor({
     <div>
       <div className="space-y-1">
         {items.map((item) => (
-          <div key={item.id} className="group/item flex items-center gap-2">
-            <Checkbox.Root
-              checked={item.completed}
-              onCheckedChange={(checked) =>
-                updateItem.mutate({
-                  id: item.id,
-                  data: { completed: checked === true },
-                })
-              }
-              className="flex h-4 w-4 items-center justify-center rounded border border-neutral-300 data-[state=checked]:border-red-500 data-[state=checked]:bg-red-500"
-            >
-              <Checkbox.Indicator>
-                <Check size={10} className="text-white" />
-              </Checkbox.Indicator>
-            </Checkbox.Root>
-            <span
-              className={`flex-1 text-sm ${
-                item.completed ? 'text-neutral-400 line-through' : 'text-neutral-900 dark:text-neutral-100'
-              }`}
-            >
-              {item.title}
-            </span>
-            <button
-              onClick={() => deleteItem.mutate(item.id)}
-              className="invisible text-neutral-400 hover:text-red-500 group-hover/item:visible"
-            >
-              <X size={14} />
-            </button>
-          </div>
+          <ChecklistItemRow
+            key={item.id}
+            item={item}
+            onUpdate={(data) => updateItem.mutate({ id: item.id, data })}
+            onDelete={() => deleteItem.mutate(item.id)}
+          />
         ))}
         <div className="flex items-center gap-2">
           <Plus size={14} className="text-neutral-400" />

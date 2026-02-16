@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
-import { format, isToday, isTomorrow, addDays, addMonths, nextMonday, startOfMonth } from 'date-fns'
+import { format, addDays, addMonths, nextMonday, startOfMonth } from 'date-fns'
 import { parseNaturalDate } from '../lib/date-parser'
+import { formatRelativeDate } from '../lib/format-date'
 
 interface DateInputProps {
   value: string
@@ -18,13 +19,6 @@ interface Suggestion {
   evening?: boolean
 }
 
-function formatFriendly(iso: string, evening?: boolean): string {
-  const d = new Date(iso + 'T00:00:00')
-  if (isNaN(d.getTime())) return iso
-  if (isToday(d)) return evening ? 'This Evening' : 'Today'
-  if (isTomorrow(d)) return 'Tomorrow'
-  return format(d, 'MMM d, yyyy')
-}
 
 function getDefaultSuggestions(variant: 'when' | 'deadline'): Suggestion[] {
   const today = new Date()
@@ -163,7 +157,7 @@ export function DateInput({ value, evening, onChange, variant, autoFocus, onComp
         }}
         className="rounded-md border border-neutral-200 bg-white px-2 py-1 text-left text-sm dark:border-neutral-600 dark:bg-neutral-800 dark:text-neutral-100"
       >
-        {formatFriendly(value, evening)}
+        {formatRelativeDate(value, evening)}
       </button>
     )
   }

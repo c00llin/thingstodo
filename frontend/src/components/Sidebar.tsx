@@ -91,6 +91,7 @@ function AreaList() {
   if (areas.length === 0 && projects.length === 0) return null
 
   return (
+    <div className="border-t border-neutral-200 pt-3 dark:border-neutral-700">
     <Collapsible.Root open={open} onOpenChange={setOpen}>
       <Collapsible.Trigger className="flex w-full items-center gap-2 px-3 py-2 text-xs font-semibold uppercase tracking-wide text-neutral-500 hover:text-neutral-700 dark:text-neutral-400 dark:hover:text-neutral-300">
         <ChevronRight
@@ -181,6 +182,7 @@ function AreaList() {
         )}
       </AnimatePresence>
     </Collapsible.Root>
+    </div>
   )
 }
 
@@ -193,6 +195,7 @@ function TagList() {
   if (tags.length === 0) return null
 
   return (
+    <div className="border-t border-neutral-200 pt-3 dark:border-neutral-700">
     <Collapsible.Root open={open} onOpenChange={setOpen}>
       <Collapsible.Trigger className="flex w-full items-center gap-2 px-3 py-2 text-xs font-semibold uppercase tracking-wide text-neutral-500 hover:text-neutral-700 dark:text-neutral-400 dark:hover:text-neutral-300">
         <ChevronRight
@@ -259,6 +262,7 @@ function TagList() {
         )}
       </AnimatePresence>
     </Collapsible.Root>
+    </div>
   )
 }
 
@@ -461,12 +465,8 @@ export function Sidebar() {
       </div>
       <div className="flex-1 space-y-4 overflow-y-auto p-3">
         <SmartListNav />
-        <div className="border-t border-neutral-200 pt-3 dark:border-neutral-700">
-          <AreaList />
-        </div>
-        <div className="border-t border-neutral-200 pt-3 dark:border-neutral-700">
-          <TagList />
-        </div>
+        <AreaList />
+        <TagList />
       </div>
       <div className="border-t border-neutral-200 p-3 dark:border-neutral-700">
         <PlusMenu side="top" />

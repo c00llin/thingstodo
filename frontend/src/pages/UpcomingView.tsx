@@ -1,5 +1,6 @@
 import { useUpcoming } from '../hooks/queries'
 import { TaskGroup } from '../components/TaskGroup'
+import { formatRelativeDate } from '../lib/format-date'
 
 export function UpcomingView() {
   const { data, isLoading } = useUpcoming()
@@ -21,7 +22,7 @@ export function UpcomingView() {
         </p>
       ) : (
         data.dates.map((d) => (
-          <TaskGroup key={d.date} title={d.date} tasks={d.tasks} />
+          <TaskGroup key={d.date} title={formatRelativeDate(d.date)} tasks={d.tasks} />
         ))
       )}
     </div>

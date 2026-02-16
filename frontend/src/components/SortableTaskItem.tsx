@@ -9,6 +9,7 @@ import { useCompleteTask, useReopenTask, useUpdateTask } from '../hooks/queries'
 import { useAppStore } from '../stores/app'
 import { TaskDetail } from './TaskDetail'
 import { useResolveTags } from '../hooks/useResolveTags'
+import { formatRelativeDate } from '../lib/format-date'
 import { TagAutocomplete } from './TagAutocomplete'
 import { ProjectAutocomplete } from './ProjectAutocomplete'
 import { useProjects, useAreas } from '../hooks/queries'
@@ -340,13 +341,13 @@ export function SortableTaskItem({
                 {task.deadline && (
                   <span className="flex items-center gap-1 text-red-500">
                     <Flag size={12} />
-                    {task.deadline}
+                    {formatRelativeDate(task.deadline)}
                   </span>
                 )}
                 {task.when_date && (
                   <span className="flex items-center gap-1">
                     <Calendar size={12} />
-                    {task.when_date}
+                    {formatRelativeDate(task.when_date)}
                   </span>
                 )}
                 {task.checklist_count > 0 && (
