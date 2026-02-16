@@ -19,6 +19,7 @@ export function InboxView() {
   // When type-to-create fires, focus the input with the typed chars
   useEffect(() => {
     if (typeToCreate.isCreating && inputRef.current) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- syncing external type-to-create state
       setNewTitle(typeToCreate.title)
       inputRef.current.focus()
       typeToCreate.cancel()

@@ -3,7 +3,7 @@ import { renderHook, waitFor } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import type { ReactNode } from 'react'
 import { useInbox, useCreateTask, useCompleteTask, queryKeys } from '../queries'
-import { mockInboxView, mockTask } from '../../test/mocks/data'
+import { mockInboxView } from '../../test/mocks/data'
 
 function createWrapper() {
   const queryClient = new QueryClient({
@@ -67,7 +67,7 @@ describe('useCompleteTask', () => {
     await waitFor(() => {
       const cache = queryClient.getQueryData<typeof mockInboxView>(queryKeys.views.inbox)
       // The optimistic update changes the task status in cache
-      const task = cache?.tasks.find((t) => t.id === 'task-1')
+      cache?.tasks.find((t) => t.id === 'task-1')
       // After mutation settles, cache is invalidated and refetched
       expect(result.current.isSuccess || result.current.isPending).toBe(true)
     })

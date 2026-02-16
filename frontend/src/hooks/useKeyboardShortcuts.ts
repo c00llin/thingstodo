@@ -31,12 +31,14 @@ export function useGlobalShortcuts() {
   })
 
   // Navigate to views Alt+1 through Alt+6
-  for (let i = 0; i < VIEW_ROUTES.length; i++) {
-    useHotkeys(`alt+${i + 1}`, (e) => {
-      e.preventDefault()
-      navigate(VIEW_ROUTES[i])
-    })
-  }
+  useHotkeys(VIEW_ROUTES.map((_, i) => `alt+${i + 1}`).join(','), (e) => {
+    e.preventDefault()
+    const key = e.key
+    const idx = parseInt(key, 10) - 1
+    if (idx >= 0 && idx < VIEW_ROUTES.length) {
+      navigate(VIEW_ROUTES[idx])
+    }
+  })
 
   // Help overlay
   useHotkeys('shift+/', () => {

@@ -33,12 +33,14 @@ export function QuickEntry() {
 
   useEffect(() => {
     if (!open) {
+      /* eslint-disable react-hooks/set-state-in-effect -- resetting form state when dialog closes */
       setTitle('')
       setWhenDate('')
       setProjectId(null)
       setSelectedTagIds([])
       setSearchQuery('')
       setMode('create')
+      /* eslint-enable react-hooks/set-state-in-effect */
     }
   }, [open])
 

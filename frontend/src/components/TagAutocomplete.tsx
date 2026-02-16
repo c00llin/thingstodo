@@ -55,12 +55,14 @@ export function TagAutocomplete({ inputRef, value, onChange }: TagAutocompletePr
   }, [inputRef, value, hasTags])
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- derives dropdown state from input value
     updateToken()
   }, [updateToken])
 
   // Position the dropdown at the # character
   useEffect(() => {
     if (!open || !token || !inputRef.current) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- clearing dropdown position
       setDropdownPos(null)
       return
     }

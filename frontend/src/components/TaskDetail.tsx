@@ -37,6 +37,7 @@ export function TaskDetail({ taskId }: TaskDetailProps) {
   const deadlineRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- syncing server state into local draft
     if (task) setNotes(task.notes)
   }, [task])
 

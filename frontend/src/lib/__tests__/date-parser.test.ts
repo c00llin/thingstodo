@@ -7,8 +7,6 @@ function fmt(d: Date) {
 }
 
 describe('parseNaturalDate', () => {
-  const realDate = Date
-
   beforeEach(() => {
     // Fix "today" to 2026-02-15 (a Sunday)
     vi.useFakeTimers()

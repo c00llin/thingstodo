@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest'
 import { http, HttpResponse } from 'msw'
 import { render, screen, waitFor } from '../../test/test-utils'
 import { InboxView } from '../InboxView'
-import { mockEmptyInboxView, mockInboxView } from '../../test/mocks/data'
+import { mockEmptyInboxView } from '../../test/mocks/data'
 import { server } from '../../test/mocks/server'
 
 describe('InboxView', () => {
