@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/collinjanssen/thingstodo/internal/config"
+	mw "github.com/collinjanssen/thingstodo/internal/middleware"
 	"github.com/collinjanssen/thingstodo/internal/repository"
 	"github.com/golang-jwt/jwt/v5"
 	"golang.org/x/crypto/bcrypt"
@@ -81,7 +82,7 @@ func (h *AuthHandler) Logout(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *AuthHandler) Me(w http.ResponseWriter, r *http.Request) {
-	userID := r.Context().Value(userIDKey)
+	userID := r.Context().Value(mw.UserIDKey)
 	if userID == nil {
 		writeError(w, http.StatusUnauthorized, "not authenticated", "UNAUTHORIZED")
 		return
@@ -96,6 +97,3 @@ func (h *AuthHandler) Me(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-type contextKey string
-
-const userIDKey contextKey = "userID"
