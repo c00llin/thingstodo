@@ -324,7 +324,7 @@ func (r *ViewRepository) Logbook(limit, offset int) (*model.LogbookView, error) 
 	}
 
 	var total int
-	r.db.QueryRow("SELECT COUNT(*) FROM tasks WHERE status IN ('completed', 'canceled', 'wont_do')").Scan(&total)
+	_ = r.db.QueryRow("SELECT COUNT(*) FROM tasks WHERE status IN ('completed', 'canceled', 'wont_do')").Scan(&total)
 
 	rows, err := r.db.Query(`
 		SELECT t.id, t.title, t.notes, t.status, t.when_date, t.when_evening,

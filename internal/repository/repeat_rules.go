@@ -68,7 +68,7 @@ func (r *RepeatRuleRepository) ListAll() ([]model.RepeatRule, error) {
 	for rows.Next() {
 		var rr model.RepeatRule
 		var constraints string
-		rows.Scan(&rr.ID, &rr.TaskID, &rr.Frequency, &rr.IntervalValue, &rr.Mode, &constraints)
+		_ = rows.Scan(&rr.ID, &rr.TaskID, &rr.Frequency, &rr.IntervalValue, &rr.Mode, &constraints)
 		rr.DayConstraints = parseDayConstraints(constraints)
 		rules = append(rules, rr)
 	}

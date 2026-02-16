@@ -28,7 +28,7 @@ func (r *TagRepository) List() ([]model.Tag, error) {
 	var tags []model.Tag
 	for rows.Next() {
 		var t model.Tag
-		rows.Scan(&t.ID, &t.Title, &t.ParentTagID, &t.SortOrder, &t.TaskCount)
+		_ = rows.Scan(&t.ID, &t.Title, &t.ParentTagID, &t.SortOrder, &t.TaskCount)
 		tags = append(tags, t)
 	}
 	if tags == nil {
@@ -40,7 +40,7 @@ func (r *TagRepository) List() ([]model.Tag, error) {
 func (r *TagRepository) Create(input model.CreateTagInput) (*model.Tag, error) {
 	id := model.NewID()
 	var maxSort float64
-	r.db.QueryRow("SELECT COALESCE(MAX(sort_order), 0) FROM tags").Scan(&maxSort)
+	_ = r.db.QueryRow("SELECT COALESCE(MAX(sort_order), 0) FROM tags").Scan(&maxSort)
 
 	_, err := r.db.Exec("INSERT INTO tags (id, title, parent_tag_id, sort_order) VALUES (?, ?, ?, ?)",
 		id, input.Title, input.ParentTagID, maxSort+1024)
@@ -49,20 +49,20 @@ func (r *TagRepository) Create(input model.CreateTagInput) (*model.Tag, error) {
 	}
 
 	var t model.Tag
-	r.db.QueryRow("SELECT id, title, parent_tag_id, sort_order FROM tags WHERE id = ?", id).
+	_ = r.db.QueryRow("SELECT id, title, parent_tag_id, sort_order FROM tags WHERE id = ?", id).
 		Scan(&t.ID, &t.Title, &t.ParentTagID, &t.SortOrder)
 	return &t, nil
 }
 
 func (r *TagRepository) Update(id string, input model.UpdateTagInput) (*model.Tag, error) {
 	if input.Title != nil {
-		r.db.Exec("UPDATE tags SET title = ? WHERE id = ?", *input.Title, id)
+		_, _ = r.db.Exec("UPDATE tags SET title = ? WHERE id = ?", *input.Title, id)
 	}
 	if _, ok := input.Raw["parent_tag_id"]; ok {
-		r.db.Exec("UPDATE tags SET parent_tag_id = ? WHERE id = ?", input.ParentTagID, id)
+		_, _ = r.db.Exec("UPDATE tags SET parent_tag_id = ? WHERE id = ?", input.ParentTagID, id)
 	}
 	if input.SortOrder != nil {
-		r.db.Exec("UPDATE tags SET sort_order = ? WHERE id = ?", *input.SortOrder, id)
+		_, _ = r.db.Exec("UPDATE tags SET sort_order = ? WHERE id = ?", *input.SortOrder, id)
 	}
 
 	var t model.Tag

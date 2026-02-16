@@ -42,7 +42,7 @@ func (r *ChecklistRepository) ListByTask(taskID string) ([]model.ChecklistItem, 
 func (r *ChecklistRepository) Create(taskID string, input model.CreateChecklistInput) (*model.ChecklistItem, error) {
 	id := model.NewID()
 	var maxSort float64
-	r.db.QueryRow("SELECT COALESCE(MAX(sort_order), 0) FROM checklist_items WHERE task_id = ?", taskID).Scan(&maxSort)
+	_ = r.db.QueryRow("SELECT COALESCE(MAX(sort_order), 0) FROM checklist_items WHERE task_id = ?", taskID).Scan(&maxSort)
 
 	_, err := r.db.Exec("INSERT INTO checklist_items (id, task_id, title, sort_order) VALUES (?, ?, ?, ?)",
 		id, taskID, input.Title, maxSort+1024)
@@ -52,7 +52,7 @@ func (r *ChecklistRepository) Create(taskID string, input model.CreateChecklistI
 
 	var c model.ChecklistItem
 	var completed int
-	r.db.QueryRow("SELECT id, title, completed, sort_order FROM checklist_items WHERE id = ?", id).
+	_ = r.db.QueryRow("SELECT id, title, completed, sort_order FROM checklist_items WHERE id = ?", id).
 		Scan(&c.ID, &c.Title, &completed, &c.SortOrder)
 	c.Completed = completed == 1
 	return &c, nil
@@ -60,13 +60,13 @@ func (r *ChecklistRepository) Create(taskID string, input model.CreateChecklistI
 
 func (r *ChecklistRepository) Update(id string, input model.UpdateChecklistInput) (*model.ChecklistItem, error) {
 	if input.Title != nil {
-		r.db.Exec("UPDATE checklist_items SET title = ? WHERE id = ?", *input.Title, id)
+		_, _ = r.db.Exec("UPDATE checklist_items SET title = ? WHERE id = ?", *input.Title, id)
 	}
 	if input.Completed != nil {
-		r.db.Exec("UPDATE checklist_items SET completed = ? WHERE id = ?", boolToInt(*input.Completed), id)
+		_, _ = r.db.Exec("UPDATE checklist_items SET completed = ? WHERE id = ?", boolToInt(*input.Completed), id)
 	}
 	if input.SortOrder != nil {
-		r.db.Exec("UPDATE checklist_items SET sort_order = ? WHERE id = ?", *input.SortOrder, id)
+		_, _ = r.db.Exec("UPDATE checklist_items SET sort_order = ? WHERE id = ?", *input.SortOrder, id)
 	}
 
 	var c model.ChecklistItem

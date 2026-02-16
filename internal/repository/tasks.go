@@ -172,7 +172,7 @@ func (r *TaskRepository) Create(input model.CreateTaskInput) (*model.TaskDetail,
 	id := model.NewID()
 
 	var maxSort float64
-	r.db.QueryRow("SELECT COALESCE(MAX(sort_order_today), 0) FROM tasks").Scan(&maxSort)
+	_ = r.db.QueryRow("SELECT COALESCE(MAX(sort_order_today), 0) FROM tasks").Scan(&maxSort)
 
 	_, err := r.db.Exec(`
 		INSERT INTO tasks (id, title, notes, when_date, when_evening, deadline,
@@ -351,7 +351,7 @@ func (r *TaskRepository) getTaskTags(taskID string) ([]model.TagRef, error) {
 	var tags []model.TagRef
 	for rows.Next() {
 		var t model.TagRef
-		rows.Scan(&t.ID, &t.Title)
+		_ = rows.Scan(&t.ID, &t.Title)
 		tags = append(tags, t)
 	}
 	if tags == nil {
@@ -361,9 +361,9 @@ func (r *TaskRepository) getTaskTags(taskID string) ([]model.TagRef, error) {
 }
 
 func (r *TaskRepository) setTaskTags(taskID string, tagIDs []string) {
-	r.db.Exec("DELETE FROM task_tags WHERE task_id = ?", taskID)
+	_, _ = r.db.Exec("DELETE FROM task_tags WHERE task_id = ?", taskID)
 	for _, tagID := range tagIDs {
-		r.db.Exec("INSERT OR IGNORE INTO task_tags (task_id, tag_id) VALUES (?, ?)", taskID, tagID)
+		_, _ = r.db.Exec("INSERT OR IGNORE INTO task_tags (task_id, tag_id) VALUES (?, ?)", taskID, tagID)
 	}
 }
 
@@ -378,7 +378,7 @@ func (r *TaskRepository) getChecklist(taskID string) ([]model.ChecklistItem, err
 	for rows.Next() {
 		var c model.ChecklistItem
 		var completed int
-		rows.Scan(&c.ID, &c.Title, &completed, &c.SortOrder)
+		_ = rows.Scan(&c.ID, &c.Title, &completed, &c.SortOrder)
 		c.Completed = completed == 1
 		items = append(items, c)
 	}
@@ -398,7 +398,7 @@ func (r *TaskRepository) getAttachments(taskID string) ([]model.Attachment, erro
 	var items []model.Attachment
 	for rows.Next() {
 		var a model.Attachment
-		rows.Scan(&a.ID, &a.Type, &a.Title, &a.URL, &a.MimeType, &a.FileSize, &a.SortOrder, &a.CreatedAt)
+		_ = rows.Scan(&a.ID, &a.Type, &a.Title, &a.URL, &a.MimeType, &a.FileSize, &a.SortOrder, &a.CreatedAt)
 		items = append(items, a)
 	}
 	if items == nil {

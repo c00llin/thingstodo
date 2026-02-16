@@ -26,7 +26,9 @@ func (r *HeadingRepository) ListByProject(projectID string) ([]model.Heading, er
 	var headings []model.Heading
 	for rows.Next() {
 		var h model.Heading
-		rows.Scan(&h.ID, &h.Title, &h.ProjectID, &h.SortOrder)
+		if err := rows.Scan(&h.ID, &h.Title, &h.ProjectID, &h.SortOrder); err != nil {
+			return nil, fmt.Errorf("scan heading: %w", err)
+		}
 		headings = append(headings, h)
 	}
 	if headings == nil {
@@ -38,7 +40,7 @@ func (r *HeadingRepository) ListByProject(projectID string) ([]model.Heading, er
 func (r *HeadingRepository) Create(projectID string, input model.CreateHeadingInput) (*model.Heading, error) {
 	id := model.NewID()
 	var maxSort float64
-	r.db.QueryRow("SELECT COALESCE(MAX(sort_order), 0) FROM headings WHERE project_id = ?", projectID).Scan(&maxSort)
+	_ = r.db.QueryRow("SELECT COALESCE(MAX(sort_order), 0) FROM headings WHERE project_id = ?", projectID).Scan(&maxSort)
 
 	_, err := r.db.Exec("INSERT INTO headings (id, title, project_id, sort_order) VALUES (?, ?, ?, ?)",
 		id, input.Title, projectID, maxSort+1024)
@@ -47,17 +49,17 @@ func (r *HeadingRepository) Create(projectID string, input model.CreateHeadingIn
 	}
 
 	var h model.Heading
-	r.db.QueryRow("SELECT id, title, project_id, sort_order FROM headings WHERE id = ?", id).
+	_ = r.db.QueryRow("SELECT id, title, project_id, sort_order FROM headings WHERE id = ?", id).
 		Scan(&h.ID, &h.Title, &h.ProjectID, &h.SortOrder)
 	return &h, nil
 }
 
 func (r *HeadingRepository) Update(id string, input model.UpdateHeadingInput) (*model.Heading, error) {
 	if input.Title != nil {
-		r.db.Exec("UPDATE headings SET title = ? WHERE id = ?", *input.Title, id)
+		_, _ = r.db.Exec("UPDATE headings SET title = ? WHERE id = ?", *input.Title, id)
 	}
 	if input.SortOrder != nil {
-		r.db.Exec("UPDATE headings SET sort_order = ? WHERE id = ?", *input.SortOrder, id)
+		_, _ = r.db.Exec("UPDATE headings SET sort_order = ? WHERE id = ?", *input.SortOrder, id)
 	}
 
 	var h model.Heading

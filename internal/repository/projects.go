@@ -122,7 +122,7 @@ func (r *ProjectRepository) GetByID(id string) (*model.ProjectDetail, error) {
 func (r *ProjectRepository) Create(input model.CreateProjectInput) (*model.ProjectDetail, error) {
 	id := model.NewID()
 	var maxSort float64
-	r.db.QueryRow("SELECT COALESCE(MAX(sort_order), 0) FROM projects").Scan(&maxSort)
+	_ = r.db.QueryRow("SELECT COALESCE(MAX(sort_order), 0) FROM projects").Scan(&maxSort)
 
 	_, err := r.db.Exec(`
 		INSERT INTO projects (id, title, notes, area_id, when_date, deadline, sort_order)
@@ -231,7 +231,7 @@ func getProjectTags(db *sql.DB, projectID string) []model.TagRef {
 	var tags []model.TagRef
 	for rows.Next() {
 		var t model.TagRef
-		rows.Scan(&t.ID, &t.Title)
+		_ = rows.Scan(&t.ID, &t.Title)
 		tags = append(tags, t)
 	}
 	if tags == nil {
@@ -292,7 +292,7 @@ func scanTaskListItems(db *sql.DB, rows *sql.Rows) []model.TaskListItem {
 	for rows.Next() {
 		var t model.TaskListItem
 		var whenEvening, hasNotes, hasAttach, hasRepeat int
-		rows.Scan(
+		_ = rows.Scan(
 			&t.ID, &t.Title, &t.Notes, &t.Status, &t.WhenDate, &whenEvening,
 			&t.Deadline, &t.ProjectID, &t.AreaID, &t.HeadingID,
 			&t.SortOrderToday, &t.SortOrderProject, &t.SortOrderHeading,
