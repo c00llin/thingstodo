@@ -12,7 +12,7 @@ WORKDIR /app
 COPY go.mod go.sum ./
 RUN go mod download
 COPY . .
-COPY --from=frontend-build /app/frontend/dist /app/internal/frontend/dist
+COPY --from=frontend-build /app/internal/frontend/dist /app/internal/frontend/dist
 RUN CGO_ENABLED=0 go build -ldflags="-s -w" -o /thingstodo ./cmd/server
 
 # Stage 3: Runtime
