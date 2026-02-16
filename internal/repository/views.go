@@ -192,7 +192,7 @@ func (r *ViewRepository) buildAnytimeView(somedayOnly bool) (*model.AnytimeView,
 	var view model.AnytimeView
 	for areaRows.Next() {
 		var areaRef model.Ref
-		areaRows.Scan(&areaRef.ID, &areaRef.Title)
+		_ = areaRows.Scan(&areaRef.ID, &areaRef.Title)
 
 		aa := model.AnytimeArea{Area: areaRef}
 
@@ -204,7 +204,7 @@ func (r *ViewRepository) buildAnytimeView(somedayOnly bool) (*model.AnytimeView,
 		}
 		for projRows.Next() {
 			var projRef model.Ref
-			projRows.Scan(&projRef.ID, &projRef.Title)
+			_ = projRows.Scan(&projRef.ID, &projRef.Title)
 			tasks := r.getAnytimeTasks(&projRef.ID, &areaRef.ID, true, somedayOnly)
 			aa.Projects = append(aa.Projects, model.AnytimeProject{Project: projRef, Tasks: tasks})
 		}
@@ -228,7 +228,7 @@ func (r *ViewRepository) buildAnytimeView(somedayOnly bool) (*model.AnytimeView,
 	if err == nil {
 		for noAreaProjRows.Next() {
 			var projRef model.Ref
-			noAreaProjRows.Scan(&projRef.ID, &projRef.Title)
+			_ = noAreaProjRows.Scan(&projRef.ID, &projRef.Title)
 			tasks := r.getAnytimeTasks(&projRef.ID, nil, true, somedayOnly)
 			view.NoArea.Projects = append(view.NoArea.Projects, model.AnytimeProject{Project: projRef, Tasks: tasks})
 		}

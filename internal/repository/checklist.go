@@ -27,7 +27,9 @@ func (r *ChecklistRepository) ListByTask(taskID string) ([]model.ChecklistItem, 
 	for rows.Next() {
 		var c model.ChecklistItem
 		var completed int
-		rows.Scan(&c.ID, &c.Title, &completed, &c.SortOrder)
+		if err := rows.Scan(&c.ID, &c.Title, &completed, &c.SortOrder); err != nil {
+			return nil, fmt.Errorf("scan checklist item: %w", err)
+		}
 		c.Completed = completed == 1
 		items = append(items, c)
 	}

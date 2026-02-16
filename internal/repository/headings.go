@@ -79,7 +79,7 @@ func (r *HeadingRepository) Reorder(items []model.SimpleReorderItem) error {
 	if err != nil {
 		return err
 	}
-	defer tx.Rollback()
+	defer func() { _ = tx.Rollback() }()
 
 	for _, item := range items {
 		_, err := tx.Exec("UPDATE headings SET sort_order = ? WHERE id = ?", item.SortOrder, item.ID)

@@ -324,7 +324,7 @@ func (r *TaskRepository) Reorder(items []model.ReorderItem) error {
 	if err != nil {
 		return err
 	}
-	defer tx.Rollback()
+	defer func() { _ = tx.Rollback() }()
 
 	for _, item := range items {
 		field := item.SortField

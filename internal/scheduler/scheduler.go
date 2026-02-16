@@ -28,7 +28,9 @@ func New(db *sql.DB, taskRepo *repository.TaskRepository, ruleRepo *repository.R
 }
 
 func (s *Scheduler) Start() {
-	s.cron.AddFunc("@every 1h", s.processFixedRules)
+	if _, err := s.cron.AddFunc("@every 1h", s.processFixedRules); err != nil {
+		log.Printf("scheduler: failed to add cron func: %v", err)
+	}
 	s.cron.Start()
 	log.Println("scheduler started")
 }
@@ -103,13 +105,17 @@ func (s *Scheduler) createNextInstance(originalTaskID string, rule *model.Repeat
 	}
 
 	// Move repeat rule to new task
-	s.ruleRepo.DeleteByTask(originalTaskID)
-	s.ruleRepo.Upsert(newTask.ID, model.CreateRepeatRuleInput{
+	if err := s.ruleRepo.DeleteByTask(originalTaskID); err != nil {
+		log.Printf("scheduler: delete rule for task %s: %v", originalTaskID, err)
+	}
+	if _, err := s.ruleRepo.Upsert(newTask.ID, model.CreateRepeatRuleInput{
 		Frequency:      rule.Frequency,
 		IntervalValue:  rule.IntervalValue,
 		Mode:           rule.Mode,
 		DayConstraints: rule.DayConstraints,
-	})
+	}); err != nil {
+		log.Printf("scheduler: upsert rule for task %s: %v", newTask.ID, err)
+	}
 
 	log.Printf("scheduler: created repeat instance %s from %s (next: %s)", newTask.ID, originalTaskID, nextDate)
 }

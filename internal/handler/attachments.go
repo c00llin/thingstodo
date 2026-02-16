@@ -192,5 +192,5 @@ func (h *AttachmentHandler) Download(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", att.MimeType)
 	}
 	w.Header().Set("Content-Disposition", fmt.Sprintf(`attachment; filename="%s"`, att.Title))
-	io.Copy(w, f)
+	_, _ = io.Copy(w, f)
 }

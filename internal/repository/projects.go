@@ -102,7 +102,9 @@ func (r *ProjectRepository) GetByID(id string) (*model.ProjectDetail, error) {
 	var headings []model.HeadingWithTasks
 	for headingRows.Next() {
 		var h model.HeadingWithTasks
-		headingRows.Scan(&h.ID, &h.Title, &h.ProjectID, &h.SortOrder)
+		if err := headingRows.Scan(&h.ID, &h.Title, &h.ProjectID, &h.SortOrder); err != nil {
+			return nil, fmt.Errorf("scan heading: %w", err)
+		}
 		h.Tasks = getTaskListItems(r.db, "heading_id", h.ID)
 		headings = append(headings, h)
 	}
@@ -197,7 +199,7 @@ func (r *ProjectRepository) Reorder(items []model.SimpleReorderItem) error {
 	if err != nil {
 		return err
 	}
-	defer tx.Rollback()
+	defer func() { _ = tx.Rollback() }()
 
 	for _, item := range items {
 		_, err := tx.Exec("UPDATE projects SET sort_order = ? WHERE id = ?", item.SortOrder, item.ID)
@@ -239,9 +241,9 @@ func getProjectTags(db *sql.DB, projectID string) []model.TagRef {
 }
 
 func setProjectTags(db *sql.DB, projectID string, tagIDs []string) {
-	db.Exec("DELETE FROM project_tags WHERE project_id = ?", projectID)
+	_, _ = db.Exec("DELETE FROM project_tags WHERE project_id = ?", projectID)
 	for _, tagID := range tagIDs {
-		db.Exec("INSERT OR IGNORE INTO project_tags (project_id, tag_id) VALUES (?, ?)", projectID, tagID)
+		_, _ = db.Exec("INSERT OR IGNORE INTO project_tags (project_id, tag_id) VALUES (?, ?)", projectID, tagID)
 	}
 }
 
@@ -309,7 +311,7 @@ func scanTaskListItems(db *sql.DB, rows *sql.Rows) []model.TaskListItem {
 			var tags []model.TagRef
 			for tagRows.Next() {
 				var tag model.TagRef
-				tagRows.Scan(&tag.ID, &tag.Title)
+				_ = tagRows.Scan(&tag.ID, &tag.Title)
 				tags = append(tags, tag)
 			}
 			tagRows.Close()

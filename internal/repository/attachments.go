@@ -26,7 +26,9 @@ func (r *AttachmentRepository) ListByTask(taskID string) ([]model.Attachment, er
 	var items []model.Attachment
 	for rows.Next() {
 		var a model.Attachment
-		rows.Scan(&a.ID, &a.Type, &a.Title, &a.URL, &a.MimeType, &a.FileSize, &a.SortOrder, &a.CreatedAt)
+		if err := rows.Scan(&a.ID, &a.Type, &a.Title, &a.URL, &a.MimeType, &a.FileSize, &a.SortOrder, &a.CreatedAt); err != nil {
+			return nil, fmt.Errorf("scan attachment: %w", err)
+		}
 		items = append(items, a)
 	}
 	if items == nil {
@@ -52,7 +54,7 @@ func (r *AttachmentRepository) GetByID(id string) (*model.Attachment, error) {
 func (r *AttachmentRepository) Create(taskID string, input model.CreateAttachmentInput) (*model.Attachment, error) {
 	id := model.NewID()
 	var maxSort float64
-	r.db.QueryRow("SELECT COALESCE(MAX(sort_order), 0) FROM attachments WHERE task_id = ?", taskID).Scan(&maxSort)
+	_ = r.db.QueryRow("SELECT COALESCE(MAX(sort_order), 0) FROM attachments WHERE task_id = ?", taskID).Scan(&maxSort)
 
 	_, err := r.db.Exec(`INSERT INTO attachments (id, task_id, type, title, url, mime_type, file_size, sort_order)
 		VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
@@ -66,10 +68,10 @@ func (r *AttachmentRepository) Create(taskID string, input model.CreateAttachmen
 
 func (r *AttachmentRepository) Update(id string, input model.UpdateAttachmentInput) (*model.Attachment, error) {
 	if input.Title != nil {
-		r.db.Exec("UPDATE attachments SET title = ? WHERE id = ?", *input.Title, id)
+		_, _ = r.db.Exec("UPDATE attachments SET title = ? WHERE id = ?", *input.Title, id)
 	}
 	if input.SortOrder != nil {
-		r.db.Exec("UPDATE attachments SET sort_order = ? WHERE id = ?", *input.SortOrder, id)
+		_, _ = r.db.Exec("UPDATE attachments SET sort_order = ? WHERE id = ?", *input.SortOrder, id)
 	}
 	return r.GetByID(id)
 }

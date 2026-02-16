@@ -49,7 +49,7 @@ func (h *EventHandler) Stream(w http.ResponseWriter, r *http.Request) {
 			if err != nil {
 				continue
 			}
-			w.Write(data)
+			_, _ = w.Write(data)
 			flusher.Flush()
 		}
 	}

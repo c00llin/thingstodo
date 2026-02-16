@@ -29,7 +29,9 @@ func (r *AreaRepository) List() ([]model.Area, error) {
 	var areas []model.Area
 	for rows.Next() {
 		var a model.Area
-		rows.Scan(&a.ID, &a.Title, &a.SortOrder, &a.CreatedAt, &a.UpdatedAt, &a.ProjectCount, &a.TaskCount)
+		if err := rows.Scan(&a.ID, &a.Title, &a.SortOrder, &a.CreatedAt, &a.UpdatedAt, &a.ProjectCount, &a.TaskCount); err != nil {
+			return nil, fmt.Errorf("scan area: %w", err)
+		}
 		areas = append(areas, a)
 	}
 	if areas == nil {
@@ -65,8 +67,10 @@ func (r *AreaRepository) GetByID(id string) (*model.AreaDetail, error) {
 	var projects []model.ProjectListItem
 	for projRows.Next() {
 		var p model.ProjectListItem
-		projRows.Scan(&p.ID, &p.Title, &p.Notes, &p.AreaID, &p.Status, &p.WhenDate, &p.Deadline,
-			&p.SortOrder, &p.CreatedAt, &p.UpdatedAt, &p.TaskCount, &p.CompletedTaskCount)
+		if err := projRows.Scan(&p.ID, &p.Title, &p.Notes, &p.AreaID, &p.Status, &p.WhenDate, &p.Deadline,
+			&p.SortOrder, &p.CreatedAt, &p.UpdatedAt, &p.TaskCount, &p.CompletedTaskCount); err != nil {
+			return nil, fmt.Errorf("scan project: %w", err)
+		}
 		p.Tags = getProjectTags(r.db, p.ID)
 		projects = append(projects, p)
 	}
@@ -100,7 +104,7 @@ func (r *AreaRepository) GetByID(id string) (*model.AreaDetail, error) {
 func (r *AreaRepository) Create(input model.CreateAreaInput) (*model.Area, error) {
 	id := model.NewID()
 	var maxSort float64
-	r.db.QueryRow("SELECT COALESCE(MAX(sort_order), 0) FROM areas").Scan(&maxSort)
+	_ = r.db.QueryRow("SELECT COALESCE(MAX(sort_order), 0) FROM areas").Scan(&maxSort)
 
 	_, err := r.db.Exec("INSERT INTO areas (id, title, sort_order) VALUES (?, ?, ?)",
 		id, input.Title, maxSort+1024)
@@ -109,17 +113,17 @@ func (r *AreaRepository) Create(input model.CreateAreaInput) (*model.Area, error
 	}
 
 	var a model.Area
-	r.db.QueryRow("SELECT id, title, sort_order, created_at, updated_at FROM areas WHERE id = ?", id).
+	_ = r.db.QueryRow("SELECT id, title, sort_order, created_at, updated_at FROM areas WHERE id = ?", id).
 		Scan(&a.ID, &a.Title, &a.SortOrder, &a.CreatedAt, &a.UpdatedAt)
 	return &a, nil
 }
 
 func (r *AreaRepository) Update(id string, input model.UpdateAreaInput) (*model.Area, error) {
 	if input.Title != nil {
-		r.db.Exec("UPDATE areas SET title = ?, updated_at = datetime('now') WHERE id = ?", *input.Title, id)
+		_, _ = r.db.Exec("UPDATE areas SET title = ?, updated_at = datetime('now') WHERE id = ?", *input.Title, id)
 	}
 	if input.SortOrder != nil {
-		r.db.Exec("UPDATE areas SET sort_order = ?, updated_at = datetime('now') WHERE id = ?", *input.SortOrder, id)
+		_, _ = r.db.Exec("UPDATE areas SET sort_order = ?, updated_at = datetime('now') WHERE id = ?", *input.SortOrder, id)
 	}
 	var a model.Area
 	err := r.db.QueryRow("SELECT id, title, sort_order, created_at, updated_at FROM areas WHERE id = ?", id).
