@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react'
 import * as Checkbox from '@radix-ui/react-checkbox'
 import { Check, Plus, Paperclip, Link, Trash2, X, Calendar, Flag, ListChecks, StickyNote } from 'lucide-react'
+import { DateInput } from './DateInput'
 import {
   useTask,
   useUpdateTask,
@@ -33,8 +34,6 @@ export function TaskDetail({ taskId }: TaskDetailProps) {
   const [showWhen, setShowWhen] = useState(false)
   const [showDeadline, setShowDeadline] = useState(false)
   const [showChecklist, setShowChecklist] = useState(false)
-  const whenRef = useRef<HTMLInputElement>(null)
-  const deadlineRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect -- syncing server state into local draft
@@ -46,18 +45,6 @@ export function TaskDetail({ taskId }: TaskDetailProps) {
       notesRef.current.focus()
     }
   }, [editingNotes])
-
-  useEffect(() => {
-    if (showWhen && whenRef.current) {
-      whenRef.current.focus()
-    }
-  }, [showWhen])
-
-  useEffect(() => {
-    if (showDeadline && deadlineRef.current) {
-      deadlineRef.current.focus()
-    }
-  }, [showDeadline])
 
   function handleKeyDown(e: React.KeyboardEvent) {
     if (e.key === 'Escape') {
@@ -72,20 +59,20 @@ export function TaskDetail({ taskId }: TaskDetailProps) {
     }
   }
 
-  function handleWhenDateChange(e: React.ChangeEvent<HTMLInputElement>) {
+  function handleWhenDateChange(date: string | null, evening?: boolean) {
     updateTask.mutate({
       id: taskId,
-      data: { when_date: e.target.value || null },
+      data: { when_date: date, when_evening: evening ?? false },
     })
-    if (!e.target.value) setShowWhen(false)
+    if (!date) setShowWhen(false)
   }
 
-  function handleDeadlineChange(e: React.ChangeEvent<HTMLInputElement>) {
+  function handleDeadlineChange(date: string | null) {
     updateTask.mutate({
       id: taskId,
-      data: { deadline: e.target.value || null },
+      data: { deadline: date },
     })
-    if (!e.target.value) setShowDeadline(false)
+    if (!date) setShowDeadline(false)
   }
 
   function clearDeadline() {
@@ -149,12 +136,12 @@ export function TaskDetail({ taskId }: TaskDetailProps) {
       {(hasWhen || showWhen) && (
         <div className="flex items-center gap-2">
           <Calendar size={14} className="shrink-0 text-neutral-400" />
-          <input
-            ref={whenRef}
-            type="date"
+          <DateInput
+            variant="when"
             value={task.when_date ?? ''}
+            evening={task.when_evening}
             onChange={handleWhenDateChange}
-            className="rounded-md border border-neutral-200 bg-white px-2 py-1 text-sm dark:border-neutral-600 dark:bg-neutral-800 dark:text-neutral-100"
+            autoFocus={showWhen && !hasWhen}
           />
           {hasWhen && (
             <button
@@ -172,12 +159,11 @@ export function TaskDetail({ taskId }: TaskDetailProps) {
       {(hasDeadline || showDeadline) && (
         <div className="flex items-center gap-2">
           <Flag size={14} className="shrink-0 text-red-500" />
-          <input
-            ref={deadlineRef}
-            type="date"
+          <DateInput
+            variant="deadline"
             value={task.deadline ?? ''}
             onChange={handleDeadlineChange}
-            className="rounded-md border border-neutral-200 bg-white px-2 py-1 text-sm dark:border-neutral-600 dark:bg-neutral-800 dark:text-neutral-100"
+            autoFocus={showDeadline && !hasDeadline}
           />
           {hasDeadline && (
             <button

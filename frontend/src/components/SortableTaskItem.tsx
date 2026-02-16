@@ -49,6 +49,7 @@ export function SortableTaskItem({
   const editingTaskId = useAppStore((s) => s.editingTaskId)
   const startEditingTask = useAppStore((s) => s.startEditingTask)
   const selectedTaskIds = useAppStore((s) => s.selectedTaskIds)
+  const isDeparting = useAppStore((s) => s.departingTaskId) === task.id
   const completeTask = useCompleteTask()
   const reopenTask = useReopenTask()
   const updateTask = useUpdateTask()
@@ -173,7 +174,11 @@ export function SortableTaskItem({
       style={style}
       layout={isDragOverlay ? false : 'position'}
       initial={isDragOverlay ? false : { opacity: 0, height: 0 }}
-      animate={{ opacity: isDragging ? 0.4 : 1, height: 'auto' }}
+      animate={
+        isDeparting
+          ? { opacity: 0, height: 0, transition: { duration: 0.35, ease: 'easeInOut' } }
+          : { opacity: isDragging ? 0.4 : 1, height: 'auto' }
+      }
       exit={
         isCompleted
           ? { opacity: 0, height: 0, transition: { duration: 0.3, delay: 0.8 } }

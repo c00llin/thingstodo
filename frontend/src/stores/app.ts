@@ -41,6 +41,14 @@ interface AppStore {
   selectedTaskIds: Set<string>
   toggleTaskSelection: (id: string, multi: boolean) => void
   clearSelection: () => void
+
+  // Deferred view invalidation while detail panel is open
+  hasPendingInvalidation: boolean
+  setPendingInvalidation: (v: boolean) => void
+
+  // Task departing animation — task ID fading out before view refresh
+  departingTaskId: string | null
+  setDepartingTaskId: (id: string | null) => void
 }
 
 function getInitialTheme(): Theme {
@@ -87,6 +95,12 @@ export const useAppStore = create<AppStore>((set) => ({
 
   visibleTaskIds: [],
   setVisibleTaskIds: (ids) => set({ visibleTaskIds: ids }),
+
+  hasPendingInvalidation: false,
+  setPendingInvalidation: (v) => set({ hasPendingInvalidation: v }),
+
+  departingTaskId: null,
+  setDepartingTaskId: (id) => set({ departingTaskId: id }),
 
   selectedTaskIds: new Set(),
   toggleTaskSelection: (id, multi) =>

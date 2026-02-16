@@ -1,4 +1,6 @@
+import { useEffect, useRef } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useAppStore } from '../stores/app'
 import * as tasksApi from '../api/tasks'
 import * as projectsApi from '../api/projects'
 import * as areasApi from '../api/areas'
@@ -129,9 +131,53 @@ export function useTask(id: string) {
 function useInvalidateViews() {
   const queryClient = useQueryClient()
   return () => {
+    const { expandedTaskId, setPendingInvalidation } = useAppStore.getState()
+    if (expandedTaskId) {
+      // Defer invalidation until the detail panel closes
+      setPendingInvalidation(true)
+      return
+    }
     queryClient.invalidateQueries({ queryKey: ['views'] })
     queryClient.invalidateQueries({ queryKey: queryKeys.tasks.all })
   }
+}
+
+/** Flush deferred view invalidation when the task detail panel closes.
+ *  Triggers a departing animation on the task, then invalidates after the animation completes. */
+export function useFlushPendingInvalidation() {
+  const queryClient = useQueryClient()
+  const expandedTaskId = useAppStore((s) => s.expandedTaskId)
+  const hasPending = useAppStore((s) => s.hasPendingInvalidation)
+  const prevExpandedRef = useRef<string | null>(null)
+
+  // Track the previously expanded task so we know which task to animate out
+  useEffect(() => {
+    if (expandedTaskId) {
+      prevExpandedRef.current = expandedTaskId
+    }
+  }, [expandedTaskId])
+
+  useEffect(() => {
+    if (!expandedTaskId && hasPending) {
+      const { setPendingInvalidation, setDepartingTaskId } = useAppStore.getState()
+      setPendingInvalidation(false)
+
+      // Trigger fade-out animation on the task that was just closed
+      const departingId = prevExpandedRef.current
+      if (departingId) {
+        setDepartingTaskId(departingId)
+        // Wait for animation to complete, then invalidate
+        setTimeout(() => {
+          setDepartingTaskId(null)
+          queryClient.invalidateQueries({ queryKey: ['views'] })
+          queryClient.invalidateQueries({ queryKey: queryKeys.tasks.all })
+        }, 400)
+      } else {
+        queryClient.invalidateQueries({ queryKey: ['views'] })
+        queryClient.invalidateQueries({ queryKey: queryKeys.tasks.all })
+      }
+    }
+  }, [expandedTaskId, hasPending, queryClient])
 }
 
 // Optimistic update helper: updates a task's fields in all cached view queries

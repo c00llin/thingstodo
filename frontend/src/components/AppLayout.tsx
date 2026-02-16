@@ -1,21 +1,30 @@
-import { lazy, Suspense } from 'react'
-import { Outlet, Navigate } from 'react-router'
+import { lazy, Suspense, useEffect } from 'react'
+import { Outlet, Navigate, useLocation } from 'react-router'
 import { Sidebar } from './Sidebar'
 import { ShortcutsHelp } from './ShortcutsHelp'
 import { AppDndContext } from './AppDndContext'
 import { useGlobalShortcuts, useTaskShortcuts } from '../hooks/useKeyboardShortcuts'
 import { useTheme } from '../hooks/useTheme'
 import { useSSE } from '../hooks/useSSE'
-import { useMe } from '../hooks/queries'
+import { useMe, useFlushPendingInvalidation } from '../hooks/queries'
+import { useAppStore } from '../stores/app'
 
 const QuickEntry = lazy(() => import('./QuickEntry').then(m => ({ default: m.QuickEntry })))
 
 export function AppLayout() {
   const { isLoading, error } = useMe()
+  const location = useLocation()
+  const expandTask = useAppStore((s) => s.expandTask)
   useGlobalShortcuts()
   useTaskShortcuts()
   useTheme()
   useSSE()
+  useFlushPendingInvalidation()
+
+  // Close task detail panel when navigating to a different page
+  useEffect(() => {
+    expandTask(null)
+  }, [location.pathname, expandTask])
 
   if (isLoading) {
     return (

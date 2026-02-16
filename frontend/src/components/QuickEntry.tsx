@@ -8,6 +8,7 @@ import { TagAutocomplete } from './TagAutocomplete'
 import { ProjectAutocomplete } from './ProjectAutocomplete'
 import type { SearchResult } from '../api/types'
 import { Search, StickyNote, Calendar, Flag, X } from 'lucide-react'
+import { DateInput } from './DateInput'
 
 type Mode = 'create' | 'search'
 
@@ -23,6 +24,7 @@ export function QuickEntry() {
   // Detail fields
   const [notes, setNotes] = useState('')
   const [whenDate, setWhenDate] = useState('')
+  const [whenEvening, setWhenEvening] = useState(false)
   const [deadline, setDeadline] = useState('')
   const [showNotes, setShowNotes] = useState(false)
   const [showWhen, setShowWhen] = useState(false)
@@ -35,8 +37,6 @@ export function QuickEntry() {
 
   const inputRef = useRef<HTMLInputElement>(null)
   const notesRef = useRef<HTMLTextAreaElement>(null)
-  const whenRef = useRef<HTMLInputElement>(null)
-  const deadlineRef = useRef<HTMLInputElement>(null)
 
   const searchResults: SearchResult[] = searchData?.results ?? []
 
@@ -75,16 +75,11 @@ export function QuickEntry() {
   useEffect(() => {
     if (showNotes && notesRef.current) notesRef.current.focus()
   }, [showNotes])
-  useEffect(() => {
-    if (showWhen && whenRef.current) whenRef.current.focus()
-  }, [showWhen])
-  useEffect(() => {
-    if (showDeadline && deadlineRef.current) deadlineRef.current.focus()
-  }, [showDeadline])
 
   function resetDetailFields() {
     setNotes('')
     setWhenDate('')
+    setWhenEvening(false)
     setDeadline('')
     setShowNotes(false)
     setShowWhen(false)
@@ -103,6 +98,7 @@ export function QuickEntry() {
         title: parsedTitle,
         notes: notes.trim() || undefined,
         when_date: whenDate || undefined,
+        when_evening: whenEvening || undefined,
         deadline: deadline || undefined,
         tag_ids: tagIds.length > 0 ? tagIds : undefined,
         project_id: projectId ?? undefined,
@@ -116,7 +112,7 @@ export function QuickEntry() {
         },
       }
     )
-  }, [title, notes, whenDate, deadline, resolveTags, createTask, close])
+  }, [title, notes, whenDate, whenEvening, deadline, resolveTags, createTask, close])
 
   const handleSearchSelect = useCallback(
     (result: SearchResult) => {
@@ -168,11 +164,17 @@ export function QuickEntry() {
             onNotesChange={setNotes}
             notesRef={notesRef}
             whenDate={whenDate}
-            onWhenDateChange={setWhenDate}
-            whenRef={whenRef}
+            whenEvening={whenEvening}
+            onWhenDateChange={(date, evening) => {
+              setWhenDate(date ?? '')
+              setWhenEvening(evening ?? false)
+              if (!date) setShowWhen(false)
+            }}
             deadline={deadline}
-            onDeadlineChange={setDeadline}
-            deadlineRef={deadlineRef}
+            onDeadlineChange={(date) => {
+              setDeadline(date ?? '')
+              if (!date) setShowDeadline(false)
+            }}
             showNotes={showNotes}
             onToggleNotes={setShowNotes}
             showWhen={showWhen}
@@ -203,11 +205,10 @@ function CreateMode({
   onNotesChange,
   notesRef,
   whenDate,
+  whenEvening,
   onWhenDateChange,
-  whenRef,
   deadline,
   onDeadlineChange,
-  deadlineRef,
   showNotes,
   onToggleNotes,
   showWhen,
@@ -225,11 +226,10 @@ function CreateMode({
   onNotesChange: (v: string) => void
   notesRef: React.RefObject<HTMLTextAreaElement | null>
   whenDate: string
-  onWhenDateChange: (v: string) => void
-  whenRef: React.RefObject<HTMLInputElement | null>
+  whenEvening: boolean
+  onWhenDateChange: (date: string | null, evening?: boolean) => void
   deadline: string
-  onDeadlineChange: (v: string) => void
-  deadlineRef: React.RefObject<HTMLInputElement | null>
+  onDeadlineChange: (date: string | null) => void
   showNotes: boolean
   onToggleNotes: (v: boolean) => void
   showWhen: boolean
@@ -292,16 +292,16 @@ function CreateMode({
           {showWhen && (
             <div className="flex items-center gap-2">
               <Calendar size={14} className="shrink-0 text-neutral-400" />
-              <input
-                ref={whenRef}
-                type="date"
+              <DateInput
+                variant="when"
                 value={whenDate}
-                onChange={(e) => onWhenDateChange(e.target.value)}
-                className="rounded-md border border-neutral-200 bg-white px-2 py-1 text-sm dark:border-neutral-600 dark:bg-neutral-800 dark:text-neutral-100"
+                evening={whenEvening}
+                onChange={onWhenDateChange}
+                autoFocus={!whenDate}
               />
               {whenDate && (
                 <button
-                  onClick={() => { onWhenDateChange(''); onToggleWhen(false) }}
+                  onClick={() => { onWhenDateChange(null); onToggleWhen(false) }}
                   className="text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-300"
                   aria-label="Clear when date"
                 >
@@ -313,16 +313,15 @@ function CreateMode({
           {showDeadline && (
             <div className="flex items-center gap-2">
               <Flag size={14} className="shrink-0 text-red-500" />
-              <input
-                ref={deadlineRef}
-                type="date"
+              <DateInput
+                variant="deadline"
                 value={deadline}
-                onChange={(e) => onDeadlineChange(e.target.value)}
-                className="rounded-md border border-neutral-200 bg-white px-2 py-1 text-sm dark:border-neutral-600 dark:bg-neutral-800 dark:text-neutral-100"
+                onChange={onDeadlineChange}
+                autoFocus={!deadline}
               />
               {deadline && (
                 <button
-                  onClick={() => { onDeadlineChange(''); onToggleDeadline(false) }}
+                  onClick={() => { onDeadlineChange(null); onToggleDeadline(false) }}
                   className="text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-300"
                   aria-label="Clear deadline"
                 >

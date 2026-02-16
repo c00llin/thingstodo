@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from 'react'
+import { useState, useCallback, useEffect, useRef } from 'react'
 import {
   DndContext,
   closestCenter,
@@ -95,9 +95,15 @@ export function SortableTaskList({ tasks, sortField, showProject }: SortableTask
     setVisibleTaskIds(taskIds)
   }, [taskIds.join(','), setVisibleTaskIds])
 
-  // Close detail panel if the expanded task is no longer in this list
+  // Track which task IDs this list previously contained
+  const prevTaskIdsRef = useRef<Set<string>>(new Set(taskIds))
   useEffect(() => {
-    if (expandedTaskId && !taskIds.includes(expandedTaskId)) {
+    prevTaskIdsRef.current = new Set(taskIds)
+  }, [taskIds.join(',')])
+
+  // Close detail panel only if the expanded task was removed from THIS list
+  useEffect(() => {
+    if (expandedTaskId && prevTaskIdsRef.current.has(expandedTaskId) && !taskIds.includes(expandedTaskId)) {
       expandTask(null)
     }
   }, [taskIds.join(','), expandedTaskId, expandTask])
