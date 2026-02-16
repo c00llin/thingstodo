@@ -1,10 +1,9 @@
-import { useState, useEffect, useCallback } from 'react'
-import { useCreateTask } from './queries'
+import { useEffect, useCallback } from 'react'
+import { useAppStore } from '../stores/app'
 
 export function useTypeToCreate() {
-  const [isCreating, setIsCreating] = useState(false)
-  const [title, setTitle] = useState('')
-  const createTask = useCreateTask()
+  const openQuickEntry = useAppStore((s) => s.openQuickEntry)
+  const quickEntryOpen = useAppStore((s) => s.quickEntryOpen)
 
   const handleKeyDown = useCallback((e: KeyboardEvent) => {
     // Ignore if already in an input/textarea or if modifier keys are held
@@ -20,30 +19,14 @@ export function useTypeToCreate() {
       return
     }
 
-    // Only trigger on printable characters
-    if (e.key.length === 1 && !isCreating) {
-      setIsCreating(true)
-      setTitle(e.key)
+    // Only trigger on printable characters; skip 'q' which is handled as a shortcut
+    if (e.key.length === 1 && e.key !== 'q' && !quickEntryOpen) {
+      openQuickEntry(e.key)
     }
-  }, [isCreating])
+  }, [quickEntryOpen, openQuickEntry])
 
   useEffect(() => {
     document.addEventListener('keydown', handleKeyDown)
     return () => document.removeEventListener('keydown', handleKeyDown)
   }, [handleKeyDown])
-
-  function save() {
-    const trimmed = title.trim()
-    if (trimmed) {
-      createTask.mutate({ title: trimmed })
-    }
-    cancel()
-  }
-
-  function cancel() {
-    setIsCreating(false)
-    setTitle('')
-  }
-
-  return { isCreating, title, setTitle, save, cancel }
 }

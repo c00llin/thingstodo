@@ -21,7 +21,8 @@ interface AppStore {
 
   // Quick entry
   quickEntryOpen: boolean
-  openQuickEntry: () => void
+  quickEntryInitialValue: string
+  openQuickEntry: (initialValue?: string) => void
   closeQuickEntry: () => void
 
   // Shortcuts help
@@ -71,7 +72,8 @@ export const useAppStore = create<AppStore>((set) => ({
   startEditingTask: (id) => set({ editingTaskId: id }),
 
   quickEntryOpen: false,
-  openQuickEntry: () => set({ quickEntryOpen: true }),
+  quickEntryInitialValue: '',
+  openQuickEntry: (initialValue?: string) => set({ quickEntryOpen: true, quickEntryInitialValue: initialValue ?? '' }),
   closeQuickEntry: () => set({ quickEntryOpen: false }),
 
   shortcutsHelpOpen: false,

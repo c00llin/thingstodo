@@ -2,65 +2,77 @@ import { useState, useCallback, useRef, useEffect } from 'react'
 import { Command } from 'cmdk'
 import { useNavigate } from 'react-router'
 import { useAppStore } from '../stores/app'
-import { useCreateTask, useProjects, useTags, useSearch } from '../hooks/queries'
+import { useCreateTask, useSearch } from '../hooks/queries'
+import { useResolveTags } from '../hooks/useResolveTags'
+import { TagAutocomplete } from './TagAutocomplete'
+import { ProjectAutocomplete } from './ProjectAutocomplete'
 import type { SearchResult } from '../api/types'
-import { Calendar, Tag, FolderOpen, Search } from 'lucide-react'
+import { Search } from 'lucide-react'
 
 type Mode = 'create' | 'search'
 
 export function QuickEntry() {
   const open = useAppStore((s) => s.quickEntryOpen)
   const close = useAppStore((s) => s.closeQuickEntry)
+  const initialValue = useAppStore((s) => s.quickEntryInitialValue)
 
   const [mode, setMode] = useState<Mode>('create')
   const [title, setTitle] = useState('')
-  const [whenDate, setWhenDate] = useState('')
-  const [projectId, setProjectId] = useState<string | null>(null)
-  const [selectedTagIds, setSelectedTagIds] = useState<string[]>([])
   const [searchQuery, setSearchQuery] = useState('')
 
   const createTask = useCreateTask()
-  const { data: projectsData } = useProjects()
-  const { data: tagsData } = useTags()
+  const resolveTags = useResolveTags()
   const { data: searchData } = useSearch(searchQuery)
   const navigate = useNavigate()
 
-  const titleRef = useRef<HTMLInputElement>(null)
+  const inputRef = useRef<HTMLInputElement>(null)
 
-  const projects = projectsData?.projects ?? []
-  const tags = tagsData?.tags ?? []
   const searchResults: SearchResult[] = searchData?.results ?? []
 
   useEffect(() => {
-    if (!open) {
-      /* eslint-disable react-hooks/set-state-in-effect -- resetting form state when dialog closes */
-      setTitle('')
-      setWhenDate('')
-      setProjectId(null)
-      setSelectedTagIds([])
-      setSearchQuery('')
+    if (open) {
+      // Only overwrite the draft when opened with a seeded value (type-to-create)
+      if (initialValue) {
+        // eslint-disable-next-line react-hooks/set-state-in-effect -- seeding input with typed character
+        setTitle(initialValue)
+      }
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- reset mode on open
       setMode('create')
-      /* eslint-enable react-hooks/set-state-in-effect */
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- reset search on open
+      setSearchQuery('')
+    }
+  }, [open, initialValue])
+
+  // Place cursor at end of value when popup opens
+  useEffect(() => {
+    if (open && inputRef.current) {
+      const len = inputRef.current.value.length
+      inputRef.current.setSelectionRange(len, len)
     }
   }, [open])
 
-  const handleSubmit = useCallback(() => {
-    if (!title.trim()) return
+  const handleSubmit = useCallback(async () => {
+    const raw = title.trim()
+    if (!raw) return
+
+    const { title: parsedTitle, tagIds, projectId, areaId } = await resolveTags(raw)
+    if (!parsedTitle) return
 
     createTask.mutate(
       {
-        title: title.trim(),
-        when_date: whenDate || undefined,
-        project_id: projectId,
-        tag_ids: selectedTagIds.length > 0 ? selectedTagIds : undefined,
+        title: parsedTitle,
+        tag_ids: tagIds.length > 0 ? tagIds : undefined,
+        project_id: projectId ?? undefined,
+        area_id: areaId ?? undefined,
       },
       {
         onSuccess: () => {
+          setTitle('')
           close()
         },
       }
     )
-  }, [title, whenDate, projectId, selectedTagIds, createTask, close])
+  }, [title, resolveTags, createTask, close])
 
   const handleSearchSelect = useCallback(
     (result: SearchResult) => {
@@ -69,12 +81,6 @@ export function QuickEntry() {
     },
     [close, navigate]
   )
-
-  const toggleTag = useCallback((tagId: string) => {
-    setSelectedTagIds((prev) =>
-      prev.includes(tagId) ? prev.filter((id) => id !== tagId) : [...prev, tagId]
-    )
-  }, [])
 
   const switchToSearch = useCallback(() => {
     setMode('search')
@@ -88,6 +94,13 @@ export function QuickEntry() {
       className="fixed inset-0 z-50 flex items-start justify-center bg-black/50 pt-[15vh]"
       onClick={(e) => {
         if (e.target === e.currentTarget) close()
+      }}
+      onKeyDown={(e) => {
+        if (e.key === 'Escape') {
+          e.preventDefault()
+          e.stopPropagation()
+          close()
+        }
       }}
     >
       <div className="w-full max-w-lg rounded-xl bg-white shadow-2xl dark:bg-neutral-800">
@@ -103,23 +116,15 @@ export function QuickEntry() {
           <CreateMode
             title={title}
             onTitleChange={setTitle}
-            whenDate={whenDate}
-            onWhenDateChange={setWhenDate}
-            projectId={projectId}
-            onProjectChange={setProjectId}
-            selectedTagIds={selectedTagIds}
-            onToggleTag={toggleTag}
-            projects={projects}
-            tags={tags}
             onSubmit={handleSubmit}
             onSwitchToSearch={switchToSearch}
             isSubmitting={createTask.isPending}
-            titleRef={titleRef}
+            inputRef={inputRef}
           />
         )}
         <div className="flex items-center justify-between border-t border-neutral-200 px-4 py-2 text-xs text-neutral-400 dark:border-neutral-700 dark:text-neutral-500">
           <span>
-            {mode === 'create' ? 'Enter to create' : 'Enter to open'}
+            {mode === 'create' ? 'Enter to create · #tag $project' : 'Enter to open'}
           </span>
           <span>Esc to close</span>
         </div>
@@ -131,33 +136,17 @@ export function QuickEntry() {
 function CreateMode({
   title,
   onTitleChange,
-  whenDate,
-  onWhenDateChange,
-  projectId,
-  onProjectChange,
-  selectedTagIds,
-  onToggleTag,
-  projects,
-  tags,
   onSubmit,
   onSwitchToSearch,
   isSubmitting,
-  titleRef,
+  inputRef,
 }: {
   title: string
   onTitleChange: (v: string) => void
-  whenDate: string
-  onWhenDateChange: (v: string) => void
-  projectId: string | null
-  onProjectChange: (v: string | null) => void
-  selectedTagIds: string[]
-  onToggleTag: (id: string) => void
-  projects: { id: string; title: string }[]
-  tags: { id: string; title: string }[]
   onSubmit: () => void
   onSwitchToSearch: () => void
   isSubmitting: boolean
-  titleRef: React.RefObject<HTMLInputElement | null>
+  inputRef: React.RefObject<HTMLInputElement | null>
 }) {
   return (
     <div
@@ -172,10 +161,10 @@ function CreateMode({
         <div className="flex items-center gap-3">
           <div className="flex h-5 w-5 items-center justify-center rounded-full border-2 border-neutral-300 dark:border-neutral-600" />
           <input
-            ref={titleRef}
+            ref={inputRef}
             autoFocus
             type="text"
-            placeholder="New task..."
+            placeholder="New task... (#tag $project)"
             value={title}
             onChange={(e) => onTitleChange(e.target.value)}
             className="flex-1 bg-transparent text-base outline-none placeholder:text-neutral-400 dark:placeholder:text-neutral-500"
@@ -190,56 +179,8 @@ function CreateMode({
           </button>
         </div>
       </div>
-
-      <div className="flex flex-wrap gap-2 border-t border-neutral-200 px-4 py-3 dark:border-neutral-700">
-        <div className="flex items-center gap-1.5">
-          <Calendar size={14} className="text-neutral-400" />
-          <input
-            type="date"
-            value={whenDate}
-            onChange={(e) => onWhenDateChange(e.target.value)}
-            className="rounded border border-neutral-200 bg-transparent px-2 py-1 text-xs text-neutral-600 outline-none focus:border-red-400 dark:border-neutral-600 dark:text-neutral-300"
-            disabled={isSubmitting}
-          />
-        </div>
-
-        <div className="flex items-center gap-1.5">
-          <FolderOpen size={14} className="text-neutral-400" />
-          <select
-            value={projectId ?? ''}
-            onChange={(e) => onProjectChange(e.target.value || null)}
-            className="rounded border border-neutral-200 bg-transparent px-2 py-1 text-xs text-neutral-600 outline-none focus:border-red-400 dark:border-neutral-600 dark:text-neutral-300 dark:bg-neutral-800"
-            disabled={isSubmitting}
-          >
-            <option value="">No project</option>
-            {projects.map((p) => (
-              <option key={p.id} value={p.id}>
-                {p.title}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        <div className="flex items-center gap-1.5">
-          <Tag size={14} className="text-neutral-400" />
-          <div className="flex flex-wrap gap-1">
-            {tags.map((tag) => (
-              <button
-                key={tag.id}
-                onClick={() => onToggleTag(tag.id)}
-                className={`rounded-full px-2 py-0.5 text-xs transition-colors ${
-                  selectedTagIds.includes(tag.id)
-                    ? 'bg-red-100 text-red-700 dark:bg-red-900/50 dark:text-red-400'
-                    : 'bg-neutral-100 text-neutral-500 hover:bg-neutral-200 dark:bg-neutral-700 dark:text-neutral-400 dark:hover:bg-neutral-600'
-                }`}
-                disabled={isSubmitting}
-              >
-                {tag.title}
-              </button>
-            ))}
-          </div>
-        </div>
-      </div>
+      <TagAutocomplete inputRef={inputRef} value={title} onChange={onTitleChange} />
+      <ProjectAutocomplete inputRef={inputRef} value={title} onChange={onTitleChange} />
     </div>
   )
 }

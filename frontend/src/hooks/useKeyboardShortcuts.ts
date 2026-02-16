@@ -16,11 +16,10 @@ export function useGlobalShortcuts() {
     openQuickEntry()
   }, { enableOnFormTags: true })
 
-  // New task (focus the input in current view)
-  useHotkeys('alt+n', (e) => {
+  // New task (open quick entry empty)
+  useHotkeys('q', (e) => {
     e.preventDefault()
-    const input = document.querySelector<HTMLInputElement>('[data-new-task-input]')
-    input?.focus()
+    openQuickEntry()
   })
 
   // Focus search
