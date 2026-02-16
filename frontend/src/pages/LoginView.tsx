@@ -1,7 +1,8 @@
 import { useState } from 'react'
-import { useLogin } from '../hooks/queries'
+import { useLogin, queryKeys } from '../hooks/queries'
 import { useNavigate } from 'react-router'
 import { useTheme } from '../hooks/useTheme'
+import { useQueryClient } from '@tanstack/react-query'
 
 export function LoginView() {
   useTheme()
@@ -10,6 +11,7 @@ export function LoginView() {
   const [error, setError] = useState('')
   const login = useLogin()
   const navigate = useNavigate()
+  const queryClient = useQueryClient()
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -17,7 +19,10 @@ export function LoginView() {
     login.mutate(
       { username, password },
       {
-        onSuccess: () => navigate('/inbox'),
+        onSuccess: async () => {
+          await queryClient.refetchQueries({ queryKey: queryKeys.auth.me })
+          navigate('/inbox')
+        },
         onError: () => setError('Invalid username or password'),
       },
     )
