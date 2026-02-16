@@ -1,8 +1,6 @@
 import { useState } from 'react'
-import { useLogin, queryKeys } from '../hooks/queries'
-import { useNavigate } from 'react-router'
+import { useLogin } from '../hooks/queries'
 import { useTheme } from '../hooks/useTheme'
-import { useQueryClient } from '@tanstack/react-query'
 
 export function LoginView() {
   useTheme()
@@ -10,8 +8,6 @@ export function LoginView() {
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const login = useLogin()
-  const navigate = useNavigate()
-  const queryClient = useQueryClient()
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -19,9 +15,8 @@ export function LoginView() {
     login.mutate(
       { username, password },
       {
-        onSuccess: async () => {
-          await queryClient.refetchQueries({ queryKey: queryKeys.auth.me })
-          navigate('/inbox')
+        onSuccess: () => {
+          window.location.href = '/inbox'
         },
         onError: () => setError('Invalid username or password'),
       },
@@ -58,6 +53,12 @@ export function LoginView() {
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault()
+                  e.currentTarget.form?.requestSubmit()
+                }
+              }}
               className="w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 text-sm focus:border-red-400 focus:outline-none dark:border-neutral-600 dark:bg-neutral-700 dark:text-neutral-100"
               required
             />

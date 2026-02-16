@@ -7,7 +7,6 @@ import { useGlobalShortcuts, useTaskShortcuts } from '../hooks/useKeyboardShortc
 import { useTheme } from '../hooks/useTheme'
 import { useSSE } from '../hooks/useSSE'
 import { useMe } from '../hooks/queries'
-import { ApiError } from '../api/client'
 
 const QuickEntry = lazy(() => import('./QuickEntry').then(m => ({ default: m.QuickEntry })))
 
@@ -26,7 +25,7 @@ export function AppLayout() {
     )
   }
 
-  if (error instanceof ApiError && error.status === 401) {
+  if (error && 'status' in error && (error as { status: number }).status === 401) {
     return <Navigate to="/login" replace />
   }
 
