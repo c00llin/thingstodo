@@ -1,3 +1,4 @@
+import { useState, useRef, useEffect } from 'react'
 import { NavLink } from 'react-router'
 import {
   Inbox,
@@ -6,17 +7,20 @@ import {
   Layers,
   Clock,
   BookOpen,
-  FolderOpen,
   Tag,
   ChevronRight,
   PanelLeftClose,
   PanelLeft,
   Plus,
+  Package,
+  Blocks,
+  CirclePlus,
 } from 'lucide-react'
 import * as Collapsible from '@radix-ui/react-collapsible'
+import * as Popover from '@radix-ui/react-popover'
 
 import { motion, AnimatePresence } from 'framer-motion'
-import { useAreas, useProjects, useTags, useCreateProject } from '../hooks/queries'
+import { useAreas, useProjects, useTags, useCreateProject, useCreateArea } from '../hooks/queries'
 import { useAppStore } from '../stores/app'
 import { ThemeToggle } from './ThemeToggle'
 import { SidebarDropTarget } from './SidebarDropTarget'
@@ -105,7 +109,7 @@ function AreaList() {
                           }`
                         }
                       >
-                        <FolderOpen size={16} />
+                        <Blocks size={16} />
                         <span>{area.title}</span>
                       </NavLink>
                     </SidebarDropTarget>
@@ -121,14 +125,12 @@ function AreaList() {
                             }`
                           }
                         >
-                          <span
-                            className={`h-2.5 w-2.5 rounded-full border-2 ${
+                          <Package size={14} className={
                               project.task_count > 0 &&
                               project.completed_task_count === project.task_count
-                                ? 'border-green-500 bg-green-500'
-                                : 'border-neutral-400 dark:border-neutral-500'
-                            }`}
-                          />
+                                ? 'text-green-500'
+                                : 'text-neutral-400 dark:text-neutral-500'
+                          } />
                           <span className="truncate">{project.title}</span>
                         </NavLink>
                       </SidebarDropTarget>
@@ -150,14 +152,12 @@ function AreaList() {
                         }`
                       }
                     >
-                      <span
-                        className={`h-2.5 w-2.5 rounded-full border-2 ${
+                      <Package size={14} className={
                           project.task_count > 0 &&
                           project.completed_task_count === project.task_count
-                            ? 'border-green-500 bg-green-500'
-                            : 'border-neutral-400 dark:border-neutral-500'
-                        }`}
-                      />
+                            ? 'text-green-500'
+                            : 'text-neutral-400 dark:text-neutral-500'
+                      } />
                       <span className="truncate">{project.title}</span>
                     </NavLink>
                   </SidebarDropTarget>
@@ -248,10 +248,145 @@ function TagList() {
   )
 }
 
+function NameInputDialog({
+  icon,
+  label,
+  placeholder,
+  open,
+  onClose,
+  onSubmit,
+}: {
+  icon: React.ReactNode
+  label: string
+  placeholder: string
+  open: boolean
+  onClose: () => void
+  onSubmit: (name: string) => void
+}) {
+  const [value, setValue] = useState('')
+  const inputRef = useRef<HTMLInputElement>(null)
+
+  useEffect(() => {
+    if (open) {
+      setValue('')
+      // Small delay so the DOM is ready
+      requestAnimationFrame(() => inputRef.current?.focus())
+    }
+  }, [open])
+
+  if (!open) return null
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-start justify-center bg-black/50 pt-[15vh]"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onClose()
+      }}
+      onKeyDown={(e) => {
+        if (e.key === 'Escape') {
+          e.preventDefault()
+          e.stopPropagation()
+          onClose()
+        }
+      }}
+    >
+      <div className="w-full max-w-lg rounded-xl bg-white shadow-2xl dark:bg-neutral-800">
+        <div className="p-4">
+          <div className="flex items-center gap-3">
+            <span className="shrink-0 text-neutral-400">{icon}</span>
+            <input
+              ref={inputRef}
+              type="text"
+              placeholder={placeholder}
+              value={value}
+              onChange={(e) => setValue(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault()
+                  const trimmed = value.trim()
+                  if (trimmed) {
+                    onSubmit(trimmed)
+                    onClose()
+                  }
+                }
+              }}
+              className="flex-1 bg-transparent text-base outline-none placeholder:text-neutral-400 dark:placeholder:text-neutral-500"
+            />
+          </div>
+        </div>
+        <div className="flex items-center justify-between border-t border-neutral-200 px-4 py-2 text-xs text-neutral-400 dark:border-neutral-700 dark:text-neutral-500">
+          <span>Enter to create {label}</span>
+          <span>Esc to close</span>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function PlusMenu({ side }: { side: 'top' | 'right' }) {
+  const openQuickEntry = useAppStore((s) => s.openQuickEntry)
+  const createProject = useCreateProject()
+  const createArea = useCreateArea()
+  const [dialogType, setDialogType] = useState<'project' | 'area' | null>(null)
+
+  const itemClass =
+    'flex w-full items-center gap-2 rounded-md px-3 py-1.5 text-sm text-neutral-700 hover:bg-neutral-100 dark:text-neutral-300 dark:hover:bg-neutral-700'
+
+  return (
+    <>
+      <Popover.Root>
+        <Popover.Trigger asChild>
+          <button
+            className="rounded-lg p-1.5 text-neutral-500 hover:bg-neutral-200 dark:text-neutral-400 dark:hover:bg-neutral-700"
+            aria-label="New item"
+          >
+            <Plus size={18} />
+          </button>
+        </Popover.Trigger>
+        <Popover.Portal>
+          <Popover.Content
+            side={side}
+            sideOffset={8}
+            className="z-50 w-44 rounded-lg border border-neutral-200 bg-neutral-50 p-1 shadow-lg dark:border-neutral-700 dark:bg-neutral-800"
+          >
+            <button className={itemClass} onClick={() => openQuickEntry()}>
+              <CirclePlus size={16} />
+              New Task
+            </button>
+            <button className={itemClass} onClick={() => setDialogType('project')}>
+              <Package size={16} />
+              New Project
+            </button>
+            <button className={itemClass} onClick={() => setDialogType('area')}>
+              <Blocks size={16} />
+              New Area
+            </button>
+          </Popover.Content>
+        </Popover.Portal>
+      </Popover.Root>
+      <NameInputDialog
+        icon={<Package size={18} />}
+        label="project"
+        placeholder="New project name..."
+        open={dialogType === 'project'}
+        onClose={() => setDialogType(null)}
+        onSubmit={(name) => createProject.mutate({ title: name })}
+      />
+      <NameInputDialog
+        icon={<Blocks size={18} />}
+        label="area"
+        placeholder="New area name..."
+        open={dialogType === 'area'}
+        onClose={() => setDialogType(null)}
+        onSubmit={(name) => createArea.mutate({ title: name })}
+      />
+    </>
+  )
+}
+
 export function Sidebar() {
   const collapsed = useAppStore((s) => s.sidebarCollapsed)
   const toggleSidebar = useAppStore((s) => s.toggleSidebar)
-  const createProject = useCreateProject()
 
   if (collapsed) {
     return (
@@ -283,6 +418,9 @@ export function Sidebar() {
             </NavLink>
           ))}
         </nav>
+        <div className="mt-auto">
+          <PlusMenu side="right" />
+        </div>
       </aside>
     )
   }
@@ -312,18 +450,7 @@ export function Sidebar() {
         </div>
       </div>
       <div className="border-t border-neutral-200 p-3 dark:border-neutral-700">
-        <button
-          onClick={() => {
-            const title = prompt('Project name:')
-            if (title?.trim()) {
-              createProject.mutate({ title: title.trim() })
-            }
-          }}
-          className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-neutral-600 hover:bg-neutral-100 dark:text-neutral-400 dark:hover:bg-neutral-800"
-        >
-          <Plus size={16} />
-          <span>New Project</span>
-        </button>
+        <PlusMenu side="top" />
       </div>
     </aside>
   )

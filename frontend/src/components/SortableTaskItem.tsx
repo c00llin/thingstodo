@@ -13,6 +13,24 @@ import { TagAutocomplete } from './TagAutocomplete'
 import { ProjectAutocomplete } from './ProjectAutocomplete'
 import { useProjects, useAreas } from '../hooks/queries'
 
+function DelayedReveal({ children }: { children: React.ReactNode }) {
+  const [visible, setVisible] = useState(false)
+
+  useEffect(() => {
+    const id = setTimeout(() => setVisible(true), 200)
+    return () => clearTimeout(id)
+  }, [])
+
+  return (
+    <div
+      className="transition-opacity duration-200"
+      style={{ opacity: visible ? 1 : 0 }}
+    >
+      {children}
+    </div>
+  )
+}
+
 interface SortableTaskItemProps {
   task: Task
   showProject?: boolean
@@ -292,14 +310,9 @@ export function SortableTaskItem({
         </button>
       </div>
       {isExpanded && !isDragging && (
-        <motion.div
-          initial={{ height: 0, opacity: 0 }}
-          animate={{ height: 'auto', opacity: 1 }}
-          exit={{ height: 0, opacity: 0 }}
-          transition={{ type: 'spring', stiffness: 400, damping: 35 }}
-        >
+        <DelayedReveal>
           <TaskDetail taskId={task.id} />
-        </motion.div>
+        </DelayedReveal>
       )}
     </motion.div>
   )
