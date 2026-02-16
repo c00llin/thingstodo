@@ -142,13 +142,28 @@ func New(db *sql.DB, cfg config.Config, broker *sse.Broker) http.Handler {
 		})
 	})
 
-	// Serve embedded frontend static files (SPA fallback)
+	// Serve embedded frontend static files with SPA fallback
 	staticFS, err := fs.Sub(frontend.StaticFiles, "dist")
 	if err != nil {
 		panic("failed to create sub filesystem for frontend: " + err.Error())
 	}
-	fileServer := http.FileServer(http.FS(staticFS))
-	r.Handle("/*", fileServer)
+	indexHTML, _ := fs.ReadFile(staticFS, "index.html")
+
+	r.Handle("/*", http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+		// Try to open the requested file
+		path := req.URL.Path[1:] // strip leading /
+		if path == "" {
+			path = "index.html"
+		}
+		if f, err := staticFS.Open(path); err == nil {
+			f.Close()
+			http.FileServer(http.FS(staticFS)).ServeHTTP(w, req)
+			return
+		}
+		// SPA fallback: serve index.html for all other routes
+		w.Header().Set("Content-Type", "text/html")
+		_, _ = w.Write(indexHTML)
+	}))
 
 	return r
 }
