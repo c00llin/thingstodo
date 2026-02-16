@@ -44,23 +44,30 @@ export function QuickEntry() {
     if (open) {
       // Only overwrite the draft when opened with a seeded value (type-to-create)
       if (initialValue) {
-        // eslint-disable-next-line react-hooks/set-state-in-effect -- seeding input with typed character
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         setTitle(initialValue)
       }
-      // eslint-disable-next-line react-hooks/set-state-in-effect -- reset mode on open
       setMode('create')
-      // eslint-disable-next-line react-hooks/set-state-in-effect -- reset search on open
       setSearchQuery('')
     }
   }, [open, initialValue])
 
+  function resetDetailFields() {
+    setNotes('')
+    setWhenDate('')
+    setWhenEvening(false)
+    setDeadline('')
+    setShowNotes(false)
+    setShowWhen(false)
+    setShowDeadline(false)
+  }
+
   // Reset detail fields when title is cleared
   useEffect(() => {
     if (title.trim().length === 0) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect -- resetting sections when title cleared
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       resetDetailFields()
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [title])
 
   // Place cursor at end of value when popup opens
@@ -75,16 +82,6 @@ export function QuickEntry() {
   useEffect(() => {
     if (showNotes && notesRef.current) notesRef.current.focus()
   }, [showNotes])
-
-  function resetDetailFields() {
-    setNotes('')
-    setWhenDate('')
-    setWhenEvening(false)
-    setDeadline('')
-    setShowNotes(false)
-    setShowWhen(false)
-    setShowDeadline(false)
-  }
 
   const handleSubmit = useCallback(async () => {
     const raw = title.trim()

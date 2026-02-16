@@ -104,7 +104,7 @@ export function AppDndContext({ children, tasks = [] }: AppDndContextProps) {
         queryClient.invalidateQueries({ queryKey: ['areas'] })
       }
     },
-    [queryClient],
+    [queryClient, projects],
   )
 
   return (

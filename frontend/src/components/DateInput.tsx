@@ -120,10 +120,9 @@ export function DateInput({ value, evening, onChange, variant, autoFocus }: Date
     return () => document.removeEventListener('mousedown', handleMouseDown)
   }, [active])
 
-  // Reset highlight when suggestions change
-  useEffect(() => {
-    setHighlightIndex(0)
-  }, [text])
+  // Reset highlight when text changes
+  // eslint-disable-next-line react-hooks/set-state-in-effect -- derived reset, not cascading
+  useEffect(() => { setHighlightIndex(0) }, [text])
 
   function handleKeyDown(e: React.KeyboardEvent) {
     if (!active) return
