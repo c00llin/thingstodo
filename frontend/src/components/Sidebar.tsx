@@ -1,12 +1,12 @@
 import { useState, useRef, useEffect } from 'react'
-import { NavLink } from 'react-router'
+import { NavLink, useLocation } from 'react-router'
 import {
   Inbox,
   Sun,
   Calendar,
   Layers,
   Clock,
-  BookOpen,
+  CircleCheckBig,
   Tag,
   ChevronRight,
   PanelLeftClose,
@@ -18,6 +18,7 @@ import {
 } from 'lucide-react'
 import * as Collapsible from '@radix-ui/react-collapsible'
 import * as Popover from '@radix-ui/react-popover'
+import { useDraggable } from '@dnd-kit/core'
 
 import { motion, AnimatePresence } from 'framer-motion'
 import { useAreas, useProjects, useTags, useCreateProject, useCreateArea } from '../hooks/queries'
@@ -31,7 +32,7 @@ const smartLists = [
   { to: '/upcoming', label: 'Upcoming', icon: Calendar, dropId: null },
   { to: '/anytime', label: 'Anytime', icon: Layers, dropId: null },
   { to: '/someday', label: 'Someday', icon: Clock, dropId: 'sidebar-someday' },
-  { to: '/logbook', label: 'Logbook', icon: BookOpen, dropId: null },
+  { to: '/logbook', label: 'Completed', icon: CircleCheckBig, dropId: null },
 ] as const
 
 function SmartListNav() {
@@ -66,6 +67,18 @@ function SmartListNav() {
   )
 }
 
+function DraggableProject({ projectId, children }: { projectId: string; children: React.ReactNode }) {
+  const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
+    id: `drag-project-${projectId}`,
+  })
+
+  return (
+    <div ref={setNodeRef} {...listeners} {...attributes} style={{ opacity: isDragging ? 0.5 : 1 }}>
+      {children}
+    </div>
+  )
+}
+
 function AreaList() {
   const { data: areasData } = useAreas()
   const { data: projectsData } = useProjects()
@@ -74,6 +87,8 @@ function AreaList() {
 
   const areas = areasData?.areas ?? []
   const projects = projectsData?.projects ?? []
+
+  if (areas.length === 0 && projects.length === 0) return null
 
   return (
     <Collapsible.Root open={open} onOpenChange={setOpen}>
@@ -115,24 +130,21 @@ function AreaList() {
                     </SidebarDropTarget>
                     {areaProjects.map((project) => (
                       <SidebarDropTarget key={project.id} id={`sidebar-project-${project.id}`}>
-                        <NavLink
-                          to={`/project/${project.id}`}
-                          className={({ isActive }) =>
-                            `flex items-center gap-2 rounded-lg py-1.5 pl-8 pr-3 text-sm ${
-                              isActive
-                                ? 'bg-red-50 text-red-700 dark:bg-red-900/30 dark:text-red-400'
-                                : 'text-neutral-500 hover:bg-neutral-100 dark:text-neutral-400 dark:hover:bg-neutral-800'
-                            }`
-                          }
-                        >
-                          <Package size={14} className={
-                              project.task_count > 0 &&
-                              project.completed_task_count === project.task_count
-                                ? 'text-green-500'
-                                : 'text-neutral-400 dark:text-neutral-500'
-                          } />
-                          <span className="truncate">{project.title}</span>
-                        </NavLink>
+                        <DraggableProject projectId={project.id}>
+                          <NavLink
+                            to={`/project/${project.id}`}
+                            className={({ isActive }) =>
+                              `flex items-center gap-2 rounded-lg py-1.5 pl-8 pr-3 text-sm ${
+                                isActive
+                                  ? 'bg-red-50 text-red-700 dark:bg-red-900/30 dark:text-red-400'
+                                  : 'text-neutral-500 hover:bg-neutral-100 dark:text-neutral-400 dark:hover:bg-neutral-800'
+                              }`
+                            }
+                          >
+                            <Package size={14} className="text-neutral-400 dark:text-neutral-500" />
+                            <span className="truncate">{project.title}</span>
+                          </NavLink>
+                        </DraggableProject>
                       </SidebarDropTarget>
                     ))}
                   </div>
@@ -142,24 +154,26 @@ function AreaList() {
                 .filter((p) => !p.area_id)
                 .map((project) => (
                   <SidebarDropTarget key={project.id} id={`sidebar-project-${project.id}`}>
-                    <NavLink
-                      to={`/project/${project.id}`}
-                      className={({ isActive }) =>
-                        `flex items-center gap-2 rounded-lg px-3 py-1.5 text-sm ${
-                          isActive
-                            ? 'bg-red-50 text-red-700 dark:bg-red-900/30 dark:text-red-400'
-                            : 'text-neutral-500 hover:bg-neutral-100 dark:text-neutral-400 dark:hover:bg-neutral-800'
-                        }`
-                      }
-                    >
-                      <Package size={14} className={
-                          project.task_count > 0 &&
-                          project.completed_task_count === project.task_count
-                            ? 'text-green-500'
-                            : 'text-neutral-400 dark:text-neutral-500'
-                      } />
-                      <span className="truncate">{project.title}</span>
-                    </NavLink>
+                    <DraggableProject projectId={project.id}>
+                      <NavLink
+                        to={`/project/${project.id}`}
+                        className={({ isActive }) =>
+                          `flex items-center gap-2 rounded-lg px-3 py-1.5 text-sm ${
+                            isActive
+                              ? 'bg-red-50 text-red-700 dark:bg-red-900/30 dark:text-red-400'
+                              : 'text-neutral-500 hover:bg-neutral-100 dark:text-neutral-400 dark:hover:bg-neutral-800'
+                          }`
+                        }
+                      >
+                        <Package size={14} className={
+                            project.task_count > 0 &&
+                            project.completed_task_count === project.task_count
+                              ? 'text-green-500'
+                              : 'text-neutral-400 dark:text-neutral-500'
+                        } />
+                        <span className="truncate">{project.title}</span>
+                      </NavLink>
+                    </DraggableProject>
                   </SidebarDropTarget>
                 ))}
             </motion.div>
@@ -269,7 +283,6 @@ function NameInputDialog({
   useEffect(() => {
     if (open) {
       setValue('')
-      // Small delay so the DOM is ready
       requestAnimationFrame(() => inputRef.current?.focus())
     }
   }, [open])
@@ -327,7 +340,12 @@ function PlusMenu({ side }: { side: 'top' | 'right' }) {
   const openQuickEntry = useAppStore((s) => s.openQuickEntry)
   const createProject = useCreateProject()
   const createArea = useCreateArea()
+  const location = useLocation()
   const [dialogType, setDialogType] = useState<'project' | 'area' | null>(null)
+
+  // Detect if an area page is currently selected
+  const areaMatch = location.pathname.match(/^\/area\/(.+)$/)
+  const currentAreaId = areaMatch ? areaMatch[1] : null
 
   const itemClass =
     'flex w-full items-center gap-2 rounded-md px-3 py-1.5 text-sm text-neutral-700 hover:bg-neutral-100 dark:text-neutral-300 dark:hover:bg-neutral-700'
@@ -370,7 +388,7 @@ function PlusMenu({ side }: { side: 'top' | 'right' }) {
         placeholder="New project name..."
         open={dialogType === 'project'}
         onClose={() => setDialogType(null)}
-        onSubmit={(name) => createProject.mutate({ title: name })}
+        onSubmit={(name) => createProject.mutate({ title: name, area_id: currentAreaId })}
       />
       <NameInputDialog
         icon={<Blocks size={18} />}

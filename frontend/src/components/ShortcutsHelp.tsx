@@ -2,21 +2,27 @@ import * as Dialog from '@radix-ui/react-dialog'
 import { X } from 'lucide-react'
 import { useAppStore } from '../stores/app'
 
+const navigationShortcuts = [
+  { keys: 'G I', action: 'Go to Inbox' },
+  { keys: 'G T', action: 'Go to Today' },
+  { keys: 'G U', action: 'Go to Upcoming' },
+  { keys: 'G A', action: 'Go to Anytime' },
+  { keys: 'G S', action: 'Go to Someday' },
+  { keys: 'G C', action: 'Go to Completed' },
+]
+
 const globalShortcuts = [
-  { keys: 'Ctrl + Space', action: 'Open Quick Entry' },
-  { keys: 'Alt + N', action: 'New task in current view' },
+  { keys: 'Q', action: 'Quick Entry' },
+  { keys: 'Ctrl + Space', action: 'Quick Entry (from anywhere)' },
   { keys: 'Alt + F', action: 'Focus search' },
-  { keys: 'Alt + 1', action: 'Go to Inbox' },
-  { keys: 'Alt + 2', action: 'Go to Today' },
-  { keys: 'Alt + 3', action: 'Go to Upcoming' },
-  { keys: 'Alt + 4', action: 'Go to Anytime' },
-  { keys: 'Alt + 5', action: 'Go to Someday' },
-  { keys: 'Alt + 6', action: 'Go to Logbook' },
   { keys: '?', action: 'Show this help' },
 ]
 
 const taskShortcuts = [
-  { keys: 'Enter', action: 'Close task detail' },
+  { keys: 'Enter', action: 'Edit task title' },
+  { keys: '⌘ + Enter', action: 'Open task detail' },
+  { keys: 'Escape', action: 'Close detail / deselect' },
+  { keys: '↑ / ↓', action: 'Navigate tasks' },
   { keys: 'Alt + K', action: 'Complete task' },
   { keys: 'Alt + Shift + K', action: 'Cancel task' },
   { keys: 'Alt + T', action: 'Move to Today' },
@@ -57,6 +63,16 @@ export function ShortcutsHelp() {
           <div className="space-y-4">
             <div>
               <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-neutral-500">
+                Navigation
+              </h3>
+              <div className="divide-y divide-neutral-100 dark:divide-neutral-700">
+                {navigationShortcuts.map((s) => (
+                  <ShortcutRow key={s.keys} {...s} />
+                ))}
+              </div>
+            </div>
+            <div>
+              <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-neutral-500">
                 Global
               </h3>
               <div className="divide-y divide-neutral-100 dark:divide-neutral-700">
@@ -67,7 +83,7 @@ export function ShortcutsHelp() {
             </div>
             <div>
               <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-neutral-500">
-                When a task is selected
+                Task
               </h3>
               <div className="divide-y divide-neutral-100 dark:divide-neutral-700">
                 {taskShortcuts.map((s) => (

@@ -10,6 +10,24 @@ import { TagAutocomplete } from './TagAutocomplete'
 import { ProjectAutocomplete } from './ProjectAutocomplete'
 import { useProjects, useAreas } from '../hooks/queries'
 
+function DelayedReveal({ children }: { children: React.ReactNode }) {
+  const [visible, setVisible] = useState(false)
+
+  useEffect(() => {
+    const id = setTimeout(() => setVisible(true), 200)
+    return () => clearTimeout(id)
+  }, [])
+
+  return (
+    <div
+      className="transition-opacity duration-200"
+      style={{ opacity: visible ? 1 : 0 }}
+    >
+      {children}
+    </div>
+  )
+}
+
 interface TaskItemProps {
   task: Task
   showProject?: boolean
@@ -84,8 +102,12 @@ export function TaskItem({ task, showProject = true }: TaskItemProps) {
     }
   }
 
-  function handleClick() {
-    selectTask(isSelected ? null : task.id)
+  function handleClick(e: React.MouseEvent) {
+    if (e.metaKey || e.ctrlKey) {
+      selectTask(isSelected ? null : task.id)
+      return
+    }
+    expandTask(isExpanded ? null : task.id)
   }
 
   function handleDoubleClick(e: React.MouseEvent) {
@@ -243,7 +265,11 @@ export function TaskItem({ task, showProject = true }: TaskItemProps) {
           <ChevronDown size={16} />
         </button>
       </div>
-      {isExpanded && <TaskDetail taskId={task.id} />}
+      {isExpanded && (
+        <DelayedReveal>
+          <TaskDetail taskId={task.id} />
+        </DelayedReveal>
+      )}
     </div>
   )
 }

@@ -77,7 +77,7 @@ export function useGlobalShortcuts() {
     u: () => navigate('/upcoming'),
     a: () => navigate('/anytime'),
     s: () => navigate('/someday'),
-    l: () => navigate('/logbook'),
+    c: () => navigate('/logbook'),
   })
 
   // Quick entry
@@ -109,10 +109,23 @@ export function useGlobalShortcuts() {
     }
   })
 
-  // Help overlay
-  useHotkeys('shift+/', () => {
-    toggleShortcutsHelp()
-  })
+  // Help overlay — listen for '?' directly since shift+/ doesn't work on all layouts
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement
+      if (
+        target.tagName === 'INPUT' ||
+        target.tagName === 'TEXTAREA' ||
+        target.isContentEditable
+      ) return
+      if (e.key === '?') {
+        e.preventDefault()
+        toggleShortcutsHelp()
+      }
+    }
+    document.addEventListener('keydown', handler)
+    return () => document.removeEventListener('keydown', handler)
+  }, [toggleShortcutsHelp])
 }
 
 export function useTaskShortcuts() {
