@@ -4,7 +4,6 @@ import { Sidebar } from './Sidebar'
 import { ShortcutsHelp } from './ShortcutsHelp'
 import { AppDndContext } from './AppDndContext'
 import { useGlobalShortcuts, useTaskShortcuts } from '../hooks/useKeyboardShortcuts'
-import { useTypeToCreate } from '../hooks/useTypeToCreate'
 import { useTheme } from '../hooks/useTheme'
 import { useSSE } from '../hooks/useSSE'
 import { useMe } from '../hooks/queries'
@@ -15,7 +14,6 @@ export function AppLayout() {
   const { isLoading, error } = useMe()
   useGlobalShortcuts()
   useTaskShortcuts()
-  useTypeToCreate()
   useTheme()
   useSSE()
 

@@ -1,3 +1,4 @@
+import { useEffect, useRef, useCallback } from 'react'
 import { useHotkeys } from 'react-hotkeys-hook'
 import { useNavigate } from 'react-router'
 import { useAppStore } from '../stores/app'
@@ -5,10 +6,79 @@ import { useCompleteTask, useCancelTask, useDeleteTask, useUpdateTask } from './
 
 const VIEW_ROUTES = ['/inbox', '/today', '/upcoming', '/anytime', '/someday', '/logbook']
 
+/** Timeout in ms for the second key in a sequence (g + key). */
+const SEQUENCE_TIMEOUT = 500
+
+/** Whether a key sequence (g + …) is currently pending. */
+let isSequencePending = false
+
+/**
+ * Hook for "g + <key>" navigation sequences.
+ * If 'g' was pressed recently, the next key is matched against the map.
+ */
+function useKeySequences(sequences: Record<string, () => void>) {
+  const timerRef = useRef<ReturnType<typeof setTimeout>>(undefined)
+
+  const handler = useCallback(
+    (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement
+      if (
+        target.tagName === 'INPUT' ||
+        target.tagName === 'TEXTAREA' ||
+        target.isContentEditable ||
+        e.ctrlKey ||
+        e.metaKey ||
+        e.altKey
+      ) {
+        isSequencePending = false
+        return
+      }
+
+      if (isSequencePending) {
+        isSequencePending = false
+        clearTimeout(timerRef.current)
+        const action = sequences[e.key]
+        if (action) {
+          e.preventDefault()
+          action()
+        }
+        return
+      }
+
+      if (e.key === 'g') {
+        isSequencePending = true
+        clearTimeout(timerRef.current)
+        timerRef.current = setTimeout(() => {
+          isSequencePending = false
+        }, SEQUENCE_TIMEOUT)
+      }
+    },
+    [sequences],
+  )
+
+  useEffect(() => {
+    document.addEventListener('keydown', handler)
+    return () => {
+      document.removeEventListener('keydown', handler)
+      clearTimeout(timerRef.current)
+    }
+  }, [handler])
+}
+
 export function useGlobalShortcuts() {
   const navigate = useNavigate()
   const openQuickEntry = useAppStore((s) => s.openQuickEntry)
   const toggleShortcutsHelp = useAppStore((s) => s.toggleShortcutsHelp)
+
+  // g + <key> navigation sequences
+  useKeySequences({
+    i: () => navigate('/inbox'),
+    t: () => navigate('/today'),
+    u: () => navigate('/upcoming'),
+    a: () => navigate('/anytime'),
+    s: () => navigate('/someday'),
+    l: () => navigate('/logbook'),
+  })
 
   // Quick entry
   useHotkeys('ctrl+space', (e) => {
