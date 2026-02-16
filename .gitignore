@@ -38,7 +38,7 @@ coverage/
 *~
 
 # Built binary
-server
+/server
 
 # Notes
 notes.md

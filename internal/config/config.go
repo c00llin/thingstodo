@@ -15,6 +15,7 @@ type Config struct {
 	MaxUploadSize   int64
 	AuthProxyHeader string
 	JWTSecret       string
+	LoginPassword   string
 }
 
 func Load() Config {
@@ -29,6 +30,7 @@ func Load() Config {
 		MaxUploadSize:   envInt64("MAX_UPLOAD_SIZE", 25*1024*1024),
 		AuthProxyHeader: envStr("AUTH_PROXY_HEADER", "Remote-User"),
 		JWTSecret:       envStr("JWT_SECRET", ""),
+		LoginPassword:   envStr("LOGIN_PASSWORD", ""),
 	}
 }
 
