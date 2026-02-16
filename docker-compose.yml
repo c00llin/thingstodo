@@ -1,9 +1,8 @@
 services:
   app:
-    build: .
+    image: ghcr.io/c00llin/thingstodo:latest
     volumes:
       - ./data:/data
-      - ./attachments:/attachments
     ports:
       - "2999:2999"
     env_file: .env

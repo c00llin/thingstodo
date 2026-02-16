@@ -2,6 +2,7 @@ package config
 
 import (
 	"os"
+	"path/filepath"
 	"strconv"
 )
 
@@ -17,12 +18,14 @@ type Config struct {
 }
 
 func Load() Config {
+	dbPath := envStr("DB_PATH", "./data/thingstodo.db")
+	dataDir := filepath.Dir(dbPath)
 	return Config{
 		Port:            envInt("PORT", 2999),
-		DBPath:          envStr("DB_PATH", "./data/thingstodo.db"),
+		DBPath:          dbPath,
 		AuthMode:        envStr("AUTH_MODE", "builtin"),
 		LogLevel:        envStr("LOG_LEVEL", "info"),
-		AttachmentsPath: envStr("ATTACHMENTS_PATH", "./attachments"),
+		AttachmentsPath: filepath.Join(dataDir, "attachments"),
 		MaxUploadSize:   envInt64("MAX_UPLOAD_SIZE", 25*1024*1024),
 		AuthProxyHeader: envStr("AUTH_PROXY_HEADER", "Remote-User"),
 		JWTSecret:       envStr("JWT_SECRET", ""),
