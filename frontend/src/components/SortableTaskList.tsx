@@ -7,7 +7,7 @@ import { AnimatePresence } from 'framer-motion'
 import type { Task, SortField } from '../api/types'
 import { SortableTaskItem } from './SortableTaskItem'
 import { useAppStore } from '../stores/app'
-import { useSortableListRegistry } from '../contexts/SortableListRegistry'
+import { useSortableListRegistry } from '../contexts/useSortableListRegistry'
 
 interface SortableTaskListProps {
   tasks: Task[]

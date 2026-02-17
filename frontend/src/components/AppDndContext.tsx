@@ -64,7 +64,8 @@ function reorderTaskInCache(
 }
 import { TaskItemDragOverlay } from './TaskItemDragOverlay'
 import { useAppStore } from '../stores/app'
-import { SortableListRegistryProvider, useSortableListRegistry } from '../contexts/SortableListRegistry'
+import { SortableListRegistryProvider } from '../contexts/SortableListRegistry'
+import { useSortableListRegistry } from '../contexts/useSortableListRegistry'
 import { calculatePosition } from '../lib/sort-position'
 
 // Prefer sidebar droppables when the pointer is over them, fall back to closestCenter for sortable reorder.

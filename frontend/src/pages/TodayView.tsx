@@ -6,13 +6,14 @@ export function TodayView() {
   const { data, isLoading } = useToday()
 
   // Flatten grouped tasks into a single list per section
+  const dataSections = data?.sections
   const sections = useMemo(() => {
-    if (!data?.sections) return []
-    return data.sections.map((section) => ({
+    if (!dataSections) return []
+    return dataSections.map((section) => ({
       title: section.title,
       tasks: section.groups.flatMap((g) => g.tasks),
     }))
-  }, [data?.sections])
+  }, [dataSections])
 
   if (isLoading) {
     return (

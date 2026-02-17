@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useCallback } from 'react'
+import { useState, useRef, useEffect, useCallback, useMemo } from 'react'
 import { useNavigate } from 'react-router'
 import { Search } from 'lucide-react'
 import { useAppStore } from '../stores/app'
@@ -7,46 +7,39 @@ import type { SearchResult } from '../api/types'
 
 export function SearchOverlay() {
   const open = useAppStore((s) => s.searchOpen)
+  if (!open) return null
+  return <SearchOverlayInner />
+}
+
+function SearchOverlayInner() {
   const close = useAppStore((s) => s.closeSearch)
   const expandTask = useAppStore((s) => s.expandTask)
   const navigate = useNavigate()
 
   const [query, setQuery] = useState('')
   const [debouncedQuery, setDebouncedQuery] = useState('')
-  const [selectedIndex, setSelectedIndex] = useState(0)
-  const inputRef = useRef<HTMLInputElement>(null)
+  const [rawSelectedIndex, setSelectedIndex] = useState(0)
   const debounceRef = useRef<ReturnType<typeof setTimeout>>(undefined)
 
   const { data, isFetching } = useSearch(debouncedQuery)
-  const results = data?.results ?? []
+  const results = useMemo(() => data?.results ?? [], [data?.results])
+
+  // Clamp selection to valid range
+  const selectedIndex = results.length > 0 ? Math.min(rawSelectedIndex, results.length - 1) : 0
 
   // Debounce query
   useEffect(() => {
     clearTimeout(debounceRef.current)
     debounceRef.current = setTimeout(() => {
       setDebouncedQuery(query)
+      setSelectedIndex(0)
     }, 300)
     return () => clearTimeout(debounceRef.current)
   }, [query])
 
-  // Reset selection when results change
-  useEffect(() => {
-    setSelectedIndex(0)
-  }, [results.length, debouncedQuery])
-
-  // Reset state when opening
-  useEffect(() => {
-    if (open) {
-      setQuery('')
-      setDebouncedQuery('')
-      setSelectedIndex(0)
-    }
-  }, [open])
-
   const selectResult = useCallback(
     (result: SearchResult) => {
       const task = result.task
-      // Navigate to parent view
       if (task.project_id) {
         navigate(`/project/${task.project_id}`)
       } else if (task.area_id) {
@@ -54,7 +47,6 @@ export function SearchOverlay() {
       } else {
         navigate('/inbox')
       }
-      // Expand the task after a tick so the view has time to render
       setTimeout(() => expandTask(task.id), 50)
       close()
     },
@@ -87,8 +79,6 @@ export function SearchOverlay() {
     [results, selectedIndex, selectResult, close],
   )
 
-  if (!open) return null
-
   return (
     <div
       className="fixed inset-0 z-50 flex items-start justify-center bg-black/50 pt-[15vh]"
@@ -101,7 +91,6 @@ export function SearchOverlay() {
         <div className="flex items-center gap-3 border-b border-neutral-200 px-4 py-3 dark:border-neutral-700">
           <Search size={16} className="shrink-0 text-neutral-400" />
           <input
-            ref={inputRef}
             autoFocus
             type="text"
             placeholder="Search tasks..."
