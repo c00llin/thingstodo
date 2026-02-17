@@ -1,6 +1,5 @@
 import { useMemo } from 'react'
 import { useToday } from '../hooks/queries'
-import { TaskGroup } from '../components/TaskGroup'
 import { SortableTaskList } from '../components/SortableTaskList'
 
 export function TodayView() {
@@ -27,7 +26,10 @@ export function TodayView() {
     <div className="mx-auto max-w-2xl p-6">
       {/* Overdue tasks */}
       {data?.overdue && data.overdue.length > 0 && (
-        <TaskGroup title="Overdue" tasks={data.overdue} sortable sortField="sort_order_today" />
+        <div className="mb-8">
+          <h1 className="mb-3 text-2xl font-bold text-red-600 dark:text-red-400">Overdue</h1>
+          <SortableTaskList tasks={data.overdue} sortField="sort_order_today" />
+        </div>
       )}
 
       {/* Sections: Today + This Evening */}

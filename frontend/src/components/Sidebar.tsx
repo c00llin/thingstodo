@@ -21,7 +21,7 @@ import * as Popover from '@radix-ui/react-popover'
 import { useDraggable } from '@dnd-kit/core'
 
 import { motion, AnimatePresence } from 'framer-motion'
-import { useAreas, useProjects, useTags, useCreateProject, useCreateArea } from '../hooks/queries'
+import { useAreas, useProjects, useTags, useCreateProject, useCreateArea, useToday } from '../hooks/queries'
 import { useAppStore } from '../stores/app'
 import { ThemeToggle } from './ThemeToggle'
 import { SidebarDropTarget } from './SidebarDropTarget'
@@ -36,6 +36,9 @@ const smartLists = [
 ] as const
 
 function SmartListNav() {
+  const { data: todayData } = useToday()
+  const overdueCount = todayData?.overdue?.length ?? 0
+
   return (
     <nav className="space-y-0.5">
       {smartLists.map(({ to, label, icon: Icon, dropId }) => {
@@ -52,6 +55,11 @@ function SmartListNav() {
           >
             <Icon size={18} />
             <span>{label}</span>
+            {label === 'Today' && overdueCount > 0 && (
+              <span className="ml-auto flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-medium text-white">
+                {overdueCount}
+              </span>
+            )}
           </NavLink>
         )
         if (dropId) {
@@ -410,6 +418,8 @@ function PlusMenu({ side }: { side: 'top' | 'right' }) {
 export function Sidebar() {
   const collapsed = useAppStore((s) => s.sidebarCollapsed)
   const toggleSidebar = useAppStore((s) => s.toggleSidebar)
+  const { data: todayData } = useToday()
+  const overdueCount = todayData?.overdue?.length ?? 0
 
   if (collapsed) {
     return (
@@ -435,6 +445,11 @@ export function Sidebar() {
               }
             >
               <Icon size={18} />
+              {label === 'Today' && overdueCount > 0 && (
+                <span className="absolute -right-0.5 -top-0.5 flex h-3.5 min-w-3.5 items-center justify-center rounded-full bg-red-500 px-0.5 text-[8px] font-bold text-white">
+                  {overdueCount}
+                </span>
+              )}
               <span className="pointer-events-none absolute left-full top-1/2 z-50 ml-2 -translate-y-1/2 whitespace-nowrap rounded-md bg-neutral-900 px-2 py-1 text-xs text-white opacity-0 transition-opacity group-hover:opacity-100 dark:bg-neutral-700">
                 {label}
               </span>
