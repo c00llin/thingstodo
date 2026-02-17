@@ -355,22 +355,26 @@ export function TaskDetail({ taskId }: TaskDetailProps) {
         <FileUploadButton taskId={taskId} />
         <LinkAddButton taskId={taskId} />
         <div className="ml-auto flex items-center gap-0.5">
-          <button
-            onClick={handleCancel}
-            className="rounded-md p-1 text-neutral-400 hover:bg-neutral-100 hover:text-neutral-600 dark:hover:bg-neutral-800 dark:hover:text-neutral-300"
-            aria-label="Cancel task"
-            title="Cancel"
-          >
-            <CircleMinus size={16} />
-          </button>
-          <button
-            onClick={handleWontDo}
-            className="rounded-md p-1 text-neutral-400 hover:bg-neutral-100 hover:text-neutral-600 dark:hover:bg-neutral-800 dark:hover:text-neutral-300"
-            aria-label="Won't do task"
-            title="Won't do"
-          >
-            <CircleX size={16} />
-          </button>
+          {task.status === 'open' && (
+            <>
+              <button
+                onClick={handleCancel}
+                className="rounded-md p-1 text-neutral-400 hover:bg-neutral-100 hover:text-neutral-600 dark:hover:bg-neutral-800 dark:hover:text-neutral-300"
+                aria-label="Cancel task"
+                title="Cancel"
+              >
+                <CircleMinus size={16} />
+              </button>
+              <button
+                onClick={handleWontDo}
+                className="rounded-md p-1 text-neutral-400 hover:bg-neutral-100 hover:text-neutral-600 dark:hover:bg-neutral-800 dark:hover:text-neutral-300"
+                aria-label="Won't do task"
+                title="Won't do"
+              >
+                <CircleX size={16} />
+              </button>
+            </>
+          )}
           <button
             onClick={handleDelete}
             className="rounded-md p-1 text-neutral-400 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-900/20 dark:hover:text-red-400"
