@@ -97,7 +97,8 @@ export interface Task {
   checklist_count: number
   checklist_done: number
   has_notes: boolean
-  has_attachments: boolean
+  has_links: boolean
+  has_files: boolean
   has_repeat_rule: boolean
   project_name: string | null
   area_name: string | null

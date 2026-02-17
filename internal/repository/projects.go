@@ -256,7 +256,8 @@ func getTaskListItems(db *sql.DB, filterCol, filterVal string) []model.TaskListI
 			COALESCE((SELECT COUNT(*) FROM checklist_items WHERE task_id = t.id), 0),
 			COALESCE((SELECT COUNT(*) FROM checklist_items WHERE task_id = t.id AND completed = 1), 0),
 			CASE WHEN t.notes != '' THEN 1 ELSE 0 END,
-			CASE WHEN EXISTS(SELECT 1 FROM attachments WHERE task_id = t.id) THEN 1 ELSE 0 END,
+			CASE WHEN EXISTS(SELECT 1 FROM attachments WHERE task_id = t.id AND type = 'link') THEN 1 ELSE 0 END,
+			CASE WHEN EXISTS(SELECT 1 FROM attachments WHERE task_id = t.id AND type = 'file') THEN 1 ELSE 0 END,
 			CASE WHEN EXISTS(SELECT 1 FROM repeat_rules WHERE task_id = t.id) THEN 1 ELSE 0 END
 		FROM tasks t WHERE t.`+filterCol+` = ? AND t.status = 'open'
 		ORDER BY t.sort_order_project ASC`, filterVal)
@@ -276,7 +277,8 @@ func getTaskListItemsNoHeading(db *sql.DB, projectID string) []model.TaskListIte
 			COALESCE((SELECT COUNT(*) FROM checklist_items WHERE task_id = t.id), 0),
 			COALESCE((SELECT COUNT(*) FROM checklist_items WHERE task_id = t.id AND completed = 1), 0),
 			CASE WHEN t.notes != '' THEN 1 ELSE 0 END,
-			CASE WHEN EXISTS(SELECT 1 FROM attachments WHERE task_id = t.id) THEN 1 ELSE 0 END,
+			CASE WHEN EXISTS(SELECT 1 FROM attachments WHERE task_id = t.id AND type = 'link') THEN 1 ELSE 0 END,
+			CASE WHEN EXISTS(SELECT 1 FROM attachments WHERE task_id = t.id AND type = 'file') THEN 1 ELSE 0 END,
 			CASE WHEN EXISTS(SELECT 1 FROM repeat_rules WHERE task_id = t.id) THEN 1 ELSE 0 END
 		FROM tasks t WHERE t.project_id = ? AND t.heading_id IS NULL AND t.status = 'open'
 		ORDER BY t.sort_order_project ASC`, projectID)
@@ -291,18 +293,19 @@ func scanTaskListItems(db *sql.DB, rows *sql.Rows) []model.TaskListItem {
 	var tasks []model.TaskListItem
 	for rows.Next() {
 		var t model.TaskListItem
-		var whenEvening, hasNotes, hasAttach, hasRepeat int
+		var whenEvening, hasNotes, hasLinks, hasFiles, hasRepeat int
 		_ = rows.Scan(
 			&t.ID, &t.Title, &t.Notes, &t.Status, &t.WhenDate, &whenEvening,
 			&t.Deadline, &t.ProjectID, &t.AreaID, &t.HeadingID,
 			&t.SortOrderToday, &t.SortOrderProject, &t.SortOrderHeading,
 			&t.CompletedAt, &t.CanceledAt, &t.CreatedAt, &t.UpdatedAt,
 			&t.ChecklistCount, &t.ChecklistDone,
-			&hasNotes, &hasAttach, &hasRepeat,
+			&hasNotes, &hasLinks, &hasFiles, &hasRepeat,
 		)
 		t.WhenEvening = whenEvening == 1
 		t.HasNotes = hasNotes == 1
-		t.HasAttachments = hasAttach == 1
+		t.HasLinks = hasLinks == 1
+		t.HasFiles = hasFiles == 1
 		t.HasRepeatRule = hasRepeat == 1
 		// Get tags
 		tagRows, _ := db.Query(

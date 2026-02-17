@@ -49,7 +49,7 @@ describe('InboxView', () => {
         const body = await request.json() as Record<string, unknown>
         createdTitle = body.title as string
         return HttpResponse.json(
-          { id: 'new-id', title: createdTitle, notes: '', status: 'open', when_date: null, when_evening: false, deadline: null, project_id: null, area_id: null, heading_id: null, sort_order_today: 1024, sort_order_project: 1024, sort_order_heading: 1024, completed_at: null, canceled_at: null, created_at: '2026-01-01', updated_at: '2026-01-01', tags: [], checklist_count: 0, checklist_done: 0, has_notes: false, has_attachments: false, has_repeat_rule: false },
+          { id: 'new-id', title: createdTitle, notes: '', status: 'open', when_date: null, when_evening: false, deadline: null, project_id: null, area_id: null, heading_id: null, sort_order_today: 1024, sort_order_project: 1024, sort_order_heading: 1024, completed_at: null, canceled_at: null, created_at: '2026-01-01', updated_at: '2026-01-01', tags: [], checklist_count: 0, checklist_done: 0, has_notes: false, has_links: false, has_files: false, has_repeat_rule: false },
           { status: 201 },
         )
       }),

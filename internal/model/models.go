@@ -101,7 +101,8 @@ type TaskListItem struct {
 	ChecklistCount  int      `json:"checklist_count"`
 	ChecklistDone   int      `json:"checklist_done"`
 	HasNotes        bool     `json:"has_notes"`
-	HasAttachments  bool     `json:"has_attachments"`
+	HasLinks        bool     `json:"has_links"`
+	HasFiles        bool     `json:"has_files"`
 	HasRepeatRule   bool     `json:"has_repeat_rule"`
 	ProjectName     *string  `json:"project_name"`
 	AreaName        *string  `json:"area_name"`

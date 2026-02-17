@@ -25,7 +25,8 @@ func (r *TaskRepository) List(f model.TaskFilters) ([]model.TaskListItem, error)
 			COALESCE((SELECT COUNT(*) FROM checklist_items WHERE task_id = t.id), 0),
 			COALESCE((SELECT COUNT(*) FROM checklist_items WHERE task_id = t.id AND completed = 1), 0),
 			CASE WHEN t.notes != '' THEN 1 ELSE 0 END,
-			CASE WHEN EXISTS(SELECT 1 FROM attachments WHERE task_id = t.id) THEN 1 ELSE 0 END,
+			CASE WHEN EXISTS(SELECT 1 FROM attachments WHERE task_id = t.id AND type = 'link') THEN 1 ELSE 0 END,
+			CASE WHEN EXISTS(SELECT 1 FROM attachments WHERE task_id = t.id AND type = 'file') THEN 1 ELSE 0 END,
 			CASE WHEN EXISTS(SELECT 1 FROM repeat_rules WHERE task_id = t.id) THEN 1 ELSE 0 END
 		FROM tasks t`
 
@@ -103,20 +104,21 @@ func (r *TaskRepository) List(f model.TaskFilters) ([]model.TaskListItem, error)
 	var tasks []model.TaskListItem
 	for rows.Next() {
 		var t model.TaskListItem
-		var whenEvening, hasNotes, hasAttach, hasRepeat int
+		var whenEvening, hasNotes, hasLinks, hasFiles, hasRepeat int
 		if err := rows.Scan(
 			&t.ID, &t.Title, &t.Notes, &t.Status, &t.WhenDate, &whenEvening,
 			&t.Deadline, &t.ProjectID, &t.AreaID, &t.HeadingID,
 			&t.SortOrderToday, &t.SortOrderProject, &t.SortOrderHeading,
 			&t.CompletedAt, &t.CanceledAt, &t.CreatedAt, &t.UpdatedAt,
 			&t.ChecklistCount, &t.ChecklistDone,
-			&hasNotes, &hasAttach, &hasRepeat,
+			&hasNotes, &hasLinks, &hasFiles, &hasRepeat,
 		); err != nil {
 			return nil, fmt.Errorf("scan task: %w", err)
 		}
 		t.WhenEvening = whenEvening == 1
 		t.HasNotes = hasNotes == 1
-		t.HasAttachments = hasAttach == 1
+		t.HasLinks = hasLinks == 1
+		t.HasFiles = hasFiles == 1
 		t.HasRepeatRule = hasRepeat == 1
 		t.Tags, _ = r.getTaskTags(t.ID)
 		tasks = append(tasks, t)

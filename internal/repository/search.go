@@ -28,7 +28,8 @@ func (r *SearchRepository) Search(query string, limit int) ([]model.SearchResult
 			COALESCE((SELECT COUNT(*) FROM checklist_items WHERE task_id = t.id), 0),
 			COALESCE((SELECT COUNT(*) FROM checklist_items WHERE task_id = t.id AND completed = 1), 0),
 			CASE WHEN t.notes != '' THEN 1 ELSE 0 END,
-			CASE WHEN EXISTS(SELECT 1 FROM attachments WHERE task_id = t.id) THEN 1 ELSE 0 END,
+			CASE WHEN EXISTS(SELECT 1 FROM attachments WHERE task_id = t.id AND type = 'link') THEN 1 ELSE 0 END,
+			CASE WHEN EXISTS(SELECT 1 FROM attachments WHERE task_id = t.id AND type = 'file') THEN 1 ELSE 0 END,
 			CASE WHEN EXISTS(SELECT 1 FROM repeat_rules WHERE task_id = t.id) THEN 1 ELSE 0 END,
 			snippet(tasks_fts, 0, '<mark>', '</mark>', '...', 32),
 			snippet(tasks_fts, 1, '<mark>', '</mark>', '...', 32),
@@ -47,21 +48,22 @@ func (r *SearchRepository) Search(query string, limit int) ([]model.SearchResult
 	for rows.Next() {
 		var sr model.SearchResult
 		var t model.TaskListItem
-		var whenEvening, hasNotes, hasAttach, hasRepeat int
+		var whenEvening, hasNotes, hasLinks, hasFiles, hasRepeat int
 		if err := rows.Scan(
 			&t.ID, &t.Title, &t.Notes, &t.Status, &t.WhenDate, &whenEvening,
 			&t.Deadline, &t.ProjectID, &t.AreaID, &t.HeadingID,
 			&t.SortOrderToday, &t.SortOrderProject, &t.SortOrderHeading,
 			&t.CompletedAt, &t.CanceledAt, &t.CreatedAt, &t.UpdatedAt,
 			&t.ChecklistCount, &t.ChecklistDone,
-			&hasNotes, &hasAttach, &hasRepeat,
+			&hasNotes, &hasLinks, &hasFiles, &hasRepeat,
 			&sr.TitleSnippet, &sr.NotesSnippet, &sr.Rank,
 		); err != nil {
 			return nil, err
 		}
 		t.WhenEvening = whenEvening == 1
 		t.HasNotes = hasNotes == 1
-		t.HasAttachments = hasAttach == 1
+		t.HasLinks = hasLinks == 1
+		t.HasFiles = hasFiles == 1
 		t.HasRepeatRule = hasRepeat == 1
 		t.Tags = []model.TagRef{}
 		sr.Task = t

@@ -1,4 +1,4 @@
-.PHONY: run build test dev
+.PHONY: run build test dev typecheck
 
 run:
 	go run ./cmd/server
@@ -15,3 +15,6 @@ dev:
 		go run ./cmd/server & \
 		cd frontend && npm run dev & \
 		wait
+
+typecheck:
+	cd frontend && npx tsc -b --noEmit

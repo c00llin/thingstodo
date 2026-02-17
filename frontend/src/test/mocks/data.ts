@@ -31,7 +31,8 @@ export const mockTask: Task = {
   checklist_count: 0,
   checklist_done: 0,
   has_notes: false,
-  has_attachments: false,
+  has_links: false,
+  has_files: false,
   has_repeat_rule: false,
 }
 

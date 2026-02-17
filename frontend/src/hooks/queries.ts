@@ -22,6 +22,7 @@ import type {
   UpdateTagRequest,
   CreateChecklistItemRequest,
   UpdateChecklistItemRequest,
+  Attachment,
   CreateLinkAttachmentRequest,
   UpdateAttachmentRequest,
   TaskQueryParams,
@@ -272,7 +273,11 @@ export function useUpdateTask() {
       await queryClient.cancelQueries({ queryKey: queryKeys.tasks.detail(id) })
       const snapshot = snapshotViews(queryClient)
       const previousDetail = queryClient.getQueryData(queryKeys.tasks.detail(id))
-      updateTaskInCache(queryClient, id, data as Partial<Task>)
+      const updates: Partial<Task> = { ...data }
+      if ('notes' in data) {
+        updates.has_notes = !!data.notes
+      }
+      updateTaskInCache(queryClient, id, updates)
       return { snapshot, previousDetail }
     },
     onError: (_err, { id }, context) => {
@@ -578,6 +583,7 @@ export function useUploadFile(taskId: string) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.tasks.attachments(taskId) })
       queryClient.invalidateQueries({ queryKey: queryKeys.tasks.detail(taskId) })
+      updateTaskInCache(queryClient, taskId, { has_files: true })
     },
   })
 }
@@ -590,6 +596,7 @@ export function useAddLink(taskId: string) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.tasks.attachments(taskId) })
       queryClient.invalidateQueries({ queryKey: queryKeys.tasks.detail(taskId) })
+      updateTaskInCache(queryClient, taskId, { has_links: true })
     },
   })
 }
@@ -609,9 +616,15 @@ export function useDeleteAttachment(taskId: string) {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: (id: string) => attachmentsApi.deleteAttachment(id),
-    onSuccess: () => {
+    onSuccess: (_result, deletedId) => {
       queryClient.invalidateQueries({ queryKey: queryKeys.tasks.attachments(taskId) })
       queryClient.invalidateQueries({ queryKey: queryKeys.tasks.detail(taskId) })
+      const cached = queryClient.getQueryData<Attachment[]>(queryKeys.tasks.attachments(taskId))
+      const remaining = cached?.filter((a) => a.id !== deletedId) ?? []
+      updateTaskInCache(queryClient, taskId, {
+        has_links: remaining.some((a) => a.type === 'link'),
+        has_files: remaining.some((a) => a.type === 'file'),
+      })
     },
   })
 }

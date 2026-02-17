@@ -446,8 +446,8 @@ func TestTaskListItemMetadata(t *testing.T) {
 	if !task.HasNotes {
 		t.Error("expected has_notes to be true")
 	}
-	if !task.HasAttachments {
-		t.Error("expected has_attachments to be true")
+	if !task.HasLinks {
+		t.Error("expected has_links to be true")
 	}
 	if task.ChecklistCount != 1 {
 		t.Errorf("expected checklist_count=1, got %d", task.ChecklistCount)
