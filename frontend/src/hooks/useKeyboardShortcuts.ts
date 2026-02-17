@@ -78,6 +78,7 @@ export function useGlobalShortcuts() {
     a: () => navigate('/anytime'),
     s: () => navigate('/someday'),
     c: () => navigate('/logbook'),
+    r: () => navigate('/trash'),
   })
 
   // Quick entry
