@@ -5,32 +5,75 @@ import {
   type DragStartEvent,
   DragOverlay,
   PointerSensor,
+  KeyboardSensor,
   useSensor,
   useSensors,
+  pointerWithin,
+  rectIntersection,
+  closestCenter,
+  type CollisionDetection,
 } from '@dnd-kit/core'
+import { sortableKeyboardCoordinates } from '@dnd-kit/sortable'
 import { Package } from 'lucide-react'
-import { updateTask } from '../api/tasks'
+import { updateTask, reopenTask, reorderTasks } from '../api/tasks'
 import { updateProject } from '../api/projects'
 import { useQueryClient } from '@tanstack/react-query'
-import { useProjects } from '../hooks/queries'
+import { useProjects, useAreas, updateTaskInCache } from '../hooks/queries'
 import type { Task } from '../api/types'
 import { TaskItemDragOverlay } from './TaskItemDragOverlay'
+import { SortableListRegistryProvider, useSortableListRegistry } from '../contexts/SortableListRegistry'
+import { calculatePosition } from '../lib/sort-position'
+
+// Prefer sidebar droppables when the pointer is over them, fall back to closestCenter for sortable reorder.
+// When multiple sidebar targets match (e.g. project inside area), prefer the most specific one.
+const sidebarFirstCollision: CollisionDetection = (args) => {
+  const sidebarContainers = args.droppableContainers.filter((c) =>
+    String(c.id).startsWith('sidebar-'),
+  )
+  if (sidebarContainers.length > 0) {
+    const sidebarHits = pointerWithin({ ...args, droppableContainers: sidebarContainers })
+    if (sidebarHits.length > 0) {
+      // Prefer project/specific targets over area (area is a parent container)
+      const projectHit = sidebarHits.find((c) => String(c.id).startsWith('sidebar-project-'))
+      if (projectHit) return [projectHit]
+      return [sidebarHits[0]]
+    }
+    // Rect intersection fallback for near-misses
+    const sidebarRect = rectIntersection({ ...args, droppableContainers: sidebarContainers })
+    if (sidebarRect.length > 0) {
+      const projectHit = sidebarRect.find((c) => String(c.id).startsWith('sidebar-project-'))
+      if (projectHit) return [projectHit]
+      return [sidebarRect[0]]
+    }
+  }
+
+  // Fall back to closestCenter for sortable reorder among non-sidebar items
+  const sortableContainers = args.droppableContainers.filter(
+    (c) => !String(c.id).startsWith('sidebar-'),
+  )
+  return closestCenter({ ...args, droppableContainers: sortableContainers })
+}
 
 interface AppDndContextProps {
   children: ReactNode
-  tasks?: Task[]
 }
 
-export function AppDndContext({ children, tasks = [] }: AppDndContextProps) {
+function AppDndContextInner({ children }: AppDndContextProps) {
   const [activeTask, setActiveTask] = useState<Task | null>(null)
   const [activeProjectName, setActiveProjectName] = useState<string | null>(null)
   const { data: projectsData } = useProjects()
   const projects = projectsData?.projects ?? []
+  const { data: areasData } = useAreas()
+  const areas = areasData?.areas ?? []
   const queryClient = useQueryClient()
+  const registry = useSortableListRegistry()
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
       activationConstraint: { distance: 8 },
+    }),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
     }),
   )
 
@@ -43,10 +86,10 @@ export function AppDndContext({ children, tasks = [] }: AppDndContextProps) {
         setActiveProjectName(project?.title ?? null)
         return
       }
-      const task = tasks.find((t) => t.id === event.active.id)
+      const task = event.active.data.current?.task as Task | undefined
       setActiveTask(task ?? null)
     },
-    [tasks, projects],
+    [projects],
   )
 
   const handleDragEnd = useCallback(
@@ -62,7 +105,6 @@ export function AppDndContext({ children, tasks = [] }: AppDndContextProps) {
       // Project drag-and-drop to areas
       if (activeId.startsWith('drag-project-')) {
         const projectId = activeId.replace('drag-project-', '')
-        console.log('[DnD] project drop:', { projectId, overId })
         if (overId.startsWith('sidebar-area-')) {
           const areaId = overId.replace('sidebar-area-', '')
           updateProject(projectId, { area_id: areaId })
@@ -71,7 +113,6 @@ export function AppDndContext({ children, tasks = [] }: AppDndContextProps) {
           const targetProject = projects.find((p) => p.id === targetProjectId)
           updateProject(projectId, { area_id: targetProject?.area_id ?? null })
         } else {
-          // Dropped elsewhere — unassign from area
           updateProject(projectId, { area_id: null })
         }
         queryClient.invalidateQueries({ queryKey: ['projects'] })
@@ -79,37 +120,102 @@ export function AppDndContext({ children, tasks = [] }: AppDndContextProps) {
         return
       }
 
-      const taskId = String(active.id)
+      // Sidebar drops (task → sidebar target)
+      // Optimistic update first, then await API before invalidating to avoid refetch race
+      if (overId.startsWith('sidebar-')) {
+        const taskId = activeId
+        const draggedTask = active.data.current?.task as Task | undefined
+        const isCompleted = draggedTask?.status === 'completed'
+        const sidebarDrop = async () => {
+          // Reopen completed tasks when dropped on a sidebar target
+          if (isCompleted) {
+            updateTaskInCache(queryClient, taskId, {
+              status: 'open',
+              completed_at: null,
+            } as Partial<Task>)
+            await reopenTask(taskId)
+          }
+          if (overId === 'sidebar-today') {
+            const today = new Date().toISOString().split('T')[0]
+            updateTaskInCache(queryClient, taskId, { when_date: today } as Partial<Task>)
+            await updateTask(taskId, { when_date: today })
+            queryClient.invalidateQueries({ queryKey: ['views'] })
+          } else if (overId === 'sidebar-anytime') {
+            updateTaskInCache(queryClient, taskId, { when_date: null } as Partial<Task>)
+            await updateTask(taskId, { when_date: null })
+            queryClient.invalidateQueries({ queryKey: ['views'] })
+          } else if (overId === 'sidebar-someday') {
+            updateTaskInCache(queryClient, taskId, { when_date: 'someday' } as Partial<Task>)
+            await updateTask(taskId, { when_date: 'someday' })
+            queryClient.invalidateQueries({ queryKey: ['views'] })
+          } else if (overId === 'sidebar-inbox') {
+            updateTaskInCache(queryClient, taskId, {
+              project_id: null, project_name: null,
+              area_id: null, area_name: null,
+              when_date: null,
+            } as Partial<Task>)
+            await updateTask(taskId, { project_id: null, area_id: null, when_date: null })
+            queryClient.invalidateQueries({ queryKey: ['views'] })
+          } else if (overId.startsWith('sidebar-project-')) {
+            const projectId = overId.replace('sidebar-project-', '')
+            const project = projects.find((p) => p.id === projectId)
+            const projectArea = project?.area_id ? areas.find((a) => a.id === project.area_id) : null
+            updateTaskInCache(queryClient, taskId, {
+              project_id: projectId,
+              project_name: project?.title ?? null,
+              area_id: project?.area_id ?? null,
+              area_name: projectArea?.title ?? null,
+            } as Partial<Task>)
+            await updateTask(taskId, { project_id: projectId, area_id: project?.area_id ?? null })
+            queryClient.invalidateQueries({ queryKey: ['views'] })
+            queryClient.invalidateQueries({ queryKey: ['projects'] })
+            queryClient.invalidateQueries({ queryKey: ['areas'] })
+          } else if (overId.startsWith('sidebar-area-')) {
+            const areaId = overId.replace('sidebar-area-', '')
+            const area = areas.find((a) => a.id === areaId)
+            updateTaskInCache(queryClient, taskId, {
+              project_id: null,
+              project_name: null,
+              area_id: areaId,
+              area_name: area?.title ?? null,
+            } as Partial<Task>)
+            await updateTask(taskId, { project_id: null, area_id: areaId })
+            queryClient.invalidateQueries({ queryKey: ['views'] })
+            queryClient.invalidateQueries({ queryKey: ['projects'] })
+            queryClient.invalidateQueries({ queryKey: ['areas'] })
+          }
+        }
+        sidebarDrop()
+        return
+      }
 
-      // Cross-container drops to sidebar targets
-      if (overId === 'sidebar-today') {
-        const today = new Date().toISOString().split('T')[0]
-        updateTask(taskId, { when_date: today })
-        queryClient.invalidateQueries({ queryKey: ['views'] })
-      } else if (overId === 'sidebar-someday') {
-        updateTask(taskId, { when_date: 'someday' })
-        queryClient.invalidateQueries({ queryKey: ['views'] })
-      } else if (overId === 'sidebar-inbox') {
-        updateTask(taskId, { project_id: null, area_id: null, when_date: null })
-        queryClient.invalidateQueries({ queryKey: ['views'] })
-      } else if (overId.startsWith('sidebar-project-')) {
-        const projectId = overId.replace('sidebar-project-', '')
-        updateTask(taskId, { project_id: projectId })
-        queryClient.invalidateQueries({ queryKey: ['views'] })
-        queryClient.invalidateQueries({ queryKey: ['projects'] })
-      } else if (overId.startsWith('sidebar-area-')) {
-        const areaId = overId.replace('sidebar-area-', '')
-        updateTask(taskId, { area_id: areaId })
-        queryClient.invalidateQueries({ queryKey: ['views'] })
-        queryClient.invalidateQueries({ queryKey: ['areas'] })
+      // Same-list reorder (task within sortable list)
+      if (activeId === overId) return
+      const sourceList = registry.getListForTask(activeId)
+      const targetList = registry.getListForTask(overId)
+      if (sourceList && targetList && sourceList.listId === targetList.listId) {
+        const { tasks, sortField } = sourceList
+        const oldIndex = tasks.findIndex((t) => t.id === activeId)
+        const newIndex = tasks.findIndex((t) => t.id === overId)
+        if (oldIndex === -1 || newIndex === -1) return
+
+        const newPosition = calculatePosition(
+          tasks.filter((t) => t.id !== activeId),
+          newIndex,
+          sortField,
+        )
+        reorderTasks([
+          { id: activeId, sort_field: sortField, sort_order: newPosition },
+        ])
       }
     },
-    [queryClient, projects],
+    [queryClient, projects, areas, registry],
   )
 
   return (
     <DndContext
       sensors={sensors}
+      collisionDetection={sidebarFirstCollision}
       onDragStart={handleDragStart}
       onDragEnd={handleDragEnd}
     >
@@ -124,5 +230,13 @@ export function AppDndContext({ children, tasks = [] }: AppDndContextProps) {
         ) : null}
       </DragOverlay>
     </DndContext>
+  )
+}
+
+export function AppDndContext({ children }: AppDndContextProps) {
+  return (
+    <SortableListRegistryProvider>
+      <AppDndContextInner>{children}</AppDndContextInner>
+    </SortableListRegistryProvider>
   )
 }

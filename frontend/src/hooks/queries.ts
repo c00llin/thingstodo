@@ -185,7 +185,7 @@ export function useFlushPendingInvalidation() {
 }
 
 // Optimistic update helper: updates a task's fields in all cached view queries
-function updateTaskInCache(
+export function updateTaskInCache(
   queryClient: ReturnType<typeof useQueryClient>,
   taskId: string,
   updates: Partial<Task>,

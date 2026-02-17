@@ -7,13 +7,16 @@ interface SidebarDropTargetProps {
 }
 
 export function SidebarDropTarget({ id, children }: SidebarDropTargetProps) {
-  const { isOver, setNodeRef } = useDroppable({ id })
+  const { isOver, active, setNodeRef } = useDroppable({ id })
+  const showHighlight = isOver && active != null
 
   return (
     <div
       ref={setNodeRef}
-      className={`transition-colors ${
-        isOver ? 'rounded-lg bg-red-100 dark:bg-red-900/40' : ''
+      className={`rounded-lg transition-colors ${
+        showHighlight
+          ? '[&_a]:!bg-red-100 [&_a]:!text-red-700 dark:[&_a]:!bg-red-900/40 dark:[&_a]:!text-red-400'
+          : ''
       }`}
     >
       {children}

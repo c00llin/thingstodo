@@ -30,7 +30,7 @@ const smartLists = [
   { to: '/inbox', label: 'Inbox', icon: Inbox, dropId: 'sidebar-inbox' },
   { to: '/today', label: 'Today', icon: Sun, dropId: 'sidebar-today' },
   { to: '/upcoming', label: 'Upcoming', icon: Calendar, dropId: null },
-  { to: '/anytime', label: 'Anytime', icon: Layers, dropId: null },
+  { to: '/anytime', label: 'Anytime', icon: Layers, dropId: 'sidebar-anytime' },
   { to: '/someday', label: 'Someday', icon: Clock, dropId: 'sidebar-someday' },
   { to: '/logbook', label: 'Completed', icon: CircleCheckBig, dropId: null },
 ] as const

@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react'
+import { useDraggable } from '@dnd-kit/core'
 import * as Checkbox from '@radix-ui/react-checkbox'
-import { Check, Calendar, Flag, X, ListChecks } from 'lucide-react'
+import { Check, Calendar, Flag, GripVertical, X, ListChecks } from 'lucide-react'
 import type { Task } from '../api/types'
 import { useCompleteTask, useReopenTask, useUpdateTask } from '../hooks/queries'
 import { getTaskContext } from '../hooks/useTaskContext'
@@ -52,6 +53,13 @@ export function TaskItem({ task, showProject = true }: TaskItemProps) {
   const isSelected = selectedTaskId === task.id
   const isExpanded = expandedTaskId === task.id
   const isCompleted = task.status === 'completed'
+
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    isDragging,
+  } = useDraggable({ id: task.id, data: { type: 'task', task } })
 
   const [editing, setEditing] = useState(false)
   const [title, setTitle] = useState(task.title)
@@ -189,9 +197,9 @@ export function TaskItem({ task, showProject = true }: TaskItemProps) {
 
 
   return (
-    <div className="group">
+    <div ref={setNodeRef} className="group" style={{ opacity: isDragging ? 0.4 : 1 }}>
       <div
-        className={`flex cursor-pointer items-center gap-3 rounded-lg px-3 py-2 transition-colors ${
+        className={`relative flex cursor-pointer items-center gap-3 rounded-lg px-3 py-2 transition-colors ${
           isSelected
             ? 'bg-red-50 dark:bg-red-900/20'
             : 'hover:bg-neutral-50 dark:hover:bg-neutral-800'
@@ -199,6 +207,15 @@ export function TaskItem({ task, showProject = true }: TaskItemProps) {
         onClick={handleClick}
         onDoubleClick={handleDoubleClick}
       >
+        {/* Drag handle */}
+        <button
+          className="absolute -left-5 top-1/2 -translate-y-1/2 cursor-grab touch-none rounded p-0.5 text-neutral-300 opacity-0 transition-opacity hover:text-neutral-500 group-hover:opacity-100 active:cursor-grabbing dark:text-neutral-600 dark:hover:text-neutral-400"
+          {...attributes}
+          {...listeners}
+          onClick={(e) => e.stopPropagation()}
+        >
+          <GripVertical size={16} />
+        </button>
         <div className="shrink-0" onClick={(e) => e.stopPropagation()}>
           <Checkbox.Root
             checked={isCompleted}
