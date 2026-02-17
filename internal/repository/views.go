@@ -312,7 +312,7 @@ func (r *ViewRepository) getAnytimeStandaloneNoArea(somedayOnly bool) []model.Ta
 	if somedayOnly {
 		query += " AND t.when_date = 'someday'"
 	} else {
-		query += " AND t.when_date IS NULL"
+		query += " AND t.when_date IS NULL AND t.deadline IS NOT NULL"
 	}
 
 	query += " ORDER BY t.sort_order_today ASC"

@@ -230,7 +230,7 @@ export function SortableTaskItem({
       className={`group ${isMultiSelected ? 'ring-2 ring-red-400 ring-inset rounded-lg' : ''}`}
     >
       <div
-        className={`flex cursor-pointer items-center gap-2 rounded-lg px-2 py-2 transition-colors ${
+        className={`flex cursor-pointer items-center gap-3 rounded-lg px-3 py-2 transition-colors ${
           isSelected
             ? 'bg-red-50 dark:bg-red-900/20'
             : 'hover:bg-neutral-50 dark:hover:bg-neutral-800'

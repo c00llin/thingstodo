@@ -1,5 +1,6 @@
 import { useSomeday } from '../hooks/queries'
 import { TaskGroup } from '../components/TaskGroup'
+import { SortableTaskList } from '../components/SortableTaskList'
 
 export function SomedayView() {
   const { data, isLoading } = useSomeday()
@@ -21,17 +22,20 @@ export function SomedayView() {
           <h3 className="mb-3 text-lg font-semibold text-neutral-800">
             {areaGroup.area.title}
           </h3>
+          {areaGroup.standalone_tasks.length > 0 && (
+            <div className={areaGroup.projects.length > 0 ? 'mb-4' : ''}>
+              <SortableTaskList tasks={areaGroup.standalone_tasks} sortField="sort_order_today" />
+            </div>
+          )}
           {areaGroup.projects.map((pg) => (
             <TaskGroup
               key={pg.project.id}
               title={pg.project.title}
               tasks={pg.tasks}
               showProject={false}
+              sortable
             />
           ))}
-          {areaGroup.standalone_tasks.length > 0 && (
-            <TaskGroup title="Other" tasks={areaGroup.standalone_tasks} showProject={false} />
-          )}
         </div>
       ))}
 
