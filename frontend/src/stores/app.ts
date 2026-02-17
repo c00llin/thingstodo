@@ -30,6 +30,11 @@ interface AppStore {
   openCommandPalette: () => void
   closeCommandPalette: () => void
 
+  // Search overlay
+  searchOpen: boolean
+  openSearch: () => void
+  closeSearch: () => void
+
   // Shortcuts help
   shortcutsHelpOpen: boolean
   toggleShortcutsHelp: () => void
@@ -100,6 +105,10 @@ export const useAppStore = create<AppStore>((set) => ({
   commandPaletteOpen: false,
   openCommandPalette: () => set({ commandPaletteOpen: true }),
   closeCommandPalette: () => set({ commandPaletteOpen: false }),
+
+  searchOpen: false,
+  openSearch: () => set({ searchOpen: true }),
+  closeSearch: () => set({ searchOpen: false }),
 
   shortcutsHelpOpen: false,
   toggleShortcutsHelp: () => set((s) => ({ shortcutsHelpOpen: !s.shortcutsHelpOpen })),

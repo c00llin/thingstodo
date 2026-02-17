@@ -3,6 +3,7 @@ package repository
 import (
 	"database/sql"
 	"fmt"
+	"strings"
 
 	"github.com/collinjanssen/thingstodo/internal/model"
 )
@@ -15,10 +16,26 @@ func NewSearchRepository(db *sql.DB) *SearchRepository {
 	return &SearchRepository{db: db}
 }
 
+// ftsPrefix converts a user query into an FTS5 prefix query.
+// e.g. "inbox task" → "inbox* task*" so partial words match.
+func ftsPrefix(query string) string {
+	words := strings.Fields(query)
+	for i, w := range words {
+		// Strip any existing trailing * to avoid double-star
+		w = strings.TrimRight(w, "*")
+		if w != "" {
+			words[i] = w + "*"
+		}
+	}
+	return strings.Join(words, " ")
+}
+
 func (r *SearchRepository) Search(query string, limit int) ([]model.SearchResult, error) {
 	if limit <= 0 {
 		limit = 20
 	}
+
+	ftsQuery := ftsPrefix(query)
 
 	rows, err := r.db.Query(`
 		SELECT t.id, t.title, t.notes, t.status, t.when_date, t.when_evening,
@@ -38,7 +55,7 @@ func (r *SearchRepository) Search(query string, limit int) ([]model.SearchResult
 		JOIN tasks t ON t.rowid = tasks_fts.rowid
 		WHERE tasks_fts MATCH ? AND t.deleted_at IS NULL
 		ORDER BY rank
-		LIMIT ?`, query, limit)
+		LIMIT ?`, ftsQuery, limit)
 	if err != nil {
 		return nil, fmt.Errorf("search: %w", err)
 	}

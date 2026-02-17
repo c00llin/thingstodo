@@ -70,6 +70,7 @@ export function useGlobalShortcuts() {
   const openQuickEntry = useAppStore((s) => s.openQuickEntry)
   const toggleShortcutsHelp = useAppStore((s) => s.toggleShortcutsHelp)
   const openCommandPalette = useAppStore((s) => s.openCommandPalette)
+  const openSearch = useAppStore((s) => s.openSearch)
 
   // g + <key> navigation sequences
   useKeySequences({
@@ -81,6 +82,7 @@ export function useGlobalShortcuts() {
     c: () => navigate('/logbook'),
     r: () => navigate('/trash'),
     n: () => openCommandPalette(),
+    f: () => openSearch(),
   })
 
   // Quick entry
@@ -93,13 +95,6 @@ export function useGlobalShortcuts() {
   useHotkeys('q', (e) => {
     e.preventDefault()
     openQuickEntry()
-  })
-
-  // Focus search
-  useHotkeys('alt+f', (e) => {
-    e.preventDefault()
-    const input = document.querySelector<HTMLInputElement>('[data-search-input]')
-    input?.focus()
   })
 
   // Navigate to views Alt+1 through Alt+6

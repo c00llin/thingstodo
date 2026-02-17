@@ -10,13 +10,13 @@ const navigationShortcuts = [
   { keys: 'G S', action: 'Go to Someday' },
   { keys: 'G C', action: 'Go to Completed' },
   { keys: 'G R', action: 'Go to Trash' },
-  { keys: 'G N', action: 'Command palette' },
+  { keys: 'G N', action: 'Navigator' },
+  { keys: 'G F', action: 'Search tasks' },
 ]
 
 const globalShortcuts = [
   { keys: 'Q', action: 'Quick Entry' },
   { keys: 'Ctrl + Space', action: 'Quick Entry (from anywhere)' },
-  { keys: 'Alt + F', action: 'Focus search' },
   { keys: '?', action: 'Show this help' },
 ]
 

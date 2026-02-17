@@ -11,6 +11,7 @@ import { useAppStore } from '../stores/app'
 
 const QuickEntry = lazy(() => import('./QuickEntry').then(m => ({ default: m.QuickEntry })))
 const CommandPalette = lazy(() => import('./CommandPalette').then(m => ({ default: m.CommandPalette })))
+const SearchOverlay = lazy(() => import('./SearchOverlay').then(m => ({ default: m.SearchOverlay })))
 
 export function AppLayout() {
   const { isLoading, error } = useMe()
@@ -52,6 +53,9 @@ export function AppLayout() {
         </Suspense>
         <Suspense>
           <CommandPalette />
+        </Suspense>
+        <Suspense>
+          <SearchOverlay />
         </Suspense>
       </div>
     </AppDndContext>
