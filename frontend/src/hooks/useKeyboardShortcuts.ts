@@ -69,6 +69,7 @@ export function useGlobalShortcuts() {
   const navigate = useNavigate()
   const openQuickEntry = useAppStore((s) => s.openQuickEntry)
   const toggleShortcutsHelp = useAppStore((s) => s.toggleShortcutsHelp)
+  const openCommandPalette = useAppStore((s) => s.openCommandPalette)
 
   // g + <key> navigation sequences
   useKeySequences({
@@ -79,6 +80,7 @@ export function useGlobalShortcuts() {
     s: () => navigate('/someday'),
     c: () => navigate('/logbook'),
     r: () => navigate('/trash'),
+    n: () => openCommandPalette(),
   })
 
   // Quick entry

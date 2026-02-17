@@ -10,6 +10,7 @@ import { useMe, useFlushPendingInvalidation } from '../hooks/queries'
 import { useAppStore } from '../stores/app'
 
 const QuickEntry = lazy(() => import('./QuickEntry').then(m => ({ default: m.QuickEntry })))
+const CommandPalette = lazy(() => import('./CommandPalette').then(m => ({ default: m.CommandPalette })))
 
 export function AppLayout() {
   const { isLoading, error } = useMe()
@@ -48,6 +49,9 @@ export function AppLayout() {
         <ShortcutsHelp />
         <Suspense>
           <QuickEntry />
+        </Suspense>
+        <Suspense>
+          <CommandPalette />
         </Suspense>
       </div>
     </AppDndContext>

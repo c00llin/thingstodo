@@ -10,6 +10,7 @@ const navigationShortcuts = [
   { keys: 'G S', action: 'Go to Someday' },
   { keys: 'G C', action: 'Go to Completed' },
   { keys: 'G R', action: 'Go to Trash' },
+  { keys: 'G N', action: 'Command palette' },
 ]
 
 const globalShortcuts = [

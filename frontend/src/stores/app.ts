@@ -25,6 +25,11 @@ interface AppStore {
   openQuickEntry: (initialValue?: string) => void
   closeQuickEntry: () => void
 
+  // Command palette
+  commandPaletteOpen: boolean
+  openCommandPalette: () => void
+  closeCommandPalette: () => void
+
   // Shortcuts help
   shortcutsHelpOpen: boolean
   toggleShortcutsHelp: () => void
@@ -91,6 +96,10 @@ export const useAppStore = create<AppStore>((set) => ({
   quickEntryInitialValue: '',
   openQuickEntry: (initialValue?: string) => set({ quickEntryOpen: true, quickEntryInitialValue: initialValue ?? '' }),
   closeQuickEntry: () => set({ quickEntryOpen: false }),
+
+  commandPaletteOpen: false,
+  openCommandPalette: () => set({ commandPaletteOpen: true }),
+  closeCommandPalette: () => set({ commandPaletteOpen: false }),
 
   shortcutsHelpOpen: false,
   toggleShortcutsHelp: () => set((s) => ({ shortcutsHelpOpen: !s.shortcutsHelpOpen })),
