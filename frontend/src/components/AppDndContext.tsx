@@ -18,8 +18,8 @@ import { Package } from 'lucide-react'
 import { updateTask, reopenTask, restoreTask, deleteTask, completeTask, reorderTasks } from '../api/tasks'
 import { updateProject } from '../api/projects'
 import { useQueryClient } from '@tanstack/react-query'
-import { useProjects, useAreas, updateTaskInCache } from '../hooks/queries'
-import type { Task, SortField } from '../api/types'
+import { useProjects, useAreas, useTags, updateTaskInCache } from '../hooks/queries'
+import type { Task, Tag, SortField } from '../api/types'
 
 /** Optimistically reorder a task in all cached view data.
  *  Updates the sort field value on the task, then re-sorts any Task[] that contains it. */
@@ -108,6 +108,8 @@ function AppDndContextInner({ children }: AppDndContextProps) {
   const projects = projectsData?.projects ?? []
   const { data: areasData } = useAreas()
   const areas = areasData?.areas ?? []
+  const { data: tagsData } = useTags()
+  const allTags = tagsData?.tags ?? []
   const queryClient = useQueryClient()
   const registry = useSortableListRegistry()
 
@@ -225,6 +227,24 @@ function AppDndContextInner({ children }: AppDndContextProps) {
           return
         }
 
+        // Drag TO Tag: just add the tag, don't restore/reopen
+        if (overId.startsWith('sidebar-tag-')) {
+          const tagId = overId.replace('sidebar-tag-', '')
+          const existingTagIds = draggedTask?.tags?.map((t) => t.id) ?? []
+          if (!existingTagIds.includes(tagId)) {
+            const tag = allTags.find((t: Tag) => t.id === tagId)
+            const newTagRef = { id: tagId, title: tag?.title ?? '' }
+            updateTaskInCache(queryClient, taskId, {
+              tags: [...(draggedTask?.tags ?? []), newTagRef],
+            } as Partial<Task>)
+            updateTask(taskId, { tag_ids: [...existingTagIds, tagId] }).then(() => {
+              queryClient.invalidateQueries({ queryKey: ['views'] })
+              queryClient.invalidateQueries({ queryKey: ['tags'] })
+            })
+          }
+          return
+        }
+
         const sidebarDrop = async () => {
           // Restore trashed tasks when dropped on a sidebar target
           if (isTrashed) {
@@ -331,7 +351,7 @@ function AppDndContextInner({ children }: AppDndContextProps) {
         })
       }
     },
-    [queryClient, projects, areas, registry],
+    [queryClient, projects, areas, allTags, registry],
   )
 
   return (

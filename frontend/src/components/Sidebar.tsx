@@ -230,39 +230,42 @@ function TagList() {
                   const children = tags.filter((t) => t.parent_tag_id === tag.id)
                   return (
                     <div key={tag.id}>
-                      <NavLink
-                        to={`/tag/${tag.id}`}
-                        className={({ isActive }) =>
-                          `flex items-center gap-2 rounded-lg px-3 py-1.5 text-sm ${
-                            isActive
-                              ? 'bg-red-50 text-red-700 dark:bg-red-900/30 dark:text-red-400'
-                              : 'text-neutral-600 hover:bg-neutral-100 dark:text-neutral-400 dark:hover:bg-neutral-800'
-                          }`
-                        }
-                      >
-                        <Tag size={14} />
-                        <span>{tag.title}</span>
-                        {tag.task_count > 0 && (
-                          <span className="ml-auto text-xs text-neutral-400">
-                            {tag.task_count}
-                          </span>
-                        )}
-                      </NavLink>
-                      {children.map((child) => (
+                      <SidebarDropTarget id={`sidebar-tag-${tag.id}`}>
                         <NavLink
-                          key={child.id}
-                          to={`/tag/${child.id}`}
+                          to={`/tag/${tag.id}`}
                           className={({ isActive }) =>
-                            `flex items-center gap-2 rounded-lg py-1.5 pl-8 pr-3 text-sm ${
+                            `flex items-center gap-2 rounded-lg px-3 py-1.5 text-sm ${
                               isActive
                                 ? 'bg-red-50 text-red-700 dark:bg-red-900/30 dark:text-red-400'
-                                : 'text-neutral-500 hover:bg-neutral-100 dark:text-neutral-400 dark:hover:bg-neutral-800'
+                                : 'text-neutral-600 hover:bg-neutral-100 dark:text-neutral-400 dark:hover:bg-neutral-800'
                             }`
                           }
                         >
-                          <Tag size={12} />
-                          <span>{child.title}</span>
+                          <Tag size={14} />
+                          <span>{tag.title}</span>
+                          {tag.task_count > 0 && (
+                            <span className="ml-auto text-xs text-neutral-400">
+                              {tag.task_count}
+                            </span>
+                          )}
                         </NavLink>
+                      </SidebarDropTarget>
+                      {children.map((child) => (
+                        <SidebarDropTarget key={child.id} id={`sidebar-tag-${child.id}`}>
+                          <NavLink
+                            to={`/tag/${child.id}`}
+                            className={({ isActive }) =>
+                              `flex items-center gap-2 rounded-lg py-1.5 pl-8 pr-3 text-sm ${
+                                isActive
+                                  ? 'bg-red-50 text-red-700 dark:bg-red-900/30 dark:text-red-400'
+                                  : 'text-neutral-500 hover:bg-neutral-100 dark:text-neutral-400 dark:hover:bg-neutral-800'
+                              }`
+                            }
+                          >
+                            <Tag size={12} />
+                            <span>{child.title}</span>
+                          </NavLink>
+                        </SidebarDropTarget>
                       ))}
                     </div>
                   )
