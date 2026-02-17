@@ -40,5 +40,6 @@ coverage/
 # Built binary
 /server
 
-# Notes
+# Other
 notes.md
+plan.md

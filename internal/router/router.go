@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"io/fs"
+	"mime"
 	"net/http"
 
 	"github.com/collinjanssen/thingstodo/internal/config"
@@ -17,6 +18,8 @@ import (
 )
 
 func New(db *sql.DB, cfg config.Config, broker *sse.Broker, sched *scheduler.Scheduler) http.Handler {
+	_ = mime.AddExtensionType(".webmanifest", "application/manifest+json")
+
 	r := chi.NewRouter()
 	r.Use(mw.Logger)
 
