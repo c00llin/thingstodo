@@ -19,7 +19,49 @@ import { updateTask, reopenTask, reorderTasks } from '../api/tasks'
 import { updateProject } from '../api/projects'
 import { useQueryClient } from '@tanstack/react-query'
 import { useProjects, useAreas, updateTaskInCache } from '../hooks/queries'
-import type { Task } from '../api/types'
+import type { Task, SortField } from '../api/types'
+
+/** Optimistically reorder a task in all cached view data.
+ *  Updates the sort field value on the task, then re-sorts any Task[] that contains it. */
+function reorderTaskInCache(
+  queryClient: ReturnType<typeof useQueryClient>,
+  taskId: string,
+  sortField: SortField,
+  newPosition: number,
+) {
+  const getSortOrder = (t: Task, sf: SortField): number => {
+    if (sf === 'sort_order_today') return t.sort_order_today
+    if (sf === 'sort_order_project') return t.sort_order_project
+    return t.sort_order_heading
+  }
+
+  const reorderArrays = (obj: unknown): unknown => {
+    if (!obj || typeof obj !== 'object') return obj
+    if (Array.isArray(obj)) {
+      // Check if this is a Task[] containing our task
+      const isTaskArray = obj.length > 0 && obj.some(
+        (item) => item && typeof item === 'object' && 'id' in item && 'status' in item && item.id === taskId,
+      )
+      if (isTaskArray) {
+        // Update the sort field on the moved task, then sort the array
+        return [...obj]
+          .map((t) => (t.id === taskId ? { ...t, [sortField]: newPosition } : t))
+          .sort((a, b) => getSortOrder(a, sortField) - getSortOrder(b, sortField))
+      }
+      return obj.map(reorderArrays)
+    }
+    const result: Record<string, unknown> = {}
+    for (const [key, value] of Object.entries(obj)) {
+      result[key] = reorderArrays(value)
+    }
+    return result
+  }
+
+  queryClient.setQueriesData<unknown>(
+    { queryKey: ['views'] },
+    (old: unknown) => old ? reorderArrays(old) : old,
+  )
+}
 import { TaskItemDragOverlay } from './TaskItemDragOverlay'
 import { SortableListRegistryProvider, useSortableListRegistry } from '../contexts/SortableListRegistry'
 import { calculatePosition } from '../lib/sort-position'
@@ -204,9 +246,14 @@ function AppDndContextInner({ children }: AppDndContextProps) {
           newIndex,
           sortField,
         )
+        // Optimistic: reorder the task array in cache immediately
+        reorderTaskInCache(queryClient, activeId, sortField, newPosition)
+        // Persist to backend, then reconcile
         reorderTasks([
           { id: activeId, sort_field: sortField, sort_order: newPosition },
-        ])
+        ]).then(() => {
+          queryClient.invalidateQueries({ queryKey: ['views'] })
+        })
       }
     },
     [queryClient, projects, areas, registry],
