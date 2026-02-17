@@ -175,7 +175,7 @@ export function useFlushPendingInvalidation() {
           setDepartingTaskId(null)
           queryClient.invalidateQueries({ queryKey: ['views'] })
           queryClient.invalidateQueries({ queryKey: queryKeys.tasks.all })
-        }, 400)
+        }, 800)
       } else {
         queryClient.invalidateQueries({ queryKey: ['views'] })
         queryClient.invalidateQueries({ queryKey: queryKeys.tasks.all })
@@ -312,12 +312,18 @@ export function useCompleteTask() {
         status: 'completed',
         completed_at: new Date().toISOString(),
       })
+      useAppStore.getState().setDepartingTaskId(id)
       return { snapshot }
     },
     onError: (_err, _id, context) => {
       if (context?.snapshot) rollbackViews(queryClient, context.snapshot)
     },
-    onSettled: invalidate,
+    onSettled: () => {
+      setTimeout(() => {
+        useAppStore.getState().setDepartingTaskId(null)
+        invalidate()
+      }, 800)
+    },
   })
 }
 

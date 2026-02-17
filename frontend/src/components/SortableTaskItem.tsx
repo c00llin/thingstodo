@@ -218,7 +218,7 @@ export function SortableTaskItem({
       initial={isDragOverlay ? false : { opacity: 0, height: 0 }}
       animate={
         isDeparting
-          ? { opacity: 0, height: 0, transition: { duration: 0.35, ease: 'easeInOut' } }
+          ? { opacity: 0, height: 0, transition: { duration: 0.7, ease: 'easeInOut' } }
           : { opacity: isDragging ? 0.4 : 1, height: 'auto' }
       }
       exit={
