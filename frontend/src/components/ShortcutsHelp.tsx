@@ -16,7 +16,6 @@ const navigationShortcuts = [
 
 const globalShortcuts = [
   { keys: 'Q', action: 'Quick Entry' },
-  { keys: 'Ctrl + Space', action: 'Quick Entry (from anywhere)' },
   { keys: '?', action: 'Show this help' },
 ]
 

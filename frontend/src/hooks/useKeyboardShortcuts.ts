@@ -85,12 +85,6 @@ export function useGlobalShortcuts() {
     f: () => openSearch(),
   })
 
-  // Quick entry
-  useHotkeys('ctrl+space', (e) => {
-    e.preventDefault()
-    openQuickEntry()
-  }, { enableOnFormTags: true })
-
   // New task (open quick entry empty)
   useHotkeys('q', (e) => {
     e.preventDefault()
