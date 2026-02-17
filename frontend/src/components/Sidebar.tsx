@@ -11,7 +11,6 @@ import {
   Tag,
   ChevronRight,
   PanelLeftClose,
-  PanelLeft,
   Plus,
   Package,
   Blocks,
@@ -434,7 +433,7 @@ export function Sidebar() {
           className="rounded-lg p-1.5 text-neutral-500 hover:bg-neutral-200 dark:text-neutral-400 dark:hover:bg-neutral-700"
           aria-label="Expand sidebar"
         >
-          <PanelLeft size={18} />
+          <img src="/thingstodo.svg" alt="ThingsToDo" className="h-[18px] w-[18px]" />
         </button>
         <nav className="mt-4 flex flex-col items-center gap-1">
           {smartLists.map(({ to, label, icon: Icon }) => (
@@ -471,25 +470,28 @@ export function Sidebar() {
   return (
     <aside className="flex w-64 flex-col border-r border-neutral-200 bg-neutral-50 dark:border-neutral-700 dark:bg-neutral-800">
       <div className="flex items-center justify-between border-b border-neutral-200 px-3 py-3 dark:border-neutral-700">
-        <h1 className="text-sm font-semibold text-neutral-900 dark:text-neutral-100">ThingsToDo</h1>
-        <div className="flex gap-1">
-          <ThemeToggle />
-          <button
-            onClick={toggleSidebar}
-            className="rounded-lg p-1.5 text-neutral-500 hover:bg-neutral-200 dark:text-neutral-400 dark:hover:bg-neutral-700"
-            aria-label="Collapse sidebar"
-          >
-            <PanelLeftClose size={16} />
-          </button>
+        <div className="flex items-center gap-3 px-3">
+          <div className="flex w-[18px] items-center justify-center">
+            <img src="/thingstodo.svg" alt="" className="h-6 w-6" />
+          </div>
+          <h1 className="text-sm font-semibold text-neutral-900 dark:text-neutral-100">ThingsToDo</h1>
         </div>
+        <button
+          onClick={toggleSidebar}
+          className="rounded-lg p-1.5 text-neutral-500 hover:bg-neutral-200 dark:text-neutral-400 dark:hover:bg-neutral-700"
+          aria-label="Collapse sidebar"
+        >
+          <PanelLeftClose size={16} />
+        </button>
       </div>
       <div className="flex-1 space-y-4 overflow-y-auto p-3">
         <SmartListNav />
         <AreaList />
         <TagList />
       </div>
-      <div className="border-t border-neutral-200 p-3 dark:border-neutral-700">
+      <div className="flex items-center justify-between border-t border-neutral-200 px-3 py-2 dark:border-neutral-700">
         <PlusMenu side="top" />
+        <ThemeToggle />
       </div>
     </aside>
   )
