@@ -47,6 +47,7 @@ export function TodayView() {
               <SortableTaskList
                 tasks={section.tasks}
                 sortField="sort_order_today"
+                hideWhenDate
               />
             )}
           </div>

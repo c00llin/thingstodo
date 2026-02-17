@@ -35,12 +35,14 @@ function DelayedReveal({ children }: { children: React.ReactNode }) {
 interface SortableTaskItemProps {
   task: Task
   showProject?: boolean
+  hideWhenDate?: boolean
   isDragOverlay: boolean
 }
 
 export function SortableTaskItem({
   task,
   showProject = true,
+  hideWhenDate = false,
   isDragOverlay,
 }: SortableTaskItemProps) {
   const selectedTaskId = useAppStore((s) => s.selectedTaskId)
@@ -343,7 +345,7 @@ export function SortableTaskItem({
                     {formatRelativeDate(task.deadline)}
                   </span>
                 )}
-                {task.when_date && task.when_date !== 'someday' && (
+                {!hideWhenDate && task.when_date && task.when_date !== 'someday' && (
                   <span className="flex items-center gap-1">
                     <Calendar size={12} />
                     {formatRelativeDate(task.when_date)}

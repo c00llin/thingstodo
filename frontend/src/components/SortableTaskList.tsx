@@ -13,9 +13,10 @@ interface SortableTaskListProps {
   tasks: Task[]
   sortField: SortField
   showProject?: boolean
+  hideWhenDate?: boolean
 }
 
-export function SortableTaskList({ tasks, sortField, showProject }: SortableTaskListProps) {
+export function SortableTaskList({ tasks, sortField, showProject, hideWhenDate }: SortableTaskListProps) {
   const listId = useId()
   const registry = useSortableListRegistry()
 
@@ -55,6 +56,7 @@ export function SortableTaskList({ tasks, sortField, showProject }: SortableTask
             key={task.id}
             task={task}
             showProject={showProject}
+            hideWhenDate={hideWhenDate}
             isDragOverlay={false}
           />
         ))}
