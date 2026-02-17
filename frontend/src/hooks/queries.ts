@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react'
+import { useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useAppStore } from '../stores/app'
 import * as tasksApi from '../api/tasks'
@@ -156,39 +156,18 @@ function useInvalidateViews() {
 }
 
 /** Flush deferred view invalidation when the task detail panel closes.
- *  Triggers a departing animation on the task, then invalidates after the animation completes. */
+ *  The departing animation is handled by the individual mutations (complete, delete, etc.),
+ *  so the flush just invalidates immediately. */
 export function useFlushPendingInvalidation() {
   const queryClient = useQueryClient()
   const expandedTaskId = useAppStore((s) => s.expandedTaskId)
   const hasPending = useAppStore((s) => s.hasPendingInvalidation)
-  const prevExpandedRef = useRef<string | null>(null)
-
-  // Track the previously expanded task so we know which task to animate out
-  useEffect(() => {
-    if (expandedTaskId) {
-      prevExpandedRef.current = expandedTaskId
-    }
-  }, [expandedTaskId])
 
   useEffect(() => {
     if (!expandedTaskId && hasPending) {
-      const { setPendingInvalidation, setDepartingTaskId } = useAppStore.getState()
-      setPendingInvalidation(false)
-
-      // Trigger fade-out animation on the task that was just closed
-      const departingId = prevExpandedRef.current
-      if (departingId) {
-        setDepartingTaskId(departingId)
-        // Wait for animation to complete, then invalidate
-        setTimeout(() => {
-          setDepartingTaskId(null)
-          queryClient.invalidateQueries({ queryKey: ['views'] })
-          queryClient.invalidateQueries({ queryKey: queryKeys.tasks.all })
-        }, 800)
-      } else {
-        queryClient.invalidateQueries({ queryKey: ['views'] })
-        queryClient.invalidateQueries({ queryKey: queryKeys.tasks.all })
-      }
+      useAppStore.getState().setPendingInvalidation(false)
+      queryClient.invalidateQueries({ queryKey: ['views'] })
+      queryClient.invalidateQueries({ queryKey: queryKeys.tasks.all })
     }
   }, [expandedTaskId, hasPending, queryClient])
 }
@@ -322,9 +301,13 @@ export function useDeleteTask() {
     onError: (_err, _id, context) => {
       if (context?.snapshot) rollbackViews(queryClient, context.snapshot)
     },
-    onSettled: () => {
+    onSettled: (_data, _err, id) => {
       setTimeout(() => {
-        useAppStore.getState().setDepartingTaskId(null)
+        const store = useAppStore.getState()
+        store.setDepartingTaskId(null)
+        if (store.expandedTaskId === id) {
+          store.expandTask(null)
+        }
         invalidate()
       }, 800)
     },
@@ -357,9 +340,13 @@ export function useCompleteTask() {
     onError: (_err, _id, context) => {
       if (context?.snapshot) rollbackViews(queryClient, context.snapshot)
     },
-    onSettled: () => {
+    onSettled: (_data, _err, id) => {
       setTimeout(() => {
-        useAppStore.getState().setDepartingTaskId(null)
+        const store = useAppStore.getState()
+        store.setDepartingTaskId(null)
+        if (store.expandedTaskId === id) {
+          store.expandTask(null)
+        }
         invalidate()
       }, 800)
     },
@@ -384,9 +371,13 @@ export function useCancelTask() {
     onError: (_err, _id, context) => {
       if (context?.snapshot) rollbackViews(queryClient, context.snapshot)
     },
-    onSettled: () => {
+    onSettled: (_data, _err, id) => {
       setTimeout(() => {
-        useAppStore.getState().setDepartingTaskId(null)
+        const store = useAppStore.getState()
+        store.setDepartingTaskId(null)
+        if (store.expandedTaskId === id) {
+          store.expandTask(null)
+        }
         invalidate()
       }, 800)
     },
@@ -411,9 +402,13 @@ export function useWontDoTask() {
     onError: (_err, _id, context) => {
       if (context?.snapshot) rollbackViews(queryClient, context.snapshot)
     },
-    onSettled: () => {
+    onSettled: (_data, _err, id) => {
       setTimeout(() => {
-        useAppStore.getState().setDepartingTaskId(null)
+        const store = useAppStore.getState()
+        store.setDepartingTaskId(null)
+        if (store.expandedTaskId === id) {
+          store.expandTask(null)
+        }
         invalidate()
       }, 800)
     },
