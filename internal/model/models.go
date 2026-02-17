@@ -91,6 +91,7 @@ type Task struct {
 	SortOrderHeading  float64 `json:"sort_order_heading"`
 	CompletedAt       *string `json:"completed_at"`
 	CanceledAt        *string `json:"canceled_at"`
+	DeletedAt         *string `json:"deleted_at"`
 	CreatedAt         string  `json:"created_at"`
 	UpdatedAt         string  `json:"updated_at"`
 }

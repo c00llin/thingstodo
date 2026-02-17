@@ -140,9 +140,49 @@ func TestTaskDelete(t *testing.T) {
 		t.Fatalf("failed to delete task: %v", err)
 	}
 
+	// Soft-deleted task is still retrievable by ID
 	task, _ := repo.GetByID(created.ID)
-	if task != nil {
-		t.Error("expected task to be deleted")
+	if task == nil {
+		t.Fatal("expected soft-deleted task to still be retrievable")
+	}
+
+	// But it should not appear in List (filtered by deleted_at IS NULL)
+	tasks, _ := repo.List(model.TaskFilters{})
+	for _, tl := range tasks {
+		if tl.ID == created.ID {
+			t.Error("soft-deleted task should not appear in list")
+		}
+	}
+
+	// Restore should clear deleted_at
+	restored, err := repo.Restore(created.ID)
+	if err != nil {
+		t.Fatalf("failed to restore task: %v", err)
+	}
+	if restored == nil {
+		t.Fatal("expected restored task")
+	}
+
+	// Now it should appear in List again
+	tasks2, _ := repo.List(model.TaskFilters{})
+	found := false
+	for _, tl := range tasks2 {
+		if tl.ID == created.ID {
+			found = true
+		}
+	}
+	if !found {
+		t.Error("restored task should appear in list")
+	}
+
+	// PermanentDelete should remove it entirely
+	err = repo.PermanentDelete(created.ID)
+	if err != nil {
+		t.Fatalf("failed to permanently delete: %v", err)
+	}
+	gone, _ := repo.GetByID(created.ID)
+	if gone != nil {
+		t.Error("expected permanently deleted task to be gone")
 	}
 }
 

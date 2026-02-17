@@ -73,3 +73,15 @@ func (h *ViewHandler) Logbook(w http.ResponseWriter, r *http.Request) {
 	}
 	writeJSON(w, http.StatusOK, view)
 }
+
+func (h *ViewHandler) Trash(w http.ResponseWriter, r *http.Request) {
+	q := r.URL.Query()
+	limit := repository.ParseIntDefault(q.Get("limit"), 50)
+	offset := repository.ParseIntDefault(q.Get("offset"), 0)
+	view, err := h.repo.Trash(limit, offset)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, err.Error(), "INTERNAL")
+		return
+	}
+	writeJSON(w, http.StatusOK, view)
+}

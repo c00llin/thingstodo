@@ -21,7 +21,7 @@ func (r *ViewRepository) Inbox() ([]model.TaskListItem, error) {
 		SELECT t.id, t.title, t.notes, t.status, t.when_date, t.when_evening,
 			t.deadline, t.project_id, t.area_id, t.heading_id,
 			t.sort_order_today, t.sort_order_project, t.sort_order_heading,
-			t.completed_at, t.canceled_at, t.created_at, t.updated_at,
+			t.completed_at, t.canceled_at, t.deleted_at, t.created_at, t.updated_at,
 			COALESCE((SELECT COUNT(*) FROM checklist_items WHERE task_id = t.id), 0),
 			COALESCE((SELECT COUNT(*) FROM checklist_items WHERE task_id = t.id AND completed = 1), 0),
 			CASE WHEN t.notes != '' THEN 1 ELSE 0 END,
@@ -30,7 +30,7 @@ func (r *ViewRepository) Inbox() ([]model.TaskListItem, error) {
 			CASE WHEN EXISTS(SELECT 1 FROM repeat_rules WHERE task_id = t.id) THEN 1 ELSE 0 END
 		FROM tasks t
 		WHERE t.project_id IS NULL AND t.area_id IS NULL
-			AND t.status = 'open' AND t.when_date IS NULL
+			AND t.status = 'open' AND t.when_date IS NULL AND t.deleted_at IS NULL
 		ORDER BY t.sort_order_today ASC`)
 	if err != nil {
 		return nil, err
@@ -47,7 +47,7 @@ func (r *ViewRepository) Today() (*model.TodayView, error) {
 		SELECT t.id, t.title, t.notes, t.status, t.when_date, t.when_evening,
 			t.deadline, t.project_id, t.area_id, t.heading_id,
 			t.sort_order_today, t.sort_order_project, t.sort_order_heading,
-			t.completed_at, t.canceled_at, t.created_at, t.updated_at,
+			t.completed_at, t.canceled_at, t.deleted_at, t.created_at, t.updated_at,
 			COALESCE((SELECT COUNT(*) FROM checklist_items WHERE task_id = t.id), 0),
 			COALESCE((SELECT COUNT(*) FROM checklist_items WHERE task_id = t.id AND completed = 1), 0),
 			CASE WHEN t.notes != '' THEN 1 ELSE 0 END,
@@ -56,7 +56,7 @@ func (r *ViewRepository) Today() (*model.TodayView, error) {
 			CASE WHEN EXISTS(SELECT 1 FROM repeat_rules WHERE task_id = t.id) THEN 1 ELSE 0 END
 		FROM tasks t
 		WHERE t.status = 'open' AND t.when_evening = 0
-			AND (t.when_date = ? OR t.deadline = ?)
+			AND (t.when_date = ? OR t.deadline = ?) AND t.deleted_at IS NULL
 		ORDER BY t.sort_order_today ASC`, today, today)
 	if err != nil {
 		return nil, err
@@ -69,7 +69,7 @@ func (r *ViewRepository) Today() (*model.TodayView, error) {
 		SELECT t.id, t.title, t.notes, t.status, t.when_date, t.when_evening,
 			t.deadline, t.project_id, t.area_id, t.heading_id,
 			t.sort_order_today, t.sort_order_project, t.sort_order_heading,
-			t.completed_at, t.canceled_at, t.created_at, t.updated_at,
+			t.completed_at, t.canceled_at, t.deleted_at, t.created_at, t.updated_at,
 			COALESCE((SELECT COUNT(*) FROM checklist_items WHERE task_id = t.id), 0),
 			COALESCE((SELECT COUNT(*) FROM checklist_items WHERE task_id = t.id AND completed = 1), 0),
 			CASE WHEN t.notes != '' THEN 1 ELSE 0 END,
@@ -78,7 +78,7 @@ func (r *ViewRepository) Today() (*model.TodayView, error) {
 			CASE WHEN EXISTS(SELECT 1 FROM repeat_rules WHERE task_id = t.id) THEN 1 ELSE 0 END
 		FROM tasks t
 		WHERE t.status = 'open' AND t.when_evening = 1
-			AND (t.when_date = ? OR t.deadline = ?)
+			AND (t.when_date = ? OR t.deadline = ?) AND t.deleted_at IS NULL
 		ORDER BY t.sort_order_today ASC`, today, today)
 	if err != nil {
 		return nil, err
@@ -91,7 +91,7 @@ func (r *ViewRepository) Today() (*model.TodayView, error) {
 		SELECT t.id, t.title, t.notes, t.status, t.when_date, t.when_evening,
 			t.deadline, t.project_id, t.area_id, t.heading_id,
 			t.sort_order_today, t.sort_order_project, t.sort_order_heading,
-			t.completed_at, t.canceled_at, t.created_at, t.updated_at,
+			t.completed_at, t.canceled_at, t.deleted_at, t.created_at, t.updated_at,
 			COALESCE((SELECT COUNT(*) FROM checklist_items WHERE task_id = t.id), 0),
 			COALESCE((SELECT COUNT(*) FROM checklist_items WHERE task_id = t.id AND completed = 1), 0),
 			CASE WHEN t.notes != '' THEN 1 ELSE 0 END,
@@ -99,7 +99,7 @@ func (r *ViewRepository) Today() (*model.TodayView, error) {
 			CASE WHEN EXISTS(SELECT 1 FROM attachments WHERE task_id = t.id AND type = 'file') THEN 1 ELSE 0 END,
 			CASE WHEN EXISTS(SELECT 1 FROM repeat_rules WHERE task_id = t.id) THEN 1 ELSE 0 END
 		FROM tasks t
-		WHERE t.status = 'open' AND t.deadline < ?
+		WHERE t.status = 'open' AND t.deadline < ? AND t.deleted_at IS NULL
 		ORDER BY t.deadline ASC`, today)
 	if err != nil {
 		return nil, err
@@ -131,7 +131,7 @@ func (r *ViewRepository) Upcoming(from string, days int) (*model.UpcomingView, e
 		SELECT t.id, t.title, t.notes, t.status, t.when_date, t.when_evening,
 			t.deadline, t.project_id, t.area_id, t.heading_id,
 			t.sort_order_today, t.sort_order_project, t.sort_order_heading,
-			t.completed_at, t.canceled_at, t.created_at, t.updated_at,
+			t.completed_at, t.canceled_at, t.deleted_at, t.created_at, t.updated_at,
 			COALESCE((SELECT COUNT(*) FROM checklist_items WHERE task_id = t.id), 0),
 			COALESCE((SELECT COUNT(*) FROM checklist_items WHERE task_id = t.id AND completed = 1), 0),
 			CASE WHEN t.notes != '' THEN 1 ELSE 0 END,
@@ -139,7 +139,7 @@ func (r *ViewRepository) Upcoming(from string, days int) (*model.UpcomingView, e
 			CASE WHEN EXISTS(SELECT 1 FROM attachments WHERE task_id = t.id AND type = 'file') THEN 1 ELSE 0 END,
 			CASE WHEN EXISTS(SELECT 1 FROM repeat_rules WHERE task_id = t.id) THEN 1 ELSE 0 END
 		FROM tasks t
-		WHERE t.status = 'open' AND t.when_date >= ? AND t.when_date < ? AND t.when_date != 'someday'
+		WHERE t.status = 'open' AND t.when_date >= ? AND t.when_date < ? AND t.when_date != 'someday' AND t.deleted_at IS NULL
 		ORDER BY t.when_date ASC, t.sort_order_today ASC`, from, endDate)
 	if err != nil {
 		return nil, err
@@ -264,14 +264,14 @@ func (r *ViewRepository) getAnytimeTasks(projectID, areaID *string, byProject, s
 		SELECT t.id, t.title, t.notes, t.status, t.when_date, t.when_evening,
 			t.deadline, t.project_id, t.area_id, t.heading_id,
 			t.sort_order_today, t.sort_order_project, t.sort_order_heading,
-			t.completed_at, t.canceled_at, t.created_at, t.updated_at,
+			t.completed_at, t.canceled_at, t.deleted_at, t.created_at, t.updated_at,
 			COALESCE((SELECT COUNT(*) FROM checklist_items WHERE task_id = t.id), 0),
 			COALESCE((SELECT COUNT(*) FROM checklist_items WHERE task_id = t.id AND completed = 1), 0),
 			CASE WHEN t.notes != '' THEN 1 ELSE 0 END,
 			CASE WHEN EXISTS(SELECT 1 FROM attachments WHERE task_id = t.id AND type = 'link') THEN 1 ELSE 0 END,
 			CASE WHEN EXISTS(SELECT 1 FROM attachments WHERE task_id = t.id AND type = 'file') THEN 1 ELSE 0 END,
 			CASE WHEN EXISTS(SELECT 1 FROM repeat_rules WHERE task_id = t.id) THEN 1 ELSE 0 END
-		FROM tasks t WHERE t.status = 'open'`
+		FROM tasks t WHERE t.status = 'open' AND t.deleted_at IS NULL`
 
 	if byProject && projectID != nil {
 		query += " AND t.project_id = ?"
@@ -306,7 +306,7 @@ func (r *ViewRepository) getAnytimeStandaloneNoArea(somedayOnly bool) []model.Ta
 		SELECT t.id, t.title, t.notes, t.status, t.when_date, t.when_evening,
 			t.deadline, t.project_id, t.area_id, t.heading_id,
 			t.sort_order_today, t.sort_order_project, t.sort_order_heading,
-			t.completed_at, t.canceled_at, t.created_at, t.updated_at,
+			t.completed_at, t.canceled_at, t.deleted_at, t.created_at, t.updated_at,
 			COALESCE((SELECT COUNT(*) FROM checklist_items WHERE task_id = t.id), 0),
 			COALESCE((SELECT COUNT(*) FROM checklist_items WHERE task_id = t.id AND completed = 1), 0),
 			CASE WHEN t.notes != '' THEN 1 ELSE 0 END,
@@ -314,7 +314,7 @@ func (r *ViewRepository) getAnytimeStandaloneNoArea(somedayOnly bool) []model.Ta
 			CASE WHEN EXISTS(SELECT 1 FROM attachments WHERE task_id = t.id AND type = 'file') THEN 1 ELSE 0 END,
 			CASE WHEN EXISTS(SELECT 1 FROM repeat_rules WHERE task_id = t.id) THEN 1 ELSE 0 END
 		FROM tasks t
-		WHERE t.status = 'open' AND t.project_id IS NULL AND t.area_id IS NULL`
+		WHERE t.status = 'open' AND t.project_id IS NULL AND t.area_id IS NULL AND t.deleted_at IS NULL`
 
 	if somedayOnly {
 		query += " AND t.when_date = 'someday'"
@@ -338,13 +338,13 @@ func (r *ViewRepository) Logbook(limit, offset int) (*model.LogbookView, error) 
 	}
 
 	var total int
-	_ = r.db.QueryRow("SELECT COUNT(*) FROM tasks WHERE status IN ('completed', 'canceled', 'wont_do')").Scan(&total)
+	_ = r.db.QueryRow("SELECT COUNT(*) FROM tasks WHERE status IN ('completed', 'canceled', 'wont_do') AND deleted_at IS NULL").Scan(&total)
 
 	rows, err := r.db.Query(`
 		SELECT t.id, t.title, t.notes, t.status, t.when_date, t.when_evening,
 			t.deadline, t.project_id, t.area_id, t.heading_id,
 			t.sort_order_today, t.sort_order_project, t.sort_order_heading,
-			t.completed_at, t.canceled_at, t.created_at, t.updated_at,
+			t.completed_at, t.canceled_at, t.deleted_at, t.created_at, t.updated_at,
 			COALESCE((SELECT COUNT(*) FROM checklist_items WHERE task_id = t.id), 0),
 			COALESCE((SELECT COUNT(*) FROM checklist_items WHERE task_id = t.id AND completed = 1), 0),
 			CASE WHEN t.notes != '' THEN 1 ELSE 0 END,
@@ -352,7 +352,7 @@ func (r *ViewRepository) Logbook(limit, offset int) (*model.LogbookView, error) 
 			CASE WHEN EXISTS(SELECT 1 FROM attachments WHERE task_id = t.id AND type = 'file') THEN 1 ELSE 0 END,
 			CASE WHEN EXISTS(SELECT 1 FROM repeat_rules WHERE task_id = t.id) THEN 1 ELSE 0 END
 		FROM tasks t
-		WHERE t.status IN ('completed', 'canceled', 'wont_do')
+		WHERE t.status IN ('completed', 'canceled', 'wont_do') AND t.deleted_at IS NULL
 		ORDER BY COALESCE(t.completed_at, t.canceled_at, t.updated_at) DESC
 		LIMIT ? OFFSET ?`, limit, offset)
 	if err != nil {
@@ -373,6 +373,61 @@ func (r *ViewRepository) Logbook(limit, offset int) (*model.LogbookView, error) 
 			d = (*t.CanceledAt)[:10]
 		} else {
 			d = t.UpdatedAt[:10]
+		}
+		if _, ok := dateMap[d]; !ok {
+			dateOrder = append(dateOrder, d)
+		}
+		dateMap[d] = append(dateMap[d], t)
+	}
+
+	var groups []model.DateGroup
+	for _, d := range dateOrder {
+		groups = append(groups, model.DateGroup{Date: d, Tasks: dateMap[d]})
+	}
+	if groups == nil {
+		groups = []model.DateGroup{}
+	}
+
+	return &model.LogbookView{Groups: groups, Total: total}, nil
+}
+
+func (r *ViewRepository) Trash(limit, offset int) (*model.LogbookView, error) {
+	if limit <= 0 {
+		limit = 50
+	}
+
+	var total int
+	_ = r.db.QueryRow("SELECT COUNT(*) FROM tasks WHERE deleted_at IS NOT NULL").Scan(&total)
+
+	rows, err := r.db.Query(`
+		SELECT t.id, t.title, t.notes, t.status, t.when_date, t.when_evening,
+			t.deadline, t.project_id, t.area_id, t.heading_id,
+			t.sort_order_today, t.sort_order_project, t.sort_order_heading,
+			t.completed_at, t.canceled_at, t.deleted_at, t.created_at, t.updated_at,
+			COALESCE((SELECT COUNT(*) FROM checklist_items WHERE task_id = t.id), 0),
+			COALESCE((SELECT COUNT(*) FROM checklist_items WHERE task_id = t.id AND completed = 1), 0),
+			CASE WHEN t.notes != '' THEN 1 ELSE 0 END,
+			CASE WHEN EXISTS(SELECT 1 FROM attachments WHERE task_id = t.id AND type = 'link') THEN 1 ELSE 0 END,
+			CASE WHEN EXISTS(SELECT 1 FROM attachments WHERE task_id = t.id AND type = 'file') THEN 1 ELSE 0 END,
+			CASE WHEN EXISTS(SELECT 1 FROM repeat_rules WHERE task_id = t.id) THEN 1 ELSE 0 END
+		FROM tasks t
+		WHERE t.deleted_at IS NOT NULL
+		ORDER BY t.deleted_at DESC
+		LIMIT ? OFFSET ?`, limit, offset)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	tasks := scanTaskListItems(r.db, rows)
+
+	// Group by deletion date
+	dateMap := make(map[string][]model.TaskListItem)
+	var dateOrder []string
+	for _, t := range tasks {
+		d := t.UpdatedAt[:10]
+		if t.DeletedAt != nil {
+			d = (*t.DeletedAt)[:10]
 		}
 		if _, ok := dateMap[d]; !ok {
 			dateOrder = append(dateOrder, d)

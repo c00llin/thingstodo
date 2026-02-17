@@ -8,6 +8,7 @@ const UpcomingView = lazy(() => import('./pages/UpcomingView').then(m => ({ defa
 const AnytimeView = lazy(() => import('./pages/AnytimeView').then(m => ({ default: m.AnytimeView })))
 const SomedayView = lazy(() => import('./pages/SomedayView').then(m => ({ default: m.SomedayView })))
 const LogbookView = lazy(() => import('./pages/LogbookView').then(m => ({ default: m.LogbookView })))
+const TrashView = lazy(() => import('./pages/TrashView').then(m => ({ default: m.TrashView })))
 const ProjectView = lazy(() => import('./pages/ProjectView').then(m => ({ default: m.ProjectView })))
 const AreaView = lazy(() => import('./pages/AreaView').then(m => ({ default: m.AreaView })))
 const TagView = lazy(() => import('./pages/TagView').then(m => ({ default: m.TagView })))
@@ -27,6 +28,7 @@ function App() {
             <Route path="anytime" element={<AnytimeView />} />
             <Route path="someday" element={<SomedayView />} />
             <Route path="logbook" element={<LogbookView />} />
+            <Route path="trash" element={<TrashView />} />
             <Route path="project/:id" element={<ProjectView />} />
             <Route path="area/:id" element={<AreaView />} />
             <Route path="tag/:id" element={<TagView />} />

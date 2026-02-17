@@ -110,9 +110,21 @@ func TestTaskHandlerDelete(t *testing.T) {
 	resp := client.Delete("/api/tasks/" + id)
 	testutil.AssertStatus(t, resp, http.StatusNoContent)
 
-	// Verify deleted
+	// Soft-deleted task is still retrievable by direct GET (for trash view)
 	getResp := client.Get("/api/tasks/" + id)
-	testutil.AssertStatus(t, getResp, http.StatusNotFound)
+	testutil.AssertStatus(t, getResp, http.StatusOK)
+
+	// But it should not appear in list
+	listResp := client.Get("/api/tasks")
+	var listBody struct {
+		Tasks []map[string]interface{} `json:"tasks"`
+	}
+	listResp.JSON(t, &listBody)
+	for _, task := range listBody.Tasks {
+		if task["id"] == id {
+			t.Error("soft-deleted task should not appear in task list")
+		}
+	}
 }
 
 func TestTaskHandlerComplete(t *testing.T) {

@@ -193,6 +193,21 @@ func (h *TaskHandler) Reopen(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, task)
 }
 
+func (h *TaskHandler) Restore(w http.ResponseWriter, r *http.Request) {
+	id := chi.URLParam(r, "id")
+	task, err := h.repo.Restore(id)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, err.Error(), "INTERNAL")
+		return
+	}
+	if task == nil {
+		writeError(w, http.StatusNotFound, "task not found", "NOT_FOUND")
+		return
+	}
+	h.broker.BroadcastJSON("task_updated", map[string]interface{}{"id": task.ID, "task": task})
+	writeJSON(w, http.StatusOK, task)
+}
+
 func (h *TaskHandler) Move(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")
 	var input model.MoveTaskInput

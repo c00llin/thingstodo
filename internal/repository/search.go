@@ -24,7 +24,7 @@ func (r *SearchRepository) Search(query string, limit int) ([]model.SearchResult
 		SELECT t.id, t.title, t.notes, t.status, t.when_date, t.when_evening,
 			t.deadline, t.project_id, t.area_id, t.heading_id,
 			t.sort_order_today, t.sort_order_project, t.sort_order_heading,
-			t.completed_at, t.canceled_at, t.created_at, t.updated_at,
+			t.completed_at, t.canceled_at, t.deleted_at, t.created_at, t.updated_at,
 			COALESCE((SELECT COUNT(*) FROM checklist_items WHERE task_id = t.id), 0),
 			COALESCE((SELECT COUNT(*) FROM checklist_items WHERE task_id = t.id AND completed = 1), 0),
 			CASE WHEN t.notes != '' THEN 1 ELSE 0 END,
@@ -36,7 +36,7 @@ func (r *SearchRepository) Search(query string, limit int) ([]model.SearchResult
 			rank
 		FROM tasks_fts
 		JOIN tasks t ON t.rowid = tasks_fts.rowid
-		WHERE tasks_fts MATCH ?
+		WHERE tasks_fts MATCH ? AND t.deleted_at IS NULL
 		ORDER BY rank
 		LIMIT ?`, query, limit)
 	if err != nil {
@@ -53,7 +53,7 @@ func (r *SearchRepository) Search(query string, limit int) ([]model.SearchResult
 			&t.ID, &t.Title, &t.Notes, &t.Status, &t.WhenDate, &whenEvening,
 			&t.Deadline, &t.ProjectID, &t.AreaID, &t.HeadingID,
 			&t.SortOrderToday, &t.SortOrderProject, &t.SortOrderHeading,
-			&t.CompletedAt, &t.CanceledAt, &t.CreatedAt, &t.UpdatedAt,
+			&t.CompletedAt, &t.CanceledAt, &t.DeletedAt, &t.CreatedAt, &t.UpdatedAt,
 			&t.ChecklistCount, &t.ChecklistDone,
 			&hasNotes, &hasLinks, &hasFiles, &hasRepeat,
 			&sr.TitleSnippet, &sr.NotesSnippet, &sr.Rank,

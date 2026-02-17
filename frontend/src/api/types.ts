@@ -91,6 +91,7 @@ export interface Task {
   sort_order_heading: number
   completed_at: string | null
   canceled_at: string | null
+  deleted_at: string | null
   created_at: string
   updated_at: string
   tags: TagRef[]
@@ -341,6 +342,8 @@ export interface LogbookView {
   groups: LogbookViewGroup[]
   total: number
 }
+
+export type TrashView = LogbookView
 
 // Search
 export interface SearchResult {

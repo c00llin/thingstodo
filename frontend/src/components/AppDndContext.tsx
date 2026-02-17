@@ -15,7 +15,7 @@ import {
 } from '@dnd-kit/core'
 import { sortableKeyboardCoordinates } from '@dnd-kit/sortable'
 import { Package } from 'lucide-react'
-import { updateTask, reopenTask, reorderTasks } from '../api/tasks'
+import { updateTask, reopenTask, restoreTask, deleteTask, completeTask, reorderTasks } from '../api/tasks'
 import { updateProject } from '../api/projects'
 import { useQueryClient } from '@tanstack/react-query'
 import { useProjects, useAreas, updateTaskInCache } from '../hooks/queries'
@@ -63,6 +63,7 @@ function reorderTaskInCache(
   )
 }
 import { TaskItemDragOverlay } from './TaskItemDragOverlay'
+import { useAppStore } from '../stores/app'
 import { SortableListRegistryProvider, useSortableListRegistry } from '../contexts/SortableListRegistry'
 import { calculatePosition } from '../lib/sort-position'
 
@@ -167,8 +168,85 @@ function AppDndContextInner({ children }: AppDndContextProps) {
       if (overId.startsWith('sidebar-')) {
         const taskId = activeId
         const draggedTask = active.data.current?.task as Task | undefined
+        const isTrashed = !!draggedTask?.deleted_at
         const needsReopen = draggedTask?.status !== 'open'
+
+        // Drag TO Trash: soft-delete the task
+        if (overId === 'sidebar-trash') {
+          updateTaskInCache(queryClient, taskId, {
+            deleted_at: new Date().toISOString(),
+          } as Partial<Task>)
+          useAppStore.getState().setDepartingTaskId(taskId)
+          deleteTask(taskId).then(() => {
+            setTimeout(() => {
+              useAppStore.getState().setDepartingTaskId(null)
+              queryClient.invalidateQueries({ queryKey: ['views'] })
+              queryClient.invalidateQueries({ queryKey: ['projects'] })
+              queryClient.invalidateQueries({ queryKey: ['areas'] })
+            }, 800)
+          })
+          return
+        }
+
+        // Drag TO Completed: complete the task (restore first if trashed)
+        if (overId === 'sidebar-completed') {
+          const doComplete = async () => {
+            if (isTrashed) {
+              queryClient.setQueriesData<{ groups: { date: string; tasks: Task[] }[]; total: number }>(
+                { queryKey: ['views', 'trash'] },
+                (old) => {
+                  if (!old) return old
+                  return {
+                    ...old,
+                    total: old.total - 1,
+                    groups: old.groups
+                      .map((g) => ({ ...g, tasks: g.tasks.filter((t) => t.id !== taskId) }))
+                      .filter((g) => g.tasks.length > 0),
+                  }
+                },
+              )
+              updateTaskInCache(queryClient, taskId, { deleted_at: null } as Partial<Task>)
+              await restoreTask(taskId)
+            }
+            updateTaskInCache(queryClient, taskId, {
+              status: 'completed',
+              completed_at: new Date().toISOString(),
+            } as Partial<Task>)
+            useAppStore.getState().setDepartingTaskId(taskId)
+            await completeTask(taskId)
+            setTimeout(() => {
+              useAppStore.getState().setDepartingTaskId(null)
+              queryClient.invalidateQueries({ queryKey: ['views'] })
+              queryClient.invalidateQueries({ queryKey: ['projects'] })
+              queryClient.invalidateQueries({ queryKey: ['areas'] })
+            }, 800)
+          }
+          doComplete()
+          return
+        }
+
         const sidebarDrop = async () => {
+          // Restore trashed tasks when dropped on a sidebar target
+          if (isTrashed) {
+            // Remove the task from the trash view cache immediately
+            queryClient.setQueriesData<{ groups: { date: string; tasks: Task[] }[]; total: number }>(
+              { queryKey: ['views', 'trash'] },
+              (old) => {
+                if (!old) return old
+                return {
+                  ...old,
+                  total: old.total - 1,
+                  groups: old.groups
+                    .map((g) => ({ ...g, tasks: g.tasks.filter((t) => t.id !== taskId) }))
+                    .filter((g) => g.tasks.length > 0),
+                }
+              },
+            )
+            updateTaskInCache(queryClient, taskId, {
+              deleted_at: null,
+            } as Partial<Task>)
+            await restoreTask(taskId)
+          }
           // Reopen non-open tasks when dropped on a sidebar target
           if (needsReopen) {
             updateTaskInCache(queryClient, taskId, {
@@ -182,15 +260,12 @@ function AppDndContextInner({ children }: AppDndContextProps) {
             const today = new Date().toISOString().split('T')[0]
             updateTaskInCache(queryClient, taskId, { when_date: today } as Partial<Task>)
             await updateTask(taskId, { when_date: today })
-            queryClient.invalidateQueries({ queryKey: ['views'] })
           } else if (overId === 'sidebar-anytime') {
             updateTaskInCache(queryClient, taskId, { when_date: null } as Partial<Task>)
             await updateTask(taskId, { when_date: null })
-            queryClient.invalidateQueries({ queryKey: ['views'] })
           } else if (overId === 'sidebar-someday') {
             updateTaskInCache(queryClient, taskId, { when_date: 'someday' } as Partial<Task>)
             await updateTask(taskId, { when_date: 'someday' })
-            queryClient.invalidateQueries({ queryKey: ['views'] })
           } else if (overId === 'sidebar-inbox') {
             updateTaskInCache(queryClient, taskId, {
               project_id: null, project_name: null,
@@ -198,7 +273,6 @@ function AppDndContextInner({ children }: AppDndContextProps) {
               when_date: null,
             } as Partial<Task>)
             await updateTask(taskId, { project_id: null, area_id: null, when_date: null })
-            queryClient.invalidateQueries({ queryKey: ['views'] })
           } else if (overId.startsWith('sidebar-project-')) {
             const projectId = overId.replace('sidebar-project-', '')
             const project = projects.find((p) => p.id === projectId)
@@ -210,9 +284,6 @@ function AppDndContextInner({ children }: AppDndContextProps) {
               area_name: projectArea?.title ?? null,
             } as Partial<Task>)
             await updateTask(taskId, { project_id: projectId, area_id: project?.area_id ?? null })
-            queryClient.invalidateQueries({ queryKey: ['views'] })
-            queryClient.invalidateQueries({ queryKey: ['projects'] })
-            queryClient.invalidateQueries({ queryKey: ['areas'] })
           } else if (overId.startsWith('sidebar-area-')) {
             const areaId = overId.replace('sidebar-area-', '')
             const area = areas.find((a) => a.id === areaId)
@@ -223,7 +294,10 @@ function AppDndContextInner({ children }: AppDndContextProps) {
               area_name: area?.title ?? null,
             } as Partial<Task>)
             await updateTask(taskId, { project_id: null, area_id: areaId })
-            queryClient.invalidateQueries({ queryKey: ['views'] })
+          }
+          // Invalidate after all API calls complete
+          queryClient.invalidateQueries({ queryKey: ['views'] })
+          if (overId.startsWith('sidebar-project-') || overId.startsWith('sidebar-area-')) {
             queryClient.invalidateQueries({ queryKey: ['projects'] })
             queryClient.invalidateQueries({ queryKey: ['areas'] })
           }

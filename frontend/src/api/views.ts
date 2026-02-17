@@ -6,6 +6,7 @@ import type {
   AnytimeView,
   SomedayView,
   LogbookView,
+  TrashView,
 } from './types'
 
 export function getInbox() {
@@ -38,4 +39,12 @@ export function getLogbook(params?: { limit?: number; offset?: number }) {
   if (params?.offset) search.set('offset', String(params.offset))
   const qs = search.toString()
   return api.get<LogbookView>(`/views/logbook${qs ? `?${qs}` : ''}`)
+}
+
+export function getTrash(params?: { limit?: number; offset?: number }) {
+  const search = new URLSearchParams()
+  if (params?.limit) search.set('limit', String(params.limit))
+  if (params?.offset) search.set('offset', String(params.offset))
+  const qs = search.toString()
+  return api.get<TrashView>(`/views/trash${qs ? `?${qs}` : ''}`)
 }

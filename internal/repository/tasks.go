@@ -21,7 +21,7 @@ func (r *TaskRepository) List(f model.TaskFilters) ([]model.TaskListItem, error)
 		SELECT t.id, t.title, t.notes, t.status, t.when_date, t.when_evening,
 			t.deadline, t.project_id, t.area_id, t.heading_id,
 			t.sort_order_today, t.sort_order_project, t.sort_order_heading,
-			t.completed_at, t.canceled_at, t.created_at, t.updated_at,
+			t.completed_at, t.canceled_at, t.deleted_at, t.created_at, t.updated_at,
 			COALESCE((SELECT COUNT(*) FROM checklist_items WHERE task_id = t.id), 0),
 			COALESCE((SELECT COUNT(*) FROM checklist_items WHERE task_id = t.id AND completed = 1), 0),
 			CASE WHEN t.notes != '' THEN 1 ELSE 0 END,
@@ -90,6 +90,8 @@ func (r *TaskRepository) List(f model.TaskFilters) ([]model.TaskListItem, error)
 		args = append(args, *f.Search)
 	}
 
+	conditions = append(conditions, "t.deleted_at IS NULL")
+
 	if len(conditions) > 0 {
 		query += " WHERE " + strings.Join(conditions, " AND ")
 	}
@@ -109,7 +111,7 @@ func (r *TaskRepository) List(f model.TaskFilters) ([]model.TaskListItem, error)
 			&t.ID, &t.Title, &t.Notes, &t.Status, &t.WhenDate, &whenEvening,
 			&t.Deadline, &t.ProjectID, &t.AreaID, &t.HeadingID,
 			&t.SortOrderToday, &t.SortOrderProject, &t.SortOrderHeading,
-			&t.CompletedAt, &t.CanceledAt, &t.CreatedAt, &t.UpdatedAt,
+			&t.CompletedAt, &t.CanceledAt, &t.DeletedAt, &t.CreatedAt, &t.UpdatedAt,
 			&t.ChecklistCount, &t.ChecklistDone,
 			&hasNotes, &hasLinks, &hasFiles, &hasRepeat,
 		); err != nil {
@@ -136,12 +138,12 @@ func (r *TaskRepository) GetByID(id string) (*model.TaskDetail, error) {
 		SELECT id, title, notes, status, when_date, when_evening,
 			deadline, project_id, area_id, heading_id,
 			sort_order_today, sort_order_project, sort_order_heading,
-			completed_at, canceled_at, created_at, updated_at
+			completed_at, canceled_at, deleted_at, created_at, updated_at
 		FROM tasks WHERE id = ?`, id).Scan(
 		&t.ID, &t.Title, &t.Notes, &t.Status, &t.WhenDate, &whenEvening,
 		&t.Deadline, &t.ProjectID, &t.AreaID, &t.HeadingID,
 		&t.SortOrderToday, &t.SortOrderProject, &t.SortOrderHeading,
-		&t.CompletedAt, &t.CanceledAt, &t.CreatedAt, &t.UpdatedAt,
+		&t.CompletedAt, &t.CanceledAt, &t.DeletedAt, &t.CreatedAt, &t.UpdatedAt,
 	)
 	if err == sql.ErrNoRows {
 		return nil, nil
@@ -281,6 +283,19 @@ func (r *TaskRepository) Move(id string, input model.MoveTaskInput) (*model.Task
 }
 
 func (r *TaskRepository) Delete(id string) error {
+	_, err := r.db.Exec("UPDATE tasks SET deleted_at = datetime('now'), updated_at = datetime('now') WHERE id = ?", id)
+	return err
+}
+
+func (r *TaskRepository) Restore(id string) (*model.TaskDetail, error) {
+	_, err := r.db.Exec("UPDATE tasks SET deleted_at = NULL, updated_at = datetime('now') WHERE id = ?", id)
+	if err != nil {
+		return nil, err
+	}
+	return r.GetByID(id)
+}
+
+func (r *TaskRepository) PermanentDelete(id string) error {
 	_, err := r.db.Exec("DELETE FROM tasks WHERE id = ?", id)
 	return err
 }

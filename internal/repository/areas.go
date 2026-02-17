@@ -19,7 +19,7 @@ func (r *AreaRepository) List() ([]model.Area, error) {
 	rows, err := r.db.Query(`
 		SELECT a.id, a.title, a.sort_order, a.created_at, a.updated_at,
 			COALESCE((SELECT COUNT(*) FROM projects WHERE area_id = a.id), 0),
-			COALESCE((SELECT COUNT(*) FROM tasks WHERE area_id = a.id), 0)
+			COALESCE((SELECT COUNT(*) FROM tasks WHERE area_id = a.id AND deleted_at IS NULL), 0)
 		FROM areas a ORDER BY a.sort_order ASC`)
 	if err != nil {
 		return nil, err
@@ -56,8 +56,8 @@ func (r *AreaRepository) GetByID(id string) (*model.AreaDetail, error) {
 	projRows, err := r.db.Query(`
 		SELECT p.id, p.title, p.notes, p.area_id, p.status, p.when_date, p.deadline,
 			p.sort_order, p.created_at, p.updated_at,
-			COALESCE((SELECT COUNT(*) FROM tasks WHERE project_id = p.id), 0),
-			COALESCE((SELECT COUNT(*) FROM tasks WHERE project_id = p.id AND status = 'completed'), 0)
+			COALESCE((SELECT COUNT(*) FROM tasks WHERE project_id = p.id AND deleted_at IS NULL), 0),
+			COALESCE((SELECT COUNT(*) FROM tasks WHERE project_id = p.id AND status = 'completed' AND deleted_at IS NULL), 0)
 		FROM projects p WHERE p.area_id = ? AND p.status = 'open' ORDER BY p.sort_order`, id)
 	if err != nil {
 		return nil, err
@@ -84,14 +84,14 @@ func (r *AreaRepository) GetByID(id string) (*model.AreaDetail, error) {
 		SELECT t.id, t.title, t.notes, t.status, t.when_date, t.when_evening,
 			t.deadline, t.project_id, t.area_id, t.heading_id,
 			t.sort_order_today, t.sort_order_project, t.sort_order_heading,
-			t.completed_at, t.canceled_at, t.created_at, t.updated_at,
+			t.completed_at, t.canceled_at, t.deleted_at, t.created_at, t.updated_at,
 			COALESCE((SELECT COUNT(*) FROM checklist_items WHERE task_id = t.id), 0),
 			COALESCE((SELECT COUNT(*) FROM checklist_items WHERE task_id = t.id AND completed = 1), 0),
 			CASE WHEN t.notes != '' THEN 1 ELSE 0 END,
 			CASE WHEN EXISTS(SELECT 1 FROM attachments WHERE task_id = t.id AND type = 'link') THEN 1 ELSE 0 END,
 			CASE WHEN EXISTS(SELECT 1 FROM attachments WHERE task_id = t.id AND type = 'file') THEN 1 ELSE 0 END,
 			CASE WHEN EXISTS(SELECT 1 FROM repeat_rules WHERE task_id = t.id) THEN 1 ELSE 0 END
-		FROM tasks t WHERE t.area_id = ? AND t.project_id IS NULL AND t.status = 'open'
+		FROM tasks t WHERE t.area_id = ? AND t.project_id IS NULL AND t.status = 'open' AND t.deleted_at IS NULL
 		ORDER BY t.sort_order_today`, id)
 	if err != nil {
 		return nil, err

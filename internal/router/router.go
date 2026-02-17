@@ -78,6 +78,7 @@ func New(db *sql.DB, cfg config.Config, broker *sse.Broker) http.Handler {
 			r.Patch("/tasks/{id}/cancel", taskH.Cancel)
 			r.Patch("/tasks/{id}/wontdo", taskH.WontDo)
 			r.Patch("/tasks/{id}/reopen", taskH.Reopen)
+			r.Patch("/tasks/{id}/restore", taskH.Restore)
 			r.Patch("/tasks/{id}/move", taskH.Move)
 			r.Patch("/tasks/reorder", taskH.Reorder)
 
@@ -136,6 +137,7 @@ func New(db *sql.DB, cfg config.Config, broker *sse.Broker) http.Handler {
 			r.Get("/views/anytime", viewH.Anytime)
 			r.Get("/views/someday", viewH.Someday)
 			r.Get("/views/logbook", viewH.Logbook)
+			r.Get("/views/trash", viewH.Trash)
 
 			// Search
 			r.Get("/search", searchH.Search)

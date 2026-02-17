@@ -20,8 +20,8 @@ func (r *ProjectRepository) List(areaID, status *string) ([]model.ProjectListIte
 	query := `
 		SELECT p.id, p.title, p.notes, p.area_id, p.status, p.when_date, p.deadline,
 			p.sort_order, p.created_at, p.updated_at,
-			COALESCE((SELECT COUNT(*) FROM tasks WHERE project_id = p.id), 0),
-			COALESCE((SELECT COUNT(*) FROM tasks WHERE project_id = p.id AND status = 'completed'), 0)
+			COALESCE((SELECT COUNT(*) FROM tasks WHERE project_id = p.id AND deleted_at IS NULL), 0),
+			COALESCE((SELECT COUNT(*) FROM tasks WHERE project_id = p.id AND status = 'completed' AND deleted_at IS NULL), 0)
 		FROM projects p`
 
 	var conditions []string
@@ -72,8 +72,8 @@ func (r *ProjectRepository) GetByID(id string) (*model.ProjectDetail, error) {
 	err := r.db.QueryRow(`
 		SELECT p.id, p.title, p.notes, p.area_id, p.status, p.when_date, p.deadline,
 			p.sort_order, p.created_at, p.updated_at,
-			COALESCE((SELECT COUNT(*) FROM tasks WHERE project_id = p.id), 0),
-			COALESCE((SELECT COUNT(*) FROM tasks WHERE project_id = p.id AND status = 'completed'), 0)
+			COALESCE((SELECT COUNT(*) FROM tasks WHERE project_id = p.id AND deleted_at IS NULL), 0),
+			COALESCE((SELECT COUNT(*) FROM tasks WHERE project_id = p.id AND status = 'completed' AND deleted_at IS NULL), 0)
 		FROM projects p WHERE p.id = ?`, id).Scan(
 		&p.ID, &p.Title, &p.Notes, &p.AreaID, &p.Status, &p.WhenDate, &p.Deadline,
 		&p.SortOrder, &p.CreatedAt, &p.UpdatedAt,
@@ -252,14 +252,14 @@ func getTaskListItems(db *sql.DB, filterCol, filterVal string) []model.TaskListI
 		SELECT t.id, t.title, t.notes, t.status, t.when_date, t.when_evening,
 			t.deadline, t.project_id, t.area_id, t.heading_id,
 			t.sort_order_today, t.sort_order_project, t.sort_order_heading,
-			t.completed_at, t.canceled_at, t.created_at, t.updated_at,
+			t.completed_at, t.canceled_at, t.deleted_at, t.created_at, t.updated_at,
 			COALESCE((SELECT COUNT(*) FROM checklist_items WHERE task_id = t.id), 0),
 			COALESCE((SELECT COUNT(*) FROM checklist_items WHERE task_id = t.id AND completed = 1), 0),
 			CASE WHEN t.notes != '' THEN 1 ELSE 0 END,
 			CASE WHEN EXISTS(SELECT 1 FROM attachments WHERE task_id = t.id AND type = 'link') THEN 1 ELSE 0 END,
 			CASE WHEN EXISTS(SELECT 1 FROM attachments WHERE task_id = t.id AND type = 'file') THEN 1 ELSE 0 END,
 			CASE WHEN EXISTS(SELECT 1 FROM repeat_rules WHERE task_id = t.id) THEN 1 ELSE 0 END
-		FROM tasks t WHERE t.`+filterCol+` = ? AND t.status = 'open'
+		FROM tasks t WHERE t.`+filterCol+` = ? AND t.status = 'open' AND t.deleted_at IS NULL
 		ORDER BY t.sort_order_project ASC`, filterVal)
 	if err != nil {
 		return []model.TaskListItem{}
@@ -273,14 +273,14 @@ func getTaskListItemsNoHeading(db *sql.DB, projectID string) []model.TaskListIte
 		SELECT t.id, t.title, t.notes, t.status, t.when_date, t.when_evening,
 			t.deadline, t.project_id, t.area_id, t.heading_id,
 			t.sort_order_today, t.sort_order_project, t.sort_order_heading,
-			t.completed_at, t.canceled_at, t.created_at, t.updated_at,
+			t.completed_at, t.canceled_at, t.deleted_at, t.created_at, t.updated_at,
 			COALESCE((SELECT COUNT(*) FROM checklist_items WHERE task_id = t.id), 0),
 			COALESCE((SELECT COUNT(*) FROM checklist_items WHERE task_id = t.id AND completed = 1), 0),
 			CASE WHEN t.notes != '' THEN 1 ELSE 0 END,
 			CASE WHEN EXISTS(SELECT 1 FROM attachments WHERE task_id = t.id AND type = 'link') THEN 1 ELSE 0 END,
 			CASE WHEN EXISTS(SELECT 1 FROM attachments WHERE task_id = t.id AND type = 'file') THEN 1 ELSE 0 END,
 			CASE WHEN EXISTS(SELECT 1 FROM repeat_rules WHERE task_id = t.id) THEN 1 ELSE 0 END
-		FROM tasks t WHERE t.project_id = ? AND t.heading_id IS NULL AND t.status = 'open'
+		FROM tasks t WHERE t.project_id = ? AND t.heading_id IS NULL AND t.status = 'open' AND t.deleted_at IS NULL
 		ORDER BY t.sort_order_project ASC`, projectID)
 	if err != nil {
 		return []model.TaskListItem{}
@@ -298,7 +298,7 @@ func scanTaskListItems(db *sql.DB, rows *sql.Rows) []model.TaskListItem {
 			&t.ID, &t.Title, &t.Notes, &t.Status, &t.WhenDate, &whenEvening,
 			&t.Deadline, &t.ProjectID, &t.AreaID, &t.HeadingID,
 			&t.SortOrderToday, &t.SortOrderProject, &t.SortOrderHeading,
-			&t.CompletedAt, &t.CanceledAt, &t.CreatedAt, &t.UpdatedAt,
+			&t.CompletedAt, &t.CanceledAt, &t.DeletedAt, &t.CreatedAt, &t.UpdatedAt,
 			&t.ChecklistCount, &t.ChecklistDone,
 			&hasNotes, &hasLinks, &hasFiles, &hasRepeat,
 		)

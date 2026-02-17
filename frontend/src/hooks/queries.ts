@@ -61,6 +61,7 @@ export const queryKeys = {
     anytime: ['views', 'anytime'] as const,
     someday: ['views', 'someday'] as const,
     logbook: (limit?: number, offset?: number) => ['views', 'logbook', limit, offset] as const,
+    trash: (limit?: number, offset?: number) => ['views', 'trash', limit, offset] as const,
   },
   search: (q: string) => ['search', q] as const,
   auth: {
@@ -109,6 +110,13 @@ export function useLogbook(limit?: number, offset?: number) {
   return useQuery({
     queryKey: queryKeys.views.logbook(limit, offset),
     queryFn: () => viewsApi.getLogbook({ limit, offset }),
+  })
+}
+
+export function useTrash(limit?: number, offset?: number) {
+  return useQuery({
+    queryKey: queryKeys.views.trash(limit, offset),
+    queryFn: () => viewsApi.getTrash({ limit, offset }),
   })
 }
 
@@ -298,10 +306,36 @@ export function useUpdateTask() {
 }
 
 export function useDeleteTask() {
+  const queryClient = useQueryClient()
   const invalidate = useInvalidateViews()
   return useMutation({
     mutationFn: (id: string) => tasksApi.deleteTask(id),
-    onSuccess: invalidate,
+    onMutate: async (id) => {
+      await queryClient.cancelQueries({ queryKey: ['views'] })
+      const snapshot = snapshotViews(queryClient)
+      updateTaskInCache(queryClient, id, {
+        deleted_at: new Date().toISOString(),
+      })
+      useAppStore.getState().setDepartingTaskId(id)
+      return { snapshot }
+    },
+    onError: (_err, _id, context) => {
+      if (context?.snapshot) rollbackViews(queryClient, context.snapshot)
+    },
+    onSettled: () => {
+      setTimeout(() => {
+        useAppStore.getState().setDepartingTaskId(null)
+        invalidate()
+      }, 800)
+    },
+  })
+}
+
+export function useRestoreTask() {
+  const invalidate = useInvalidateViews()
+  return useMutation({
+    mutationFn: (id: string) => tasksApi.restoreTask(id),
+    onSettled: invalidate,
   })
 }
 

@@ -18,7 +18,7 @@ func NewTagRepository(db *sql.DB) *TagRepository {
 func (r *TagRepository) List() ([]model.Tag, error) {
 	rows, err := r.db.Query(`
 		SELECT t.id, t.title, t.parent_tag_id, t.sort_order,
-			COALESCE((SELECT COUNT(*) FROM task_tags WHERE tag_id = t.id), 0)
+			COALESCE((SELECT COUNT(*) FROM task_tags tt2 JOIN tasks tk ON tk.id = tt2.task_id WHERE tt2.tag_id = t.id AND tk.deleted_at IS NULL), 0)
 		FROM tags t ORDER BY t.sort_order ASC`)
 	if err != nil {
 		return nil, err
@@ -84,7 +84,7 @@ func (r *TagRepository) GetTasksByTag(tagID string) ([]model.TaskListItem, error
 		SELECT t.id, t.title, t.notes, t.status, t.when_date, t.when_evening,
 			t.deadline, t.project_id, t.area_id, t.heading_id,
 			t.sort_order_today, t.sort_order_project, t.sort_order_heading,
-			t.completed_at, t.canceled_at, t.created_at, t.updated_at,
+			t.completed_at, t.canceled_at, t.deleted_at, t.created_at, t.updated_at,
 			COALESCE((SELECT COUNT(*) FROM checklist_items WHERE task_id = t.id), 0),
 			COALESCE((SELECT COUNT(*) FROM checklist_items WHERE task_id = t.id AND completed = 1), 0),
 			CASE WHEN t.notes != '' THEN 1 ELSE 0 END,
@@ -93,7 +93,7 @@ func (r *TagRepository) GetTasksByTag(tagID string) ([]model.TaskListItem, error
 			CASE WHEN EXISTS(SELECT 1 FROM repeat_rules WHERE task_id = t.id) THEN 1 ELSE 0 END
 		FROM tasks t
 		JOIN task_tags tt ON t.id = tt.task_id
-		WHERE tt.tag_id = ?
+		WHERE tt.tag_id = ? AND t.deleted_at IS NULL
 		ORDER BY t.sort_order_today`, tagID)
 	if err != nil {
 		return nil, err

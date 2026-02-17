@@ -53,6 +53,10 @@ export function reopenTask(id: string) {
   return api.patch<Task>(`/tasks/${id}/reopen`, {})
 }
 
+export function restoreTask(id: string) {
+  return api.patch<Task>(`/tasks/${id}/restore`, {})
+}
+
 export function reorderTasks(items: ReorderItem[]) {
   return api.patch<{ ok: boolean }>('/tasks/reorder', { items })
 }

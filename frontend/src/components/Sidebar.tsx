@@ -7,6 +7,7 @@ import {
   Layers,
   Clock,
   CircleCheckBig,
+  Trash2,
   Tag,
   ChevronRight,
   PanelLeftClose,
@@ -32,7 +33,8 @@ const smartLists = [
   { to: '/upcoming', label: 'Upcoming', icon: Calendar, dropId: null },
   { to: '/anytime', label: 'Anytime', icon: Layers, dropId: 'sidebar-anytime' },
   { to: '/someday', label: 'Someday', icon: Clock, dropId: 'sidebar-someday' },
-  { to: '/logbook', label: 'Completed', icon: CircleCheckBig, dropId: null },
+  { to: '/logbook', label: 'Completed', icon: CircleCheckBig, dropId: 'sidebar-completed' },
+  { to: '/trash', label: 'Trash', icon: Trash2, dropId: 'sidebar-trash' },
 ] as const
 
 function SmartListNav() {
