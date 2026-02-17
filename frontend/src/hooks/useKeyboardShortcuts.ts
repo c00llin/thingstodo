@@ -230,7 +230,7 @@ export function useTaskShortcuts() {
   useHotkeys('alt+shift+s', (e) => {
     e.preventDefault()
     if (selectedTaskId) {
-      updateTask.mutate({ id: selectedTaskId, data: { when_date: null } })
+      updateTask.mutate({ id: selectedTaskId, data: { when_date: 'someday' } })
     }
   }, { enabled })
 

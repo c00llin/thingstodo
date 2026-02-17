@@ -32,7 +32,7 @@ function getDefaultSuggestions(variant: 'when' | 'deadline'): Suggestion[] {
       { label: 'This Evening', detail: format(today, 'EEE, MMM d'), date: todayISO, evening: true },
       { label: 'Tomorrow', detail: format(addDays(today, 1), 'EEE, MMM d'), date: tomorrowISO },
       { label: 'Next Week', detail: format(nextMonday(today), 'EEE, MMM d'), date: nextWeekISO },
-      { label: 'Someday', date: null },
+      { label: 'Someday', date: 'someday' },
     ]
   }
 

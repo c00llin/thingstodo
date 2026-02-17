@@ -87,7 +87,7 @@ export function AppDndContext({ children, tasks = [] }: AppDndContextProps) {
         updateTask(taskId, { when_date: today })
         queryClient.invalidateQueries({ queryKey: ['views'] })
       } else if (overId === 'sidebar-someday') {
-        updateTask(taskId, { when_date: null })
+        updateTask(taskId, { when_date: 'someday' })
         queryClient.invalidateQueries({ queryKey: ['views'] })
       } else if (overId === 'sidebar-inbox') {
         updateTask(taskId, { project_id: null, area_id: null, when_date: null })

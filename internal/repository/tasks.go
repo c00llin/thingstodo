@@ -53,11 +53,11 @@ func (r *TaskRepository) List(f model.TaskFilters) ([]model.TaskListItem, error)
 		args = append(args, *f.WhenDate)
 	}
 	if f.WhenBefore != nil {
-		conditions = append(conditions, "t.when_date < ?")
+		conditions = append(conditions, "t.when_date < ? AND t.when_date != 'someday'")
 		args = append(args, *f.WhenBefore)
 	}
 	if f.WhenAfter != nil {
-		conditions = append(conditions, "t.when_date >= ?")
+		conditions = append(conditions, "t.when_date >= ? AND t.when_date != 'someday'")
 		args = append(args, *f.WhenAfter)
 	}
 	if f.HasDeadline != nil {

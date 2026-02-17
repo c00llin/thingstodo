@@ -134,7 +134,7 @@ func (r *ViewRepository) Upcoming(from string, days int) (*model.UpcomingView, e
 			CASE WHEN EXISTS(SELECT 1 FROM attachments WHERE task_id = t.id) THEN 1 ELSE 0 END,
 			CASE WHEN EXISTS(SELECT 1 FROM repeat_rules WHERE task_id = t.id) THEN 1 ELSE 0 END
 		FROM tasks t
-		WHERE t.status = 'open' AND t.when_date >= ? AND t.when_date < ?
+		WHERE t.status = 'open' AND t.when_date >= ? AND t.when_date < ? AND t.when_date != 'someday'
 		ORDER BY t.when_date ASC, t.sort_order_today ASC`, from, endDate)
 	if err != nil {
 		return nil, err
@@ -177,10 +177,8 @@ func (r *ViewRepository) Someday() (*model.AnytimeView, error) {
 }
 
 func (r *ViewRepository) buildAnytimeView(somedayOnly bool) (*model.AnytimeView, error) {
-	// For "anytime": open tasks that have a when_date or area or project (not inbox, not someday)
-	// For "someday": tasks/projects with no when_date that are explicitly in someday (no when_date, no deadline, not inbox)
-	// The distinction is simplified: someday = open tasks with no when_date AND no deadline AND (has project or area)
-	// Anytime = open tasks that are not inbox and not someday
+	// Anytime: open tasks with no when_date (not scheduled for a specific day, not someday).
+	// Someday: open tasks explicitly marked when_date = 'someday'.
 
 	// Get all areas
 	areaRows, err := r.db.Query("SELECT id, title FROM areas ORDER BY sort_order")
@@ -206,6 +204,9 @@ func (r *ViewRepository) buildAnytimeView(somedayOnly bool) (*model.AnytimeView,
 			var projRef model.Ref
 			_ = projRows.Scan(&projRef.ID, &projRef.Title)
 			tasks := r.getAnytimeTasks(&projRef.ID, &areaRef.ID, true, somedayOnly)
+			if len(tasks) == 0 {
+				continue
+			}
 			aa.Projects = append(aa.Projects, model.AnytimeProject{Project: projRef, Tasks: tasks})
 		}
 		projRows.Close()
@@ -216,6 +217,9 @@ func (r *ViewRepository) buildAnytimeView(somedayOnly bool) (*model.AnytimeView,
 		// Standalone tasks in area
 		aa.StandaloneTasks = r.getAnytimeTasks(nil, &areaRef.ID, false, somedayOnly)
 
+		if len(aa.Projects) == 0 && len(aa.StandaloneTasks) == 0 {
+			continue
+		}
 		view.Areas = append(view.Areas, aa)
 	}
 	if view.Areas == nil {
@@ -230,6 +234,9 @@ func (r *ViewRepository) buildAnytimeView(somedayOnly bool) (*model.AnytimeView,
 			var projRef model.Ref
 			_ = noAreaProjRows.Scan(&projRef.ID, &projRef.Title)
 			tasks := r.getAnytimeTasks(&projRef.ID, nil, true, somedayOnly)
+			if len(tasks) == 0 {
+				continue
+			}
 			view.NoArea.Projects = append(view.NoArea.Projects, model.AnytimeProject{Project: projRef, Tasks: tasks})
 		}
 		noAreaProjRows.Close()
@@ -272,9 +279,9 @@ func (r *ViewRepository) getAnytimeTasks(projectID, areaID *string, byProject, s
 	}
 
 	if somedayOnly {
-		query += " AND t.when_date IS NULL AND t.deadline IS NULL"
+		query += " AND t.when_date = 'someday'"
 	} else {
-		query += " AND (t.when_date IS NOT NULL OR t.deadline IS NOT NULL)"
+		query += " AND t.when_date IS NULL"
 	}
 
 	query += " ORDER BY t.sort_order_today ASC"
@@ -303,9 +310,9 @@ func (r *ViewRepository) getAnytimeStandaloneNoArea(somedayOnly bool) []model.Ta
 		WHERE t.status = 'open' AND t.project_id IS NULL AND t.area_id IS NULL`
 
 	if somedayOnly {
-		query += " AND t.when_date IS NULL AND t.deadline IS NULL"
+		query += " AND t.when_date = 'someday'"
 	} else {
-		query += " AND (t.when_date IS NOT NULL OR t.deadline IS NOT NULL)"
+		query += " AND t.when_date IS NULL"
 	}
 
 	query += " ORDER BY t.sort_order_today ASC"
