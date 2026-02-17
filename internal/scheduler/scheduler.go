@@ -12,18 +12,22 @@ import (
 )
 
 type Scheduler struct {
-	cron     *cron.Cron
-	taskRepo *repository.TaskRepository
-	ruleRepo *repository.RepeatRuleRepository
-	db       *sql.DB
+	cron          *cron.Cron
+	taskRepo      *repository.TaskRepository
+	ruleRepo      *repository.RepeatRuleRepository
+	checklistRepo *repository.ChecklistRepository
+	attachRepo    *repository.AttachmentRepository
+	db            *sql.DB
 }
 
-func New(db *sql.DB, taskRepo *repository.TaskRepository, ruleRepo *repository.RepeatRuleRepository) *Scheduler {
+func New(db *sql.DB, taskRepo *repository.TaskRepository, ruleRepo *repository.RepeatRuleRepository, checklistRepo *repository.ChecklistRepository, attachRepo *repository.AttachmentRepository) *Scheduler {
 	return &Scheduler{
-		cron:     cron.New(),
-		taskRepo: taskRepo,
-		ruleRepo: ruleRepo,
-		db:       db,
+		cron:          cron.New(),
+		taskRepo:      taskRepo,
+		ruleRepo:      ruleRepo,
+		checklistRepo: checklistRepo,
+		attachRepo:    attachRepo,
+		db:            db,
 	}
 }
 
@@ -43,6 +47,16 @@ func (s *Scheduler) Stop() {
 func (s *Scheduler) HandleAfterCompletion(taskID string) {
 	rule, err := s.ruleRepo.GetByTask(taskID)
 	if err != nil || rule == nil || rule.Mode != "after_completion" {
+		return
+	}
+	s.createNextInstance(taskID, rule)
+}
+
+// HandleTaskDone is called when a recurring task is finished (completed, canceled, or won't do).
+// It creates the next instance regardless of mode.
+func (s *Scheduler) HandleTaskDone(taskID string) {
+	rule, err := s.ruleRepo.GetByTask(taskID)
+	if err != nil || rule == nil {
 		return
 	}
 	s.createNextInstance(taskID, rule)
@@ -87,21 +101,50 @@ func (s *Scheduler) createNextInstance(originalTaskID string, rule *model.Repeat
 
 	nextDate := calculateNextDate(original.WhenDate, *rule)
 
+	// Collect tag IDs from original
+	tagIDs := make([]string, len(original.Tags))
+	for i, t := range original.Tags {
+		tagIDs[i] = t.ID
+	}
+
 	input := model.CreateTaskInput{
 		Title:       original.Title,
 		Notes:       original.Notes,
 		WhenDate:    &nextDate,
 		WhenEvening: original.WhenEvening,
-		Deadline:    original.Deadline,
+		Deadline:    nil,
 		ProjectID:   original.ProjectID,
 		AreaID:      original.AreaID,
 		HeadingID:   original.HeadingID,
+		TagIDs:      tagIDs,
 	}
 
 	newTask, err := s.taskRepo.Create(input)
 	if err != nil {
 		log.Printf("scheduler: create task instance: %v", err)
 		return
+	}
+
+	// Copy checklist items (unchecked)
+	for _, item := range original.Checklist {
+		if _, err := s.checklistRepo.Create(newTask.ID, model.CreateChecklistInput{
+			Title: item.Title,
+		}); err != nil {
+			log.Printf("scheduler: copy checklist item for task %s: %v", newTask.ID, err)
+		}
+	}
+
+	// Copy attachments (links and files — files share the same stored file on disk)
+	for _, att := range original.Attachments {
+		if _, err := s.attachRepo.Create(newTask.ID, model.CreateAttachmentInput{
+			Type:     att.Type,
+			Title:    att.Title,
+			URL:      att.URL,
+			MimeType: att.MimeType,
+			FileSize: att.FileSize,
+		}); err != nil {
+			log.Printf("scheduler: copy attachment for task %s: %v", newTask.ID, err)
+		}
 	}
 
 	// Move repeat rule to new task

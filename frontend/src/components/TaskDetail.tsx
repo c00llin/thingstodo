@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
 import * as Checkbox from '@radix-ui/react-checkbox'
-import { Check, Plus, Paperclip, Link, Trash2, X, Calendar, Flag, ListChecks, StickyNote, CircleMinus, CircleX } from 'lucide-react'
+import { Check, Plus, Paperclip, Link, Trash2, X, Calendar, Flag, ListChecks, StickyNote, CircleMinus, CircleX, RefreshCw } from 'lucide-react'
 import { DateInput } from './DateInput'
 import {
   useTask,
@@ -17,6 +17,8 @@ import {
 } from '../hooks/queries'
 import { useAppStore } from '../stores/app'
 import { getFileUrl } from '../api/attachments'
+import { RepeatRulePicker } from './RepeatRulePicker'
+import { formatRepeatRule } from '../lib/format-repeat'
 import type { ChecklistItem, Attachment } from '../api/types'
 
 interface TaskDetailProps {
@@ -43,6 +45,7 @@ export function TaskDetail({ taskId }: TaskDetailProps) {
   const [showWhen, setShowWhen] = useState(false)
   const [showDeadline, setShowDeadline] = useState(false)
   const [showChecklist, setShowChecklist] = useState(false)
+  const [showRepeat, setShowRepeat] = useState(false)
   const whenDateInputRef = useRef<HTMLDivElement>(null)
   const deadlineDateInputRef = useRef<HTMLDivElement>(null)
 
@@ -184,6 +187,7 @@ export function TaskDetail({ taskId }: TaskDetailProps) {
   const hasWhen = !!task.when_date
   const hasDeadline = !!task.deadline
   const hasChecklist = task.checklist.length > 0
+  const hasRepeatRule = !!task.repeat_rule
 
   return (
     <div
@@ -306,9 +310,14 @@ export function TaskDetail({ taskId }: TaskDetailProps) {
         <AttachmentList taskId={taskId} attachments={task.attachments} />
       )}
 
-      {/* Toolbar — icon buttons for adding when, deadline, file, link */}
+      {/* Repeat rule picker */}
+      {showRepeat && (
+        <RepeatRulePicker taskId={taskId} existingRule={task.repeat_rule} onClose={() => setShowRepeat(false)} />
+      )}
+
+      {/* Toolbar — icon buttons for adding when, deadline, file, link, repeat */}
       <div className={`flex items-center gap-0.5 -ml-[6px] ${
-        (hasNotes || showNotes || hasWhen || showWhen || hasDeadline || showDeadline || hasChecklist || showChecklist || task.attachments.length > 0)
+        (hasNotes || showNotes || hasWhen || showWhen || hasDeadline || showDeadline || hasChecklist || showChecklist || task.attachments.length > 0 || hasRepeatRule || showRepeat)
           ? 'border-t border-neutral-100 pt-3 dark:border-neutral-700'
           : ''
       }`}>
@@ -354,6 +363,26 @@ export function TaskDetail({ taskId }: TaskDetailProps) {
         )}
         <FileUploadButton taskId={taskId} />
         <LinkAddButton taskId={taskId} />
+        {hasRepeatRule && !showRepeat && task.repeat_rule ? (
+          <button
+            onClick={() => setShowRepeat(true)}
+            className="ml-1 flex items-center gap-1 rounded-md border border-neutral-200 px-1.5 py-0.5 text-neutral-400 hover:bg-neutral-100 hover:text-neutral-600 dark:border-neutral-600 dark:hover:bg-neutral-800 dark:hover:text-neutral-300"
+            aria-label="Repeat"
+            title="Repeat"
+          >
+            <RefreshCw size={14} />
+            <span className="text-xs text-neutral-500">{formatRepeatRule(task.repeat_rule)}</span>
+          </button>
+        ) : !showRepeat && (
+          <button
+            onClick={() => setShowRepeat(true)}
+            className="rounded-md p-1 text-neutral-400 hover:bg-neutral-100 hover:text-neutral-600 dark:hover:bg-neutral-800 dark:hover:text-neutral-300"
+            aria-label="Repeat"
+            title="Repeat"
+          >
+            <RefreshCw size={16} />
+          </button>
+        )}
         <div className="ml-auto flex items-center gap-0.5">
           {task.status === 'open' && (
             <>
@@ -385,18 +414,6 @@ export function TaskDetail({ taskId }: TaskDetailProps) {
           </button>
         </div>
       </div>
-
-      {/* Repeat rule */}
-      {task.repeat_rule && (
-        <div className="text-xs text-neutral-500">
-          Repeats: {task.repeat_rule.frequency}
-          {task.repeat_rule.interval_value > 1 &&
-            ` every ${task.repeat_rule.interval_value}`}
-          {task.repeat_rule.day_constraints.length > 0 &&
-            ` on ${task.repeat_rule.day_constraints.join(', ')}`}
-          {` (${task.repeat_rule.mode === 'fixed' ? 'fixed' : 'after completion'})`}
-        </div>
-      )}
     </div>
   )
 }

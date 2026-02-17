@@ -7,6 +7,7 @@ import * as areasApi from '../api/areas'
 import * as tagsApi from '../api/tags'
 import * as checklistApi from '../api/checklist'
 import * as attachmentsApi from '../api/attachments'
+import * as repeatApi from '../api/repeat'
 import * as viewsApi from '../api/views'
 import * as searchApi from '../api/search'
 import * as authApi from '../api/auth'
@@ -25,6 +26,7 @@ import type {
   Attachment,
   CreateLinkAttachmentRequest,
   UpdateAttachmentRequest,
+  CreateRepeatRuleRequest,
   TaskQueryParams,
   ProjectStatus,
   LoginRequest,
@@ -687,6 +689,30 @@ export function useDeleteAttachment(taskId: string) {
         has_links: remaining.some((a) => a.type === 'link'),
         has_files: remaining.some((a) => a.type === 'file'),
       })
+    },
+  })
+}
+
+// --- Repeat Rule Hooks ---
+
+export function useUpsertRepeatRule(taskId: string) {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (data: CreateRepeatRuleRequest) => repeatApi.upsertRepeatRule(taskId, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.tasks.detail(taskId) })
+      updateTaskInCache(queryClient, taskId, { has_repeat_rule: true })
+    },
+  })
+}
+
+export function useDeleteRepeatRule(taskId: string) {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: () => repeatApi.deleteRepeatRule(taskId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.tasks.detail(taskId) })
+      updateTaskInCache(queryClient, taskId, { has_repeat_rule: false })
     },
   })
 }

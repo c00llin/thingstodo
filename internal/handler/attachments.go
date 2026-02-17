@@ -153,14 +153,21 @@ func (h *AttachmentHandler) Delete(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusInternalServerError, err.Error(), "INTERNAL")
 		return
 	}
+
 	if att != nil && att.Type == "file" {
+		// Delete all attachment rows sharing this file, then remove the file from disk
+		if err := h.repo.DeleteByURL(att.URL); err != nil {
+			writeError(w, http.StatusInternalServerError, err.Error(), "INTERNAL")
+			return
+		}
 		os.Remove(filepath.Join(h.attachmentsPath, att.URL))
+	} else {
+		if err := h.repo.Delete(id); err != nil {
+			writeError(w, http.StatusInternalServerError, err.Error(), "INTERNAL")
+			return
+		}
 	}
 
-	if err := h.repo.Delete(id); err != nil {
-		writeError(w, http.StatusInternalServerError, err.Error(), "INTERNAL")
-		return
-	}
 	w.WriteHeader(http.StatusNoContent)
 }
 

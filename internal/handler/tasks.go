@@ -6,17 +6,19 @@ import (
 
 	"github.com/collinjanssen/thingstodo/internal/model"
 	"github.com/collinjanssen/thingstodo/internal/repository"
+	"github.com/collinjanssen/thingstodo/internal/scheduler"
 	"github.com/collinjanssen/thingstodo/internal/sse"
 	"github.com/go-chi/chi/v5"
 )
 
 type TaskHandler struct {
-	repo   *repository.TaskRepository
-	broker *sse.Broker
+	repo      *repository.TaskRepository
+	broker    *sse.Broker
+	scheduler *scheduler.Scheduler
 }
 
-func NewTaskHandler(repo *repository.TaskRepository, broker *sse.Broker) *TaskHandler {
-	return &TaskHandler{repo: repo, broker: broker}
+func NewTaskHandler(repo *repository.TaskRepository, broker *sse.Broker, sched *scheduler.Scheduler) *TaskHandler {
+	return &TaskHandler{repo: repo, broker: broker, scheduler: sched}
 }
 
 func (h *TaskHandler) List(w http.ResponseWriter, r *http.Request) {
@@ -154,6 +156,9 @@ func (h *TaskHandler) Complete(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusNotFound, "task not found", "NOT_FOUND")
 		return
 	}
+	if h.scheduler != nil {
+		h.scheduler.HandleTaskDone(id)
+	}
 	h.broker.BroadcastJSON("task_updated", map[string]interface{}{"id": task.ID, "task": task})
 	writeJSON(w, http.StatusOK, task)
 }
@@ -169,6 +174,9 @@ func (h *TaskHandler) Cancel(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusNotFound, "task not found", "NOT_FOUND")
 		return
 	}
+	if h.scheduler != nil {
+		h.scheduler.HandleTaskDone(id)
+	}
 	h.broker.BroadcastJSON("task_updated", map[string]interface{}{"id": task.ID, "task": task})
 	writeJSON(w, http.StatusOK, task)
 }
@@ -183,6 +191,9 @@ func (h *TaskHandler) WontDo(w http.ResponseWriter, r *http.Request) {
 	if task == nil {
 		writeError(w, http.StatusNotFound, "task not found", "NOT_FOUND")
 		return
+	}
+	if h.scheduler != nil {
+		h.scheduler.HandleTaskDone(id)
 	}
 	h.broker.BroadcastJSON("task_updated", map[string]interface{}{"id": task.ID, "task": task})
 	writeJSON(w, http.StatusOK, task)

@@ -55,11 +55,13 @@ func main() {
 	// Start scheduler for repeating tasks
 	taskRepo := repository.NewTaskRepository(db)
 	ruleRepo := repository.NewRepeatRuleRepository(db)
-	sched := scheduler.New(db, taskRepo, ruleRepo)
+	checklistRepo := repository.NewChecklistRepository(db)
+	attachRepo := repository.NewAttachmentRepository(db)
+	sched := scheduler.New(db, taskRepo, ruleRepo, checklistRepo, attachRepo)
 	sched.Start()
 	defer sched.Stop()
 
-	handler := router.New(db, cfg, broker)
+	handler := router.New(db, cfg, broker, sched)
 
 	addr := fmt.Sprintf(":%d", cfg.Port)
 	log.Printf("starting server on %s", addr)

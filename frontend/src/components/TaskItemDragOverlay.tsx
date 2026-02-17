@@ -1,4 +1,4 @@
-import { Check, Calendar, Flag } from 'lucide-react'
+import { Check, Calendar, Flag, StickyNote, Link, Paperclip, RefreshCw } from 'lucide-react'
 import type { Task } from '../api/types'
 import { TaskStatusIcon } from './TaskStatusIcon'
 
@@ -45,6 +45,14 @@ export function TaskItemDragOverlay({ task }: TaskItemDragOverlayProps) {
                 {tag.title}
               </span>
             ))}
+            {(task.has_notes || task.has_links || task.has_files || task.has_repeat_rule) && (
+              <span className="flex items-center gap-1.5 text-neutral-400">
+                {task.has_repeat_rule && <RefreshCw size={12} className="text-red-500" />}
+                {task.has_notes && <StickyNote size={12} />}
+                {task.has_links && <Link size={12} />}
+                {task.has_files && <Paperclip size={12} />}
+              </span>
+            )}
             <div className="ml-auto flex items-center gap-2 text-xs text-neutral-400">
               {task.deadline && (
                 <span className="flex items-center gap-1 text-red-500">

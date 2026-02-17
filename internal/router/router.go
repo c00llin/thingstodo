@@ -11,11 +11,12 @@ import (
 	"github.com/collinjanssen/thingstodo/internal/handler"
 	mw "github.com/collinjanssen/thingstodo/internal/middleware"
 	"github.com/collinjanssen/thingstodo/internal/repository"
+	"github.com/collinjanssen/thingstodo/internal/scheduler"
 	"github.com/collinjanssen/thingstodo/internal/sse"
 	"github.com/go-chi/chi/v5"
 )
 
-func New(db *sql.DB, cfg config.Config, broker *sse.Broker) http.Handler {
+func New(db *sql.DB, cfg config.Config, broker *sse.Broker, sched *scheduler.Scheduler) http.Handler {
 	r := chi.NewRouter()
 	r.Use(mw.Logger)
 
@@ -33,7 +34,7 @@ func New(db *sql.DB, cfg config.Config, broker *sse.Broker) http.Handler {
 	userRepo := repository.NewUserRepository(db)
 
 	// Handlers
-	taskH := handler.NewTaskHandler(taskRepo, broker)
+	taskH := handler.NewTaskHandler(taskRepo, broker, sched)
 	projectH := handler.NewProjectHandler(projectRepo, broker)
 	areaH := handler.NewAreaHandler(areaRepo, broker)
 	tagH := handler.NewTagHandler(tagRepo, broker)
