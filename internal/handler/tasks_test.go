@@ -7,6 +7,7 @@ import (
 
 	"github.com/collinjanssen/thingstodo/internal/handler"
 	"github.com/collinjanssen/thingstodo/internal/repository"
+	"github.com/collinjanssen/thingstodo/internal/scheduler"
 	"github.com/collinjanssen/thingstodo/internal/sse"
 	"github.com/collinjanssen/thingstodo/internal/testutil"
 	"github.com/go-chi/chi/v5"
@@ -17,7 +18,11 @@ func setupTaskRouter(t *testing.T) (*testutil.TestClient, *sql.DB) {
 	db := testutil.SetupTestDB(t)
 	broker := sse.NewBroker()
 	taskRepo := repository.NewTaskRepository(db)
-	taskHandler := handler.NewTaskHandler(taskRepo, broker)
+	ruleRepo := repository.NewRepeatRuleRepository(db)
+	checklistRepo := repository.NewChecklistRepository(db)
+	attachRepo := repository.NewAttachmentRepository(db)
+	sched := scheduler.New(db, taskRepo, ruleRepo, checklistRepo, attachRepo)
+	taskHandler := handler.NewTaskHandler(taskRepo, broker, sched)
 
 	r := chi.NewRouter()
 	r.Route("/api/tasks", func(r chi.Router) {
