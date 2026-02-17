@@ -344,12 +344,45 @@ export function useCancelTask() {
         status: 'canceled',
         canceled_at: new Date().toISOString(),
       })
+      useAppStore.getState().setDepartingTaskId(id)
       return { snapshot }
     },
     onError: (_err, _id, context) => {
       if (context?.snapshot) rollbackViews(queryClient, context.snapshot)
     },
-    onSettled: invalidate,
+    onSettled: () => {
+      setTimeout(() => {
+        useAppStore.getState().setDepartingTaskId(null)
+        invalidate()
+      }, 800)
+    },
+  })
+}
+
+export function useWontDoTask() {
+  const queryClient = useQueryClient()
+  const invalidate = useInvalidateViews()
+  return useMutation({
+    mutationFn: (id: string) => tasksApi.wontDoTask(id),
+    onMutate: async (id) => {
+      await queryClient.cancelQueries({ queryKey: ['views'] })
+      const snapshot = snapshotViews(queryClient)
+      updateTaskInCache(queryClient, id, {
+        status: 'wont_do',
+        canceled_at: new Date().toISOString(),
+      })
+      useAppStore.getState().setDepartingTaskId(id)
+      return { snapshot }
+    },
+    onError: (_err, _id, context) => {
+      if (context?.snapshot) rollbackViews(queryClient, context.snapshot)
+    },
+    onSettled: () => {
+      setTimeout(() => {
+        useAppStore.getState().setDepartingTaskId(null)
+        invalidate()
+      }, 800)
+    },
   })
 }
 

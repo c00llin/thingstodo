@@ -13,6 +13,7 @@ import { useResolveTags } from '../hooks/useResolveTags'
 import { formatRelativeDate } from '../lib/format-date'
 import { TagAutocomplete } from './TagAutocomplete'
 import { ProjectAutocomplete } from './ProjectAutocomplete'
+import { TaskStatusIcon } from './TaskStatusIcon'
 
 function DelayedReveal({ children }: { children: React.ReactNode }) {
   const [visible, setVisible] = useState(false)
@@ -61,6 +62,7 @@ export function SortableTaskItem({
   const isSelected = selectedTaskId === task.id
   const isExpanded = expandedTaskId === task.id
   const isCompleted = task.status === 'completed'
+  const isDone = task.status !== 'open'
   const isMultiSelected = selectedTaskIds.has(task.id)
 
   const setDetailFocusField = useAppStore((s) => s.setDetailFocusField)
@@ -226,7 +228,7 @@ export function SortableTaskItem({
           : { opacity: isDragging ? 0.4 : 1, height: 'auto' }
       }
       exit={
-        isCompleted
+        isDone
           ? { opacity: 0, height: 0, transition: { duration: 0.3, delay: 0.8 } }
           : { opacity: 0, height: 0, transition: { duration: 0.2 } }
       }
@@ -253,15 +255,19 @@ export function SortableTaskItem({
         </button>
 
         <div className="shrink-0" onClick={(e) => e.stopPropagation()}>
-          <Checkbox.Root
-            checked={isCompleted}
-            onCheckedChange={handleCheck}
-            className="flex h-5 w-5 items-center justify-center rounded-full border-2 border-neutral-300 transition-colors data-[state=checked]:border-red-500 data-[state=checked]:bg-red-500 dark:border-neutral-500"
-          >
-            <Checkbox.Indicator>
-              <Check size={12} className="text-white" />
-            </Checkbox.Indicator>
-          </Checkbox.Root>
+          {task.status === 'canceled' || task.status === 'wont_do' ? (
+            <TaskStatusIcon status={task.status} />
+          ) : (
+            <Checkbox.Root
+              checked={isCompleted}
+              onCheckedChange={handleCheck}
+              className="flex h-5 w-5 items-center justify-center rounded-full border-2 border-neutral-300 transition-colors data-[state=checked]:border-red-500 data-[state=checked]:bg-red-500 dark:border-neutral-500"
+            >
+              <Checkbox.Indicator>
+                <Check size={12} className="text-white" />
+              </Checkbox.Indicator>
+            </Checkbox.Root>
+          )}
         </div>
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2">
@@ -293,7 +299,7 @@ export function SortableTaskItem({
                   onClick={(e) => e.stopPropagation()}
                   onDoubleClick={(e) => e.stopPropagation()}
                   className={`min-w-0 flex-1 border-none bg-transparent text-sm leading-5 focus:outline-none ${
-                    isCompleted ? 'text-neutral-400 line-through' : 'text-neutral-900 dark:text-neutral-100'
+                    isDone ? 'text-neutral-400 line-through' : 'text-neutral-900 dark:text-neutral-100'
                   }`}
                 />
                 <TagAutocomplete inputRef={inputRef} value={title} onChange={setTitle} />

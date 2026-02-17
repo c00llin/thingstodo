@@ -167,13 +167,14 @@ function AppDndContextInner({ children }: AppDndContextProps) {
       if (overId.startsWith('sidebar-')) {
         const taskId = activeId
         const draggedTask = active.data.current?.task as Task | undefined
-        const isCompleted = draggedTask?.status === 'completed'
+        const needsReopen = draggedTask?.status !== 'open'
         const sidebarDrop = async () => {
-          // Reopen completed tasks when dropped on a sidebar target
-          if (isCompleted) {
+          // Reopen non-open tasks when dropped on a sidebar target
+          if (needsReopen) {
             updateTaskInCache(queryClient, taskId, {
               status: 'open',
               completed_at: null,
+              canceled_at: null,
             } as Partial<Task>)
             await reopenTask(taskId)
           }

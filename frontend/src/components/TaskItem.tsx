@@ -9,6 +9,7 @@ import { useAppStore } from '../stores/app'
 import { TaskDetail } from './TaskDetail'
 import { useResolveTags } from '../hooks/useResolveTags'
 import { formatRelativeDate } from '../lib/format-date'
+import { TaskStatusIcon } from './TaskStatusIcon'
 import { TagAutocomplete } from './TagAutocomplete'
 import { ProjectAutocomplete } from './ProjectAutocomplete'
 
@@ -53,6 +54,7 @@ export function TaskItem({ task, showProject = true }: TaskItemProps) {
   const isSelected = selectedTaskId === task.id
   const isExpanded = expandedTaskId === task.id
   const isCompleted = task.status === 'completed'
+  const isDone = task.status !== 'open'
 
   const {
     attributes,
@@ -217,15 +219,19 @@ export function TaskItem({ task, showProject = true }: TaskItemProps) {
           <GripVertical size={16} />
         </button>
         <div className="shrink-0" onClick={(e) => e.stopPropagation()}>
-          <Checkbox.Root
-            checked={isCompleted}
-            onCheckedChange={handleCheck}
-            className="flex h-5 w-5 items-center justify-center rounded-full border-2 border-neutral-300 transition-colors data-[state=checked]:border-red-500 data-[state=checked]:bg-red-500 dark:border-neutral-500"
-          >
-            <Checkbox.Indicator>
-              <Check size={12} className="text-white" />
-            </Checkbox.Indicator>
-          </Checkbox.Root>
+          {task.status === 'canceled' || task.status === 'wont_do' ? (
+            <TaskStatusIcon status={task.status} />
+          ) : (
+            <Checkbox.Root
+              checked={isCompleted}
+              onCheckedChange={handleCheck}
+              className="flex h-5 w-5 items-center justify-center rounded-full border-2 border-neutral-300 transition-colors data-[state=checked]:border-red-500 data-[state=checked]:bg-red-500 dark:border-neutral-500"
+            >
+              <Checkbox.Indicator>
+                <Check size={12} className="text-white" />
+              </Checkbox.Indicator>
+            </Checkbox.Root>
+          )}
         </div>
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2">
@@ -257,7 +263,7 @@ export function TaskItem({ task, showProject = true }: TaskItemProps) {
                   onClick={(e) => e.stopPropagation()}
                   onDoubleClick={(e) => e.stopPropagation()}
                   className={`min-w-0 flex-1 border-none bg-transparent text-sm leading-5 focus:outline-none ${
-                    isCompleted ? 'text-neutral-400 line-through' : 'text-neutral-900 dark:text-neutral-100'
+                    isDone ? 'text-neutral-400 line-through' : 'text-neutral-900 dark:text-neutral-100'
                   }`}
                 />
                 <TagAutocomplete inputRef={inputRef} value={title} onChange={setTitle} />
@@ -266,7 +272,7 @@ export function TaskItem({ task, showProject = true }: TaskItemProps) {
             ) : (
               <span
                 className={`text-sm leading-5 ${
-                  isCompleted ? 'text-neutral-400 line-through' : 'text-neutral-900 dark:text-neutral-100'
+                  isDone ? 'text-neutral-400 line-through' : 'text-neutral-900 dark:text-neutral-100'
                 }`}
               >
                 {task.title}

@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
 import * as Checkbox from '@radix-ui/react-checkbox'
-import { Check, Plus, Paperclip, Link, Trash2, X, Calendar, Flag, ListChecks, StickyNote } from 'lucide-react'
+import { Check, Plus, Paperclip, Link, Trash2, X, Calendar, Flag, ListChecks, StickyNote, CircleMinus, CircleX } from 'lucide-react'
 import { DateInput } from './DateInput'
 import {
   useTask,
@@ -9,6 +9,8 @@ import {
   useUpdateChecklistItem,
   useDeleteChecklistItem,
   useDeleteTask,
+  useCancelTask,
+  useWontDoTask,
   useUploadFile,
   useAddLink,
   useDeleteAttachment,
@@ -25,6 +27,8 @@ export function TaskDetail({ taskId }: TaskDetailProps) {
   const { data: task, isLoading } = useTask(taskId)
   const updateTask = useUpdateTask()
   const deleteTask = useDeleteTask()
+  const cancelTask = useCancelTask()
+  const wontDoTask = useWontDoTask()
   const expandTask = useAppStore((s) => s.expandTask)
 
   const detailFocusField = useAppStore((s) => s.detailFocusField)
@@ -151,6 +155,16 @@ export function TaskDetail({ taskId }: TaskDetailProps) {
   function clearWhen() {
     updateTask.mutate({ id: taskId, data: { when_date: null } })
     setShowWhen(false)
+  }
+
+  function handleCancel() {
+    cancelTask.mutate(taskId)
+    expandTask(null)
+  }
+
+  function handleWontDo() {
+    wontDoTask.mutate(taskId)
+    expandTask(null)
   }
 
   function handleDelete() {
@@ -293,7 +307,7 @@ export function TaskDetail({ taskId }: TaskDetailProps) {
       )}
 
       {/* Toolbar — icon buttons for adding when, deadline, file, link */}
-      <div className={`flex items-center gap-1 -ml-[6px] ${
+      <div className={`flex items-center gap-0.5 -ml-[6px] ${
         (hasNotes || showNotes || hasWhen || showWhen || hasDeadline || showDeadline || hasChecklist || showChecklist || task.attachments.length > 0)
           ? 'border-t border-neutral-100 pt-3 dark:border-neutral-700'
           : ''
@@ -301,7 +315,7 @@ export function TaskDetail({ taskId }: TaskDetailProps) {
         {!hasNotes && !showNotes && (
           <button
             onClick={() => { setShowNotes(true); setEditingNotes(true) }}
-            className="rounded-md p-1.5 text-neutral-400 hover:bg-neutral-100 hover:text-neutral-600 dark:hover:bg-neutral-800 dark:hover:text-neutral-300"
+            className="rounded-md p-1 text-neutral-400 hover:bg-neutral-100 hover:text-neutral-600 dark:hover:bg-neutral-800 dark:hover:text-neutral-300"
             aria-label="Add notes"
             title="Notes"
           >
@@ -311,7 +325,7 @@ export function TaskDetail({ taskId }: TaskDetailProps) {
         {!hasWhen && !showWhen && (
           <button
             onClick={() => setShowWhen(true)}
-            className="rounded-md p-1.5 text-neutral-400 hover:bg-neutral-100 hover:text-neutral-600 dark:hover:bg-neutral-800 dark:hover:text-neutral-300"
+            className="rounded-md p-1 text-neutral-400 hover:bg-neutral-100 hover:text-neutral-600 dark:hover:bg-neutral-800 dark:hover:text-neutral-300"
             aria-label="Set when date"
             title="When"
           >
@@ -321,7 +335,7 @@ export function TaskDetail({ taskId }: TaskDetailProps) {
         {!hasDeadline && !showDeadline && (
           <button
             onClick={() => setShowDeadline(true)}
-            className="rounded-md p-1.5 text-neutral-400 hover:bg-neutral-100 hover:text-neutral-600 dark:hover:bg-neutral-800 dark:hover:text-neutral-300"
+            className="rounded-md p-1 text-neutral-400 hover:bg-neutral-100 hover:text-neutral-600 dark:hover:bg-neutral-800 dark:hover:text-neutral-300"
             aria-label="Set deadline"
             title="Deadline"
           >
@@ -331,7 +345,7 @@ export function TaskDetail({ taskId }: TaskDetailProps) {
         {!hasChecklist && !showChecklist && (
           <button
             onClick={() => setShowChecklist(true)}
-            className="rounded-md p-1.5 text-neutral-400 hover:bg-neutral-100 hover:text-neutral-600 dark:hover:bg-neutral-800 dark:hover:text-neutral-300"
+            className="rounded-md p-1 text-neutral-400 hover:bg-neutral-100 hover:text-neutral-600 dark:hover:bg-neutral-800 dark:hover:text-neutral-300"
             aria-label="Add checklist"
             title="Checklist"
           >
@@ -340,10 +354,26 @@ export function TaskDetail({ taskId }: TaskDetailProps) {
         )}
         <FileUploadButton taskId={taskId} />
         <LinkAddButton taskId={taskId} />
-        <div className="ml-auto">
+        <div className="ml-auto flex items-center gap-0.5">
+          <button
+            onClick={handleCancel}
+            className="rounded-md p-1 text-neutral-400 hover:bg-neutral-100 hover:text-neutral-600 dark:hover:bg-neutral-800 dark:hover:text-neutral-300"
+            aria-label="Cancel task"
+            title="Cancel"
+          >
+            <CircleMinus size={16} />
+          </button>
+          <button
+            onClick={handleWontDo}
+            className="rounded-md p-1 text-neutral-400 hover:bg-neutral-100 hover:text-neutral-600 dark:hover:bg-neutral-800 dark:hover:text-neutral-300"
+            aria-label="Won't do task"
+            title="Won't do"
+          >
+            <CircleX size={16} />
+          </button>
           <button
             onClick={handleDelete}
-            className="rounded-md p-1.5 text-neutral-400 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-900/20 dark:hover:text-red-400"
+            className="rounded-md p-1 text-neutral-400 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-900/20 dark:hover:text-red-400"
             aria-label="Delete task"
             title="Delete"
           >
@@ -447,7 +477,7 @@ function FileUploadButton({ taskId }: { taskId: string }) {
       />
       <button
         onClick={() => fileInputRef.current?.click()}
-        className="rounded-md p-1.5 text-neutral-400 hover:bg-neutral-100 hover:text-neutral-600 dark:hover:bg-neutral-800 dark:hover:text-neutral-300"
+        className="rounded-md p-1 text-neutral-400 hover:bg-neutral-100 hover:text-neutral-600 dark:hover:bg-neutral-800 dark:hover:text-neutral-300"
         aria-label="Attach file"
         title="Attach file"
       >
@@ -525,7 +555,7 @@ function LinkAddButton({ taskId }: { taskId: string }) {
   return (
     <button
       onClick={() => setAdding(true)}
-      className="rounded-md p-1.5 text-neutral-400 hover:bg-neutral-100 hover:text-neutral-600 dark:hover:bg-neutral-800 dark:hover:text-neutral-300"
+      className="rounded-md p-1 text-neutral-400 hover:bg-neutral-100 hover:text-neutral-600 dark:hover:bg-neutral-800 dark:hover:text-neutral-300"
       aria-label="Add link"
       title="Add link"
     >

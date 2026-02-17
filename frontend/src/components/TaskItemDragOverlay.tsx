@@ -1,5 +1,6 @@
 import { Check, Calendar, Flag } from 'lucide-react'
 import type { Task } from '../api/types'
+import { TaskStatusIcon } from './TaskStatusIcon'
 
 interface TaskItemDragOverlayProps {
   task: Task
@@ -7,24 +8,29 @@ interface TaskItemDragOverlayProps {
 
 export function TaskItemDragOverlay({ task }: TaskItemDragOverlayProps) {
   const isCompleted = task.status === 'completed'
+  const isDone = task.status !== 'open'
 
   return (
     <div className="rounded-lg border border-neutral-200 bg-white px-3 py-2 shadow-lg dark:border-neutral-600 dark:bg-neutral-800">
       <div className="flex items-center gap-3">
-        <div
-          className={`flex h-5 w-5 items-center justify-center rounded-full border-2 ${
-            isCompleted
-              ? 'border-red-500 bg-red-500'
-              : 'border-neutral-300 dark:border-neutral-500'
-          }`}
-        >
-          {isCompleted && <Check size={12} className="text-white" />}
-        </div>
+        {task.status === 'canceled' || task.status === 'wont_do' ? (
+          <TaskStatusIcon status={task.status} />
+        ) : (
+          <div
+            className={`flex h-5 w-5 items-center justify-center rounded-full border-2 ${
+              isCompleted
+                ? 'border-red-500 bg-red-500'
+                : 'border-neutral-300 dark:border-neutral-500'
+            }`}
+          >
+            {isCompleted && <Check size={12} className="text-white" />}
+          </div>
+        )}
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2">
             <span
               className={`text-sm ${
-                isCompleted
+                isDone
                   ? 'text-neutral-400 line-through'
                   : 'text-neutral-900 dark:text-neutral-100'
               }`}
