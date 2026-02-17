@@ -1,9 +1,19 @@
+import { useMemo } from 'react'
 import { useToday } from '../hooks/queries'
 import { TaskGroup } from '../components/TaskGroup'
 import { SortableTaskList } from '../components/SortableTaskList'
 
 export function TodayView() {
   const { data, isLoading } = useToday()
+
+  // Flatten grouped tasks into a single list per section
+  const sections = useMemo(() => {
+    if (!data?.sections) return []
+    return data.sections.map((section) => ({
+      title: section.title,
+      tasks: section.groups.flatMap((g) => g.tasks),
+    }))
+  }, [data?.sections])
 
   if (isLoading) {
     return (
@@ -21,8 +31,8 @@ export function TodayView() {
       )}
 
       {/* Sections: Today + This Evening */}
-      {data?.sections.map((section) => {
-        const hasTasks = section.groups.length > 0
+      {sections.map((section) => {
+        const hasTasks = section.tasks.length > 0
         if (!hasTasks && section.title !== 'Today') return null
         return (
           <div key={section.title} className="mb-8">
@@ -34,20 +44,10 @@ export function TodayView() {
             {!hasTasks ? (
               <p className="py-4 text-sm text-neutral-400">No tasks</p>
             ) : (
-              section.groups.map((group, i) => (
-                <div key={group.project?.id ?? `no-project-${i}`} className="mb-4">
-                  {group.project && (
-                    <h4 className="mb-1 text-xs font-medium text-neutral-500">
-                      {group.project.title}
-                    </h4>
-                  )}
-                  <SortableTaskList
-                    tasks={group.tasks}
-                    sortField="sort_order_today"
-                    showProject={false}
-                  />
-                </div>
-              ))
+              <SortableTaskList
+                tasks={section.tasks}
+                sortField="sort_order_today"
+              />
             )}
           </div>
         )

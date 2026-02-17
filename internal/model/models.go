@@ -103,6 +103,8 @@ type TaskListItem struct {
 	HasNotes        bool     `json:"has_notes"`
 	HasAttachments  bool     `json:"has_attachments"`
 	HasRepeatRule   bool     `json:"has_repeat_rule"`
+	ProjectName     *string  `json:"project_name"`
+	AreaName        *string  `json:"area_name"`
 }
 
 type TaskDetail struct {

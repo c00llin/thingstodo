@@ -1,5 +1,6 @@
 import { useLogbook } from '../hooks/queries'
 import { TaskGroup } from '../components/TaskGroup'
+import { formatRelativeDate } from '../lib/format-date'
 
 export function LogbookView() {
   const { data, isLoading } = useLogbook()
@@ -21,7 +22,7 @@ export function LogbookView() {
         </p>
       ) : (
         data.groups.map((group) => (
-          <TaskGroup key={group.date} title={group.date} tasks={group.tasks} />
+          <TaskGroup key={group.date} title={formatRelativeDate(group.date)} tasks={group.tasks} />
         ))
       )}
     </div>

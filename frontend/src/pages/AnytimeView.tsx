@@ -19,12 +19,12 @@ export function AnytimeView() {
 
       {data?.areas.map((areaGroup) => (
         <div key={areaGroup.area.id} className="mb-8">
-          <h3 className="mb-3 text-lg font-semibold text-neutral-800">
+          <h3 className="mb-3 text-lg font-semibold text-neutral-800 dark:text-neutral-200">
             {areaGroup.area.title}
           </h3>
           {areaGroup.standalone_tasks.length > 0 && (
             <div className={areaGroup.projects.length > 0 ? 'mb-4' : ''}>
-              <SortableTaskList tasks={areaGroup.standalone_tasks} sortField="sort_order_today" />
+              <SortableTaskList tasks={areaGroup.standalone_tasks} sortField="sort_order_today" showProject={false} />
             </div>
           )}
           {areaGroup.projects.map((pg) => (

@@ -99,6 +99,8 @@ export interface Task {
   has_notes: boolean
   has_attachments: boolean
   has_repeat_rule: boolean
+  project_name: string | null
+  area_name: string | null
 }
 
 export interface TaskDetail extends Task {

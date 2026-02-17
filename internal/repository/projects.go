@@ -322,6 +322,19 @@ func scanTaskListItems(db *sql.DB, rows *sql.Rows) []model.TaskListItem {
 		} else {
 			t.Tags = []model.TagRef{}
 		}
+		// Resolve project/area names
+		if t.ProjectID != nil {
+			var name string
+			if err := db.QueryRow("SELECT title FROM projects WHERE id = ?", *t.ProjectID).Scan(&name); err == nil {
+				t.ProjectName = &name
+			}
+		}
+		if t.AreaID != nil {
+			var name string
+			if err := db.QueryRow("SELECT title FROM areas WHERE id = ?", *t.AreaID).Scan(&name); err == nil {
+				t.AreaName = &name
+			}
+		}
 		tasks = append(tasks, t)
 	}
 	if tasks == nil {

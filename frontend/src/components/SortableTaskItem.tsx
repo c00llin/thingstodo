@@ -6,6 +6,7 @@ import * as Checkbox from '@radix-ui/react-checkbox'
 import { Check, Calendar, Flag, GripVertical, X, ListChecks } from 'lucide-react'
 import type { Task } from '../api/types'
 import { useCompleteTask, useReopenTask, useUpdateTask } from '../hooks/queries'
+import { getTaskContext } from '../hooks/useTaskContext'
 import { useAppStore } from '../stores/app'
 import { TaskDetail } from './TaskDetail'
 import { useResolveTags } from '../hooks/useResolveTags'
@@ -54,6 +55,7 @@ export function SortableTaskItem({
   const reopenTask = useReopenTask()
   const updateTask = useUpdateTask()
   const resolveTags = useResolveTags()
+  const taskContext = getTaskContext(task)
   const isSelected = selectedTaskId === task.id
   const isExpanded = expandedTaskId === task.id
   const isCompleted = task.status === 'completed'
@@ -349,8 +351,8 @@ export function SortableTaskItem({
               </div>
             )}
           </div>
-          {showProject && task.project_id && !editing && (
-            <p className="mt-0.5 text-xs text-neutral-400">Project</p>
+          {showProject && taskContext && !editing && (
+            <p className="mt-0.5 text-[10px] leading-tight text-neutral-400">{taskContext}</p>
           )}
         </div>
       </div>
