@@ -20,11 +20,51 @@ import * as Collapsible from '@radix-ui/react-collapsible'
 import * as Popover from '@radix-ui/react-popover'
 import { useDraggable } from '@dnd-kit/core'
 
-import { motion, AnimatePresence } from 'framer-motion'
+import { motion, AnimatePresence, LayoutGroup } from 'framer-motion'
 import { useAreas, useProjects, useTags, useCreateProject, useCreateArea, useToday } from '../hooks/queries'
 import { useAppStore } from '../stores/app'
 import { ThemeToggle } from './ThemeToggle'
 import { SidebarDropTarget } from './SidebarDropTarget'
+
+const indicatorTransition = { type: 'spring' as const, stiffness: 400, damping: 35 }
+
+function SidebarNavLink({
+  to,
+  className,
+  activeClassName,
+  inactiveClassName,
+  layoutId,
+  children,
+}: {
+  to: string
+  className: string
+  activeClassName: string
+  inactiveClassName: string
+  layoutId: string
+  children: React.ReactNode
+}) {
+  return (
+    <NavLink
+      to={to}
+      className={({ isActive }) =>
+        `relative ${className} ${isActive ? activeClassName : inactiveClassName}`
+      }
+    >
+      {({ isActive }) => (
+        <>
+          {isActive && (
+            <motion.div
+              layoutId={layoutId}
+              className="absolute inset-0 rounded-lg bg-red-50 dark:bg-red-900/30"
+              transition={indicatorTransition}
+            />
+          )}
+          {children}
+        </>
+      )}
+    </NavLink>
+  )
+}
 
 const smartLists = [
   { to: '/inbox', label: 'Inbox', icon: Inbox, dropId: 'sidebar-inbox' },
@@ -44,24 +84,21 @@ function SmartListNav() {
     <nav className="space-y-0.5">
       {smartLists.map(({ to, label, icon: Icon, dropId }) => {
         const link = (
-          <NavLink
+          <SidebarNavLink
             to={to}
-            className={({ isActive }) =>
-              `flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
-                isActive
-                  ? 'bg-red-50 text-red-700 dark:bg-red-900/30 dark:text-red-400'
-                  : 'text-neutral-700 hover:bg-neutral-100 dark:text-neutral-300 dark:hover:bg-neutral-800'
-              }`
-            }
+            className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors"
+            activeClassName="text-red-700 dark:text-red-400"
+            inactiveClassName="text-neutral-700 hover:bg-neutral-100 dark:text-neutral-300 dark:hover:bg-neutral-800"
+            layoutId="sidebar-active-indicator"
           >
-            <Icon size={18} />
-            <span>{label}</span>
+            <Icon size={18} className="relative z-10" />
+            <span className="relative z-10">{label}</span>
             {label === 'Today' && overdueCount > 0 && (
-              <span className="ml-auto flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-medium text-white">
+              <span className="relative z-10 ml-auto flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-medium text-white">
                 {overdueCount}
               </span>
             )}
-          </NavLink>
+          </SidebarNavLink>
         )
         if (dropId) {
           return (
@@ -124,36 +161,30 @@ function AreaList() {
                 return (
                   <div key={area.id}>
                     <SidebarDropTarget id={`sidebar-area-${area.id}`}>
-                      <NavLink
+                      <SidebarNavLink
                         to={`/area/${area.id}`}
-                        className={({ isActive }) =>
-                          `flex items-center gap-2 rounded-lg px-3 py-1.5 text-sm ${
-                            isActive
-                              ? 'bg-red-50 text-red-700 dark:bg-red-900/30 dark:text-red-400'
-                              : 'text-neutral-600 hover:bg-neutral-100 dark:text-neutral-400 dark:hover:bg-neutral-800'
-                          }`
-                        }
+                        className="flex items-center gap-2 rounded-lg px-3 py-1.5 text-sm"
+                        activeClassName="text-red-700 dark:text-red-400"
+                        inactiveClassName="text-neutral-600 hover:bg-neutral-100 dark:text-neutral-400 dark:hover:bg-neutral-800"
+                        layoutId="sidebar-active-indicator"
                       >
-                        <Blocks size={16} />
-                        <span>{area.title}</span>
-                      </NavLink>
+                        <Blocks size={16} className="relative z-10" />
+                        <span className="relative z-10">{area.title}</span>
+                      </SidebarNavLink>
                     </SidebarDropTarget>
                     {areaProjects.map((project) => (
                       <SidebarDropTarget key={project.id} id={`sidebar-project-${project.id}`}>
                         <DraggableProject projectId={project.id}>
-                          <NavLink
+                          <SidebarNavLink
                             to={`/project/${project.id}`}
-                            className={({ isActive }) =>
-                              `flex items-center gap-2 rounded-lg py-1.5 pl-8 pr-3 text-sm ${
-                                isActive
-                                  ? 'bg-red-50 text-red-700 dark:bg-red-900/30 dark:text-red-400'
-                                  : 'text-neutral-500 hover:bg-neutral-100 dark:text-neutral-400 dark:hover:bg-neutral-800'
-                              }`
-                            }
+                            className="flex items-center gap-2 rounded-lg py-1.5 pl-8 pr-3 text-sm"
+                            activeClassName="text-red-700 dark:text-red-400"
+                            inactiveClassName="text-neutral-500 hover:bg-neutral-100 dark:text-neutral-400 dark:hover:bg-neutral-800"
+                            layoutId="sidebar-active-indicator"
                           >
-                            <Package size={14} className="text-neutral-400 dark:text-neutral-500" />
-                            <span className="truncate">{project.title}</span>
-                          </NavLink>
+                            <Package size={14} className="relative z-10 text-neutral-400 dark:text-neutral-500" />
+                            <span className="relative z-10 truncate">{project.title}</span>
+                          </SidebarNavLink>
                         </DraggableProject>
                       </SidebarDropTarget>
                     ))}
@@ -165,24 +196,21 @@ function AreaList() {
                 .map((project) => (
                   <SidebarDropTarget key={project.id} id={`sidebar-project-${project.id}`}>
                     <DraggableProject projectId={project.id}>
-                      <NavLink
+                      <SidebarNavLink
                         to={`/project/${project.id}`}
-                        className={({ isActive }) =>
-                          `flex items-center gap-2 rounded-lg px-3 py-1.5 text-sm ${
-                            isActive
-                              ? 'bg-red-50 text-red-700 dark:bg-red-900/30 dark:text-red-400'
-                              : 'text-neutral-500 hover:bg-neutral-100 dark:text-neutral-400 dark:hover:bg-neutral-800'
-                          }`
-                        }
+                        className="flex items-center gap-2 rounded-lg px-3 py-1.5 text-sm"
+                        activeClassName="text-red-700 dark:text-red-400"
+                        inactiveClassName="text-neutral-500 hover:bg-neutral-100 dark:text-neutral-400 dark:hover:bg-neutral-800"
+                        layoutId="sidebar-active-indicator"
                       >
-                        <Package size={14} className={
+                        <Package size={14} className={`relative z-10 ${
                             project.task_count > 0 &&
                             project.completed_task_count === project.task_count
                               ? 'text-green-500'
                               : 'text-neutral-400 dark:text-neutral-500'
-                        } />
-                        <span className="truncate">{project.title}</span>
-                      </NavLink>
+                        }`} />
+                        <span className="relative z-10 truncate">{project.title}</span>
+                      </SidebarNavLink>
                     </DraggableProject>
                   </SidebarDropTarget>
                 ))}
@@ -230,40 +258,34 @@ function TagList() {
                   return (
                     <div key={tag.id}>
                       <SidebarDropTarget id={`sidebar-tag-${tag.id}`}>
-                        <NavLink
+                        <SidebarNavLink
                           to={`/tag/${tag.id}`}
-                          className={({ isActive }) =>
-                            `flex items-center gap-2 rounded-lg px-3 py-1.5 text-sm ${
-                              isActive
-                                ? 'bg-red-50 text-red-700 dark:bg-red-900/30 dark:text-red-400'
-                                : 'text-neutral-600 hover:bg-neutral-100 dark:text-neutral-400 dark:hover:bg-neutral-800'
-                            }`
-                          }
+                          className="flex items-center gap-2 rounded-lg px-3 py-1.5 text-sm"
+                          activeClassName="text-red-700 dark:text-red-400"
+                          inactiveClassName="text-neutral-600 hover:bg-neutral-100 dark:text-neutral-400 dark:hover:bg-neutral-800"
+                          layoutId="sidebar-active-indicator"
                         >
-                          <Tag size={14} />
-                          <span>{tag.title}</span>
+                          <Tag size={14} className="relative z-10" />
+                          <span className="relative z-10">{tag.title}</span>
                           {tag.task_count > 0 && (
-                            <span className="ml-auto text-xs text-neutral-400">
+                            <span className="relative z-10 ml-auto text-xs text-neutral-400">
                               {tag.task_count}
                             </span>
                           )}
-                        </NavLink>
+                        </SidebarNavLink>
                       </SidebarDropTarget>
                       {children.map((child) => (
                         <SidebarDropTarget key={child.id} id={`sidebar-tag-${child.id}`}>
-                          <NavLink
+                          <SidebarNavLink
                             to={`/tag/${child.id}`}
-                            className={({ isActive }) =>
-                              `flex items-center gap-2 rounded-lg py-1.5 pl-8 pr-3 text-sm ${
-                                isActive
-                                  ? 'bg-red-50 text-red-700 dark:bg-red-900/30 dark:text-red-400'
-                                  : 'text-neutral-500 hover:bg-neutral-100 dark:text-neutral-400 dark:hover:bg-neutral-800'
-                              }`
-                            }
+                            className="flex items-center gap-2 rounded-lg py-1.5 pl-8 pr-3 text-sm"
+                            activeClassName="text-red-700 dark:text-red-400"
+                            inactiveClassName="text-neutral-500 hover:bg-neutral-100 dark:text-neutral-400 dark:hover:bg-neutral-800"
+                            layoutId="sidebar-active-indicator"
                           >
-                            <Tag size={12} />
-                            <span>{child.title}</span>
-                          </NavLink>
+                            <Tag size={12} className="relative z-10" />
+                            <span className="relative z-10">{child.title}</span>
+                          </SidebarNavLink>
                         </SidebarDropTarget>
                       ))}
                     </div>
@@ -435,31 +457,30 @@ export function Sidebar() {
         >
           <img src="/thingstodo.svg" alt="ThingsToDo" className="h-[18px] w-[18px]" />
         </button>
+        <LayoutGroup id="sidebar-collapsed">
         <nav className="mt-4 flex flex-col items-center gap-1">
           {smartLists.map(({ to, label, icon: Icon }) => (
-            <NavLink
+            <SidebarNavLink
               key={to}
               to={to}
-              className={({ isActive }) =>
-                `group relative rounded-lg p-1.5 transition-colors ${
-                  isActive
-                    ? 'bg-red-50 text-red-700 dark:bg-red-900/30 dark:text-red-400'
-                    : 'text-neutral-500 hover:bg-neutral-200 dark:text-neutral-400 dark:hover:bg-neutral-700'
-                }`
-              }
+              className="group rounded-lg p-1.5 transition-colors"
+              activeClassName="text-red-700 dark:text-red-400"
+              inactiveClassName="text-neutral-500 hover:bg-neutral-200 dark:text-neutral-400 dark:hover:bg-neutral-700"
+              layoutId="sidebar-active-indicator-collapsed"
             >
-              <Icon size={18} />
+              <Icon size={18} className="relative z-10" />
               {label === 'Today' && overdueCount > 0 && (
-                <span className="absolute -right-0.5 -top-0.5 flex h-3.5 min-w-3.5 items-center justify-center rounded-full bg-red-500 px-0.5 text-[8px] font-bold text-white">
+                <span className="absolute -right-0.5 -top-0.5 z-20 flex h-3.5 min-w-3.5 items-center justify-center rounded-full bg-red-500 px-0.5 text-[8px] font-bold text-white">
                   {overdueCount}
                 </span>
               )}
               <span className="pointer-events-none absolute left-full top-1/2 z-50 ml-2 -translate-y-1/2 whitespace-nowrap rounded-md bg-neutral-900 px-2 py-1 text-xs text-white opacity-0 transition-opacity group-hover:opacity-100 dark:bg-neutral-700">
                 {label}
               </span>
-            </NavLink>
+            </SidebarNavLink>
           ))}
         </nav>
+        </LayoutGroup>
         <div className="mt-auto">
           <PlusMenu side="right" />
         </div>
@@ -485,9 +506,11 @@ export function Sidebar() {
         </button>
       </div>
       <div className="flex-1 space-y-4 overflow-y-auto p-3">
-        <SmartListNav />
-        <AreaList />
-        <TagList />
+        <LayoutGroup id="sidebar-expanded">
+          <SmartListNav />
+          <AreaList />
+          <TagList />
+        </LayoutGroup>
       </div>
       <div className="flex items-center justify-between border-t border-neutral-200 px-3 py-2 dark:border-neutral-700">
         <PlusMenu side="top" />
