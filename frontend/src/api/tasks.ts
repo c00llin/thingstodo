@@ -37,6 +37,10 @@ export function deleteTask(id: string) {
   return api.delete<void>(`/tasks/${id}`)
 }
 
+export function purgeTask(id: string) {
+  return api.delete<void>(`/tasks/${id}/purge`)
+}
+
 export function completeTask(id: string) {
   return api.patch<Task>(`/tasks/${id}/complete`, {})
 }

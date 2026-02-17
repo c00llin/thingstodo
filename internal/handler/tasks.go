@@ -133,6 +133,16 @@ func (h *TaskHandler) Delete(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNoContent)
 }
 
+func (h *TaskHandler) Purge(w http.ResponseWriter, r *http.Request) {
+	id := chi.URLParam(r, "id")
+	if err := h.repo.PermanentDelete(id); err != nil {
+		writeError(w, http.StatusInternalServerError, err.Error(), "INTERNAL")
+		return
+	}
+	h.broker.BroadcastJSON("task_purged", map[string]interface{}{"id": id})
+	w.WriteHeader(http.StatusNoContent)
+}
+
 func (h *TaskHandler) Complete(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")
 	task, err := h.repo.Complete(id)

@@ -1,9 +1,29 @@
+import { useState } from 'react'
+import { Trash2 } from 'lucide-react'
+import { useQueryClient } from '@tanstack/react-query'
 import { useLogbook } from '../hooks/queries'
 import { TaskGroup } from '../components/TaskGroup'
+import { ConfirmDialog } from '../components/ConfirmDialog'
 import { formatRelativeDate } from '../lib/format-date'
+import { deleteTask } from '../api/tasks'
 
 export function LogbookView() {
   const { data, isLoading } = useLogbook()
+  const queryClient = useQueryClient()
+  const [trashing, setTrashing] = useState(false)
+  const [showConfirm, setShowConfirm] = useState(false)
+
+  const allTasks = data?.groups?.flatMap((g) => g.tasks) ?? []
+  const hasTasks = allTasks.length > 0
+
+  async function trashAll() {
+    if (!hasTasks) return
+    setShowConfirm(false)
+    setTrashing(true)
+    await Promise.all(allTasks.map((t) => deleteTask(t.id)))
+    queryClient.invalidateQueries({ queryKey: ['views'] })
+    setTrashing(false)
+  }
 
   if (isLoading) {
     return (
@@ -15,16 +35,38 @@ export function LogbookView() {
 
   return (
     <div className="mx-auto max-w-2xl p-6">
-      <h2 className="mb-3 text-2xl font-bold text-neutral-900 dark:text-neutral-100">Completed</h2>
-      {!data?.groups || data.groups.length === 0 ? (
+      <div className="mb-3 flex items-center justify-between">
+        <h2 className="text-2xl font-bold text-neutral-900 dark:text-neutral-100">Completed</h2>
+        {hasTasks && (
+          <button
+            onClick={() => setShowConfirm(true)}
+            disabled={trashing}
+            className="rounded-md p-1.5 text-neutral-400 hover:bg-neutral-100 hover:text-neutral-600 disabled:opacity-50 dark:hover:bg-neutral-700 dark:hover:text-neutral-300"
+            aria-label="Move all to trash"
+            title="Move all to trash"
+          >
+            <Trash2 size={18} />
+          </button>
+        )}
+      </div>
+      {!hasTasks ? (
         <p className="py-12 text-center text-sm text-neutral-400">
           No completed tasks yet.
         </p>
       ) : (
-        data.groups.map((group) => (
+        data!.groups.map((group) => (
           <TaskGroup key={group.date} title={formatRelativeDate(group.date)} tasks={group.tasks} />
         ))
       )}
+      <ConfirmDialog
+        open={showConfirm}
+        title="Move all to trash?"
+        description={`${allTasks.length} completed task${allTasks.length === 1 ? '' : 's'} will be moved to the trash.`}
+        confirmLabel="Move to Trash"
+        destructive
+        onConfirm={trashAll}
+        onCancel={() => setShowConfirm(false)}
+      />
     </div>
   )
 }

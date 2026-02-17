@@ -74,6 +74,7 @@ func New(db *sql.DB, cfg config.Config, broker *sse.Broker) http.Handler {
 			r.Get("/tasks/{id}", taskH.Get)
 			r.Patch("/tasks/{id}", taskH.Update)
 			r.Delete("/tasks/{id}", taskH.Delete)
+			r.Delete("/tasks/{id}/purge", taskH.Purge)
 			r.Patch("/tasks/{id}/complete", taskH.Complete)
 			r.Patch("/tasks/{id}/cancel", taskH.Cancel)
 			r.Patch("/tasks/{id}/wontdo", taskH.WontDo)
