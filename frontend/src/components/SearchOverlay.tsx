@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router'
 import { Search } from 'lucide-react'
 import { useAppStore } from '../stores/app'
 import { useSearch } from '../hooks/queries'
+import { getTaskContext } from '../hooks/useTaskContext'
 import type { SearchResult } from '../api/types'
 
 export function SearchOverlay() {
@@ -130,6 +131,11 @@ function SearchOverlayInner() {
                     __html: result.title_snippet || escapeHtml(result.task.title),
                   }}
                 />
+                {getTaskContext(result.task) && (
+                  <span className="text-[10px] text-neutral-400">
+                    {getTaskContext(result.task)}
+                  </span>
+                )}
                 {result.notes_snippet && (
                   <span
                     className="line-clamp-1 text-xs text-neutral-500 dark:text-neutral-400 [&_mark]:bg-yellow-200 [&_mark]:text-neutral-700 dark:[&_mark]:bg-yellow-500/40 dark:[&_mark]:text-neutral-300"

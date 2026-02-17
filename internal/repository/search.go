@@ -83,6 +83,12 @@ func (r *SearchRepository) Search(query string, limit int) ([]model.SearchResult
 		t.HasFiles = hasFiles == 1
 		t.HasRepeatRule = hasRepeat == 1
 		t.Tags = []model.TagRef{}
+		if t.ProjectID != nil {
+			_ = r.db.QueryRow("SELECT title FROM projects WHERE id = ?", *t.ProjectID).Scan(&t.ProjectName)
+		}
+		if t.AreaID != nil {
+			_ = r.db.QueryRow("SELECT title FROM areas WHERE id = ?", *t.AreaID).Scan(&t.AreaName)
+		}
 		sr.Task = t
 		results = append(results, sr)
 	}
