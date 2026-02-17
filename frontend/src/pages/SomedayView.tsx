@@ -15,7 +15,7 @@ export function SomedayView() {
 
   return (
     <div className="mx-auto max-w-2xl p-6">
-      <h2 className="mb-6 text-2xl font-bold text-neutral-900 dark:text-neutral-100">Someday</h2>
+      <h2 className="mb-3 text-2xl font-bold text-neutral-900 dark:text-neutral-100">Someday</h2>
 
       {data?.areas.map((areaGroup) => (
         <div key={areaGroup.area.id} className="mb-8">

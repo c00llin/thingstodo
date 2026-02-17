@@ -21,7 +21,7 @@ export function TaskGroup({
 
   return (
     <div className="mb-6">
-      <h3 className="mb-2 px-3 text-xs font-semibold uppercase tracking-wide text-neutral-500 dark:text-neutral-400">
+      <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-neutral-500 dark:text-neutral-400">
         {title}
       </h3>
       {sortable ? (

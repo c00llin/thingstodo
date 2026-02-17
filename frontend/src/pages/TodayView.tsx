@@ -37,7 +37,7 @@ export function TodayView() {
               section.groups.map((group, i) => (
                 <div key={group.project?.id ?? `no-project-${i}`} className="mb-4">
                   {group.project && (
-                    <h4 className="mb-1 px-3 text-xs font-medium text-neutral-500">
+                    <h4 className="mb-1 text-xs font-medium text-neutral-500">
                       {group.project.title}
                     </h4>
                   )}

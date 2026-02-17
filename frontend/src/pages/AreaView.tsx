@@ -16,7 +16,7 @@ export function AreaView() {
 
   return (
     <div className="mx-auto max-w-2xl p-6">
-      <h2 className="mb-6 text-2xl font-bold text-neutral-900 dark:text-neutral-100">{area.title}</h2>
+      <h2 className="mb-3 text-2xl font-bold text-neutral-900 dark:text-neutral-100">{area.title}</h2>
 
       {area.projects.length > 0 && (
         <div className="mb-6">
