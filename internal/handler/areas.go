@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"errors"
 	"net/http"
 
 	"github.com/collinjanssen/thingstodo/internal/model"
@@ -82,7 +83,11 @@ func (h *AreaHandler) Update(w http.ResponseWriter, r *http.Request) {
 
 func (h *AreaHandler) Delete(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")
-	if err := h.repo.Delete(id); err != nil {
+	if err := h.repo.DeleteWithTasks(id); err != nil {
+		if errors.Is(err, repository.ErrAreaHasProjects) {
+			writeError(w, http.StatusConflict, "area still has projects", "HAS_PROJECTS")
+			return
+		}
 		writeError(w, http.StatusInternalServerError, err.Error(), "INTERNAL")
 		return
 	}

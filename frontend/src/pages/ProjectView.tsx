@@ -1,11 +1,17 @@
-import { useParams } from 'react-router'
-import { useProject } from '../hooks/queries'
+import { useState } from 'react'
+import { useParams, useNavigate } from 'react-router'
+import { Trash2 } from 'lucide-react'
+import { useProject, useDeleteProject } from '../hooks/queries'
 import { TaskGroup } from '../components/TaskGroup'
 import { SortableTaskList } from '../components/SortableTaskList'
+import { ConfirmDialog } from '../components/ConfirmDialog'
 
 export function ProjectView() {
   const { id } = useParams<{ id: string }>()
+  const navigate = useNavigate()
   const { data: project, isLoading } = useProject(id!)
+  const deleteProject = useDeleteProject()
+  const [showDelete, setShowDelete] = useState(false)
 
   if (isLoading || !project) {
     return (
@@ -22,7 +28,15 @@ export function ProjectView() {
 
   return (
     <div className="mx-auto max-w-2xl p-6">
-      <h2 className="mb-1 text-2xl font-bold text-neutral-900 dark:text-neutral-100">{project.title}</h2>
+      <div className="flex items-center justify-between">
+        <h2 className="mb-1 text-2xl font-bold text-neutral-900 dark:text-neutral-100">{project.title}</h2>
+        <button
+          onClick={() => setShowDelete(true)}
+          className="rounded-md p-1.5 text-neutral-400 hover:bg-neutral-100 hover:text-red-600 dark:hover:bg-neutral-700 dark:hover:text-red-400"
+        >
+          <Trash2 size={16} />
+        </button>
+      </div>
       {project.notes && (
         <p className="mb-4 text-sm text-neutral-600">{project.notes}</p>
       )}
@@ -60,6 +74,20 @@ export function ProjectView() {
           sortField="sort_order_heading"
         />
       ))}
+
+      <ConfirmDialog
+        open={showDelete}
+        title={`Delete "${project.title}"?`}
+        description={`"${project.title}" and all its tasks will be permanently deleted.`}
+        confirmLabel="Delete"
+        destructive
+        onConfirm={() => {
+          deleteProject.mutate(id!, {
+            onSuccess: () => navigate('/inbox'),
+          })
+        }}
+        onCancel={() => setShowDelete(false)}
+      />
     </div>
   )
 }

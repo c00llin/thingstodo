@@ -185,6 +185,22 @@ func (r *ProjectRepository) Delete(id string) error {
 	return err
 }
 
+func (r *ProjectRepository) DeleteWithTasks(id string) error {
+	tx, err := r.db.Begin()
+	if err != nil {
+		return err
+	}
+	defer func() { _ = tx.Rollback() }()
+
+	if _, err := tx.Exec("DELETE FROM tasks WHERE project_id = ?", id); err != nil {
+		return fmt.Errorf("delete project tasks: %w", err)
+	}
+	if _, err := tx.Exec("DELETE FROM projects WHERE id = ?", id); err != nil {
+		return fmt.Errorf("delete project: %w", err)
+	}
+	return tx.Commit()
+}
+
 func (r *ProjectRepository) Complete(id string) (*model.ProjectDetail, error) {
 	_, err := r.db.Exec(
 		"UPDATE projects SET status = 'completed', updated_at = datetime('now') WHERE id = ?", id)

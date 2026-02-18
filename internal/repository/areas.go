@@ -135,7 +135,33 @@ func (r *AreaRepository) Update(id string, input model.UpdateAreaInput) (*model.
 	return &a, err
 }
 
+var ErrAreaHasProjects = fmt.Errorf("area still has projects")
+
 func (r *AreaRepository) Delete(id string) error {
 	_, err := r.db.Exec("DELETE FROM areas WHERE id = ?", id)
 	return err
+}
+
+func (r *AreaRepository) DeleteWithTasks(id string) error {
+	var count int
+	if err := r.db.QueryRow("SELECT COUNT(*) FROM projects WHERE area_id = ?", id).Scan(&count); err != nil {
+		return err
+	}
+	if count > 0 {
+		return ErrAreaHasProjects
+	}
+
+	tx, err := r.db.Begin()
+	if err != nil {
+		return err
+	}
+	defer func() { _ = tx.Rollback() }()
+
+	if _, err := tx.Exec("DELETE FROM tasks WHERE area_id = ? AND project_id IS NULL", id); err != nil {
+		return fmt.Errorf("delete area tasks: %w", err)
+	}
+	if _, err := tx.Exec("DELETE FROM areas WHERE id = ?", id); err != nil {
+		return fmt.Errorf("delete area: %w", err)
+	}
+	return tx.Commit()
 }

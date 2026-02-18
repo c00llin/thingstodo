@@ -93,7 +93,7 @@ func (h *ProjectHandler) Update(w http.ResponseWriter, r *http.Request) {
 
 func (h *ProjectHandler) Delete(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")
-	if err := h.repo.Delete(id); err != nil {
+	if err := h.repo.DeleteWithTasks(id); err != nil {
 		writeError(w, http.StatusInternalServerError, err.Error(), "INTERNAL")
 		return
 	}

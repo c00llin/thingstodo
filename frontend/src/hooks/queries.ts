@@ -533,6 +533,7 @@ export function useDeleteArea() {
     mutationFn: (id: string) => areasApi.deleteArea(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.areas.all })
+      queryClient.invalidateQueries({ queryKey: ['views'] })
     },
   })
 }
@@ -581,6 +582,7 @@ export function useDeleteTag() {
     mutationFn: (id: string) => tagsApi.deleteTag(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.tags.all })
+      queryClient.invalidateQueries({ queryKey: ['views'] })
     },
   })
 }

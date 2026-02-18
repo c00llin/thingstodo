@@ -1,10 +1,16 @@
-import { useParams, Link } from 'react-router'
-import { useArea } from '../hooks/queries'
+import { useState } from 'react'
+import { useParams, useNavigate, Link } from 'react-router'
+import { Trash2 } from 'lucide-react'
+import { useArea, useDeleteArea } from '../hooks/queries'
 import { TaskItem } from '../components/TaskItem'
+import { ConfirmDialog } from '../components/ConfirmDialog'
 
 export function AreaView() {
   const { id } = useParams<{ id: string }>()
+  const navigate = useNavigate()
   const { data: area, isLoading } = useArea(id!)
+  const deleteArea = useDeleteArea()
+  const [showDelete, setShowDelete] = useState(false)
 
   if (isLoading || !area) {
     return (
@@ -14,11 +20,23 @@ export function AreaView() {
     )
   }
 
+  const hasProjects = area.projects.length > 0
+
   return (
     <div className="mx-auto max-w-2xl p-6">
-      <h2 className="mb-3 text-2xl font-bold text-neutral-900 dark:text-neutral-100">{area.title}</h2>
+      <div className="flex items-center justify-between">
+        <h2 className="mb-3 text-2xl font-bold text-neutral-900 dark:text-neutral-100">{area.title}</h2>
+        {!hasProjects && (
+          <button
+            onClick={() => setShowDelete(true)}
+            className="rounded-md p-1.5 text-neutral-400 hover:bg-neutral-100 hover:text-red-600 dark:hover:bg-neutral-700 dark:hover:text-red-400"
+          >
+            <Trash2 size={16} />
+          </button>
+        )}
+      </div>
 
-      {area.projects.length > 0 && (
+      {hasProjects && (
         <div className="mb-6">
           <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-neutral-500">
             Projects
@@ -66,6 +84,20 @@ export function AreaView() {
           </div>
         </div>
       )}
+
+      <ConfirmDialog
+        open={showDelete}
+        title={`Delete "${area.title}"?`}
+        description={`"${area.title}" and its tasks will be permanently deleted.`}
+        confirmLabel="Delete"
+        destructive
+        onConfirm={() => {
+          deleteArea.mutate(id!, {
+            onSuccess: () => navigate('/inbox'),
+          })
+        }}
+        onCancel={() => setShowDelete(false)}
+      />
     </div>
   )
 }
