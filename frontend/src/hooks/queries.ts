@@ -11,6 +11,7 @@ import * as repeatApi from '../api/repeat'
 import * as viewsApi from '../api/views'
 import * as searchApi from '../api/search'
 import * as authApi from '../api/auth'
+import * as settingsApi from '../api/settings'
 import { playCompleteSound } from '../lib/sounds'
 import type {
   Task,
@@ -31,6 +32,7 @@ import type {
   TaskQueryParams,
   ProjectStatus,
   LoginRequest,
+  UserSettings,
 } from '../api/types'
 
 // --- Query Keys ---
@@ -71,6 +73,7 @@ export const queryKeys = {
   auth: {
     me: ['auth', 'me'] as const,
   },
+  settings: ['settings'] as const,
 }
 
 // --- View Hooks ---
@@ -346,7 +349,10 @@ export function useCompleteTask() {
         completed_at: new Date().toISOString(),
       })
       useAppStore.getState().setDepartingTaskId(id)
-      playCompleteSound()
+      const settings = queryClient.getQueryData<UserSettings>(queryKeys.settings)
+      if (settings?.play_complete_sound !== false) {
+        playCompleteSound()
+      }
       return { snapshot }
     },
     onError: (_err, _id, context) => {
@@ -765,6 +771,38 @@ export function useLogout() {
     mutationFn: () => authApi.logout(),
     onSuccess: () => {
       queryClient.clear()
+    },
+  })
+}
+
+// --- Settings ---
+
+export function useSettings() {
+  return useQuery({
+    queryKey: queryKeys.settings,
+    queryFn: () => settingsApi.getSettings(),
+  })
+}
+
+export function useUpdateSettings() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (data: Partial<UserSettings>) => settingsApi.updateSettings(data),
+    onMutate: async (data) => {
+      await queryClient.cancelQueries({ queryKey: queryKeys.settings })
+      const previous = queryClient.getQueryData<UserSettings>(queryKeys.settings)
+      if (previous) {
+        queryClient.setQueryData(queryKeys.settings, { ...previous, ...data })
+      }
+      return { previous }
+    },
+    onError: (_err, _data, context) => {
+      if (context?.previous) {
+        queryClient.setQueryData(queryKeys.settings, context.previous)
+      }
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.settings })
     },
   })
 }

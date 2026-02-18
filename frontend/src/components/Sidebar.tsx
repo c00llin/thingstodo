@@ -15,6 +15,7 @@ import {
   Package,
   Blocks,
   CirclePlus,
+  Settings,
 } from 'lucide-react'
 import * as Collapsible from '@radix-ui/react-collapsible'
 import * as Popover from '@radix-ui/react-popover'
@@ -22,7 +23,7 @@ import { useDraggable } from '@dnd-kit/core'
 
 import { motion, AnimatePresence, LayoutGroup } from 'framer-motion'
 import { ApiError } from '../api/client'
-import { useAreas, useProjects, useTags, useCreateProject, useCreateArea, useViewCounts, useUpdateProject, useUpdateArea, useUpdateTag } from '../hooks/queries'
+import { useAreas, useProjects, useTags, useCreateProject, useCreateArea, useViewCounts, useUpdateProject, useUpdateArea, useUpdateTag, useSettings } from '../hooks/queries'
 import { useAppStore } from '../stores/app'
 import { ThemeToggle } from './ThemeToggle'
 import { SidebarDropTarget } from './SidebarDropTarget'
@@ -259,7 +260,9 @@ const countKeyMap: Record<string, keyof import('../api/types').ViewCounts | null
 
 function SmartListNav() {
   const { data: counts } = useViewCounts()
+  const { data: settings } = useSettings()
   const overdueCount = counts?.overdue ?? 0
+  const showCounts = settings?.show_count_main !== false
 
   return (
     <nav className="space-y-0.5">
@@ -276,14 +279,14 @@ function SmartListNav() {
           >
             <Icon size={18} className="relative z-10" />
             <span className="relative z-10">{label}</span>
-            {(overdueCount > 0 && label === 'Today' || count > 0) && (
+            {(overdueCount > 0 && label === 'Today' || (showCounts && count > 0)) && (
               <span className="relative z-10 ml-auto flex items-center gap-1.5">
                 {label === 'Today' && overdueCount > 0 && (
                   <span className="flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-medium text-white">
                     {overdueCount}
                   </span>
                 )}
-                {count > 0 && (
+                {showCounts && count > 0 && (
                   <span className="text-xs text-neutral-400">
                     {count}
                   </span>
@@ -320,11 +323,13 @@ function DraggableProject({ projectId, children }: { projectId: string; children
 function AreaList() {
   const { data: areasData } = useAreas()
   const { data: projectsData } = useProjects()
+  const { data: settings } = useSettings()
   const open = useAppStore((s) => s.sidebarAreasOpen)
   const setOpen = useAppStore((s) => s.setSidebarAreasOpen)
   const [editingItemId, setEditingItemId] = useState<string | null>(null)
   const updateProject = useUpdateProject()
   const updateArea = useUpdateArea()
+  const showCounts = settings?.show_count_projects !== false
 
   const areas = areasData?.areas ?? []
   const projects = projectsData?.projects ?? []
@@ -366,7 +371,7 @@ function AreaList() {
                         layoutId="sidebar-active-indicator"
                         icon={<Blocks size={16} className="relative z-10" />}
                         title={area.title}
-                        badge={area.standalone_task_count > 0 ? (
+                        badge={showCounts && area.standalone_task_count > 0 ? (
                           <span className="relative z-10 ml-auto text-xs text-neutral-400">
                             {area.standalone_task_count}
                           </span>
@@ -391,7 +396,7 @@ function AreaList() {
                             layoutId="sidebar-active-indicator"
                             icon={<Package size={14} className="relative z-10 text-neutral-400 dark:text-neutral-500" />}
                             title={project.title}
-                            badge={openCount > 0 ? (
+                            badge={showCounts && openCount > 0 ? (
                               <span className="relative z-10 ml-auto text-xs text-neutral-400">
                                 {openCount}
                               </span>
@@ -429,7 +434,7 @@ function AreaList() {
                               : 'text-neutral-400 dark:text-neutral-500'
                         }`} />}
                         title={project.title}
-                        badge={openCount > 0 ? (
+                        badge={showCounts && openCount > 0 ? (
                           <span className="relative z-10 ml-auto text-xs text-neutral-400">
                             {openCount}
                           </span>
@@ -455,10 +460,12 @@ function AreaList() {
 
 function TagList() {
   const { data } = useTags()
+  const { data: settings } = useSettings()
   const open = useAppStore((s) => s.sidebarTagsOpen)
   const setOpen = useAppStore((s) => s.setSidebarTagsOpen)
   const [editingItemId, setEditingItemId] = useState<string | null>(null)
   const updateTag = useUpdateTag()
+  const showCounts = settings?.show_count_tags !== false
   const tags = data?.tags ?? []
 
   const clearEditing = useCallback(() => setEditingItemId(null), [])
@@ -500,7 +507,7 @@ function TagList() {
                           layoutId="sidebar-active-indicator"
                           icon={<Tag size={14} className="relative z-10" />}
                           title={tag.title}
-                          badge={tag.task_count > 0 ? (
+                          badge={showCounts && tag.task_count > 0 ? (
                             <span className="relative z-10 ml-auto text-xs text-neutral-400">
                               {tag.task_count}
                             </span>
@@ -707,6 +714,7 @@ function PlusMenu({ side }: { side: 'top' | 'right' }) {
 export function Sidebar() {
   const collapsed = useAppStore((s) => s.sidebarCollapsed)
   const toggleSidebar = useAppStore((s) => s.toggleSidebar)
+  const navigate = useNavigate()
   const { data: counts } = useViewCounts()
   const overdueCount = counts?.overdue ?? 0
 
@@ -744,8 +752,15 @@ export function Sidebar() {
           ))}
         </nav>
         </LayoutGroup>
-        <div className="mt-auto">
+        <div className="mt-auto flex flex-col items-center gap-1">
           <PlusMenu side="right" />
+          <button
+            onClick={() => navigate('/settings')}
+            className="rounded-lg p-1.5 text-neutral-500 hover:bg-neutral-200 dark:text-neutral-400 dark:hover:bg-neutral-700"
+            aria-label="Settings"
+          >
+            <Settings size={18} />
+          </button>
         </div>
       </aside>
     )
@@ -777,7 +792,16 @@ export function Sidebar() {
       </div>
       <div className="flex items-center justify-between border-t border-neutral-200 px-3 py-2 dark:border-neutral-700">
         <PlusMenu side="top" />
-        <ThemeToggle />
+        <div className="flex items-center gap-1">
+          <ThemeToggle />
+          <button
+            onClick={() => navigate('/settings')}
+            className="rounded-lg p-1.5 text-neutral-500 hover:bg-neutral-200 dark:text-neutral-400 dark:hover:bg-neutral-700"
+            aria-label="Settings"
+          >
+            <Settings size={16} />
+          </button>
+        </div>
       </div>
     </aside>
   )

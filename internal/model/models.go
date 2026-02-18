@@ -176,6 +176,20 @@ type User struct {
 	CreatedAt    string `json:"created_at,omitempty"`
 }
 
+type UserSettings struct {
+	PlayCompleteSound bool `json:"play_complete_sound"`
+	ShowCountMain     bool `json:"show_count_main"`
+	ShowCountProjects bool `json:"show_count_projects"`
+	ShowCountTags     bool `json:"show_count_tags"`
+}
+
+type UpdateUserSettingsInput struct {
+	PlayCompleteSound *bool `json:"play_complete_sound"`
+	ShowCountMain     *bool `json:"show_count_main"`
+	ShowCountProjects *bool `json:"show_count_projects"`
+	ShowCountTags     *bool `json:"show_count_tags"`
+}
+
 // --- Input types ---
 
 type CreateTaskInput struct {

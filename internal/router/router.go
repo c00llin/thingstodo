@@ -35,6 +35,7 @@ func New(db *sql.DB, cfg config.Config, broker *sse.Broker, sched *scheduler.Sch
 	searchRepo := repository.NewSearchRepository(db)
 	viewRepo := repository.NewViewRepository(db)
 	userRepo := repository.NewUserRepository(db)
+	settingsRepo := repository.NewUserSettingsRepository(db)
 
 	// Handlers
 	taskH := handler.NewTaskHandler(taskRepo, broker, sched)
@@ -48,6 +49,7 @@ func New(db *sql.DB, cfg config.Config, broker *sse.Broker, sched *scheduler.Sch
 	searchH := handler.NewSearchHandler(searchRepo)
 	viewH := handler.NewViewHandler(viewRepo)
 	authH := handler.NewAuthHandler(userRepo, cfg)
+	settingsH := handler.NewUserSettingsHandler(settingsRepo)
 	eventH := handler.NewEventHandler(broker)
 
 	// Health check
@@ -144,6 +146,10 @@ func New(db *sql.DB, cfg config.Config, broker *sse.Broker, sched *scheduler.Sch
 			r.Get("/views/logbook", viewH.Logbook)
 			r.Get("/views/trash", viewH.Trash)
 			r.Get("/views/counts", viewH.Counts)
+
+			// User Settings
+			r.Get("/user/settings", settingsH.Get)
+			r.Patch("/user/settings", settingsH.Update)
 
 			// Search
 			r.Get("/search", searchH.Search)

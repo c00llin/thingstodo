@@ -368,6 +368,14 @@ export interface SearchResponse {
   results: SearchResult[]
 }
 
+// User Settings
+export interface UserSettings {
+  play_complete_sound: boolean
+  show_count_main: boolean
+  show_count_projects: boolean
+  show_count_tags: boolean
+}
+
 // Task query params
 export interface TaskQueryParams {
   status?: TaskStatus

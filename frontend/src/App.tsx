@@ -13,6 +13,7 @@ const ProjectView = lazy(() => import('./pages/ProjectView').then(m => ({ defaul
 const AreaView = lazy(() => import('./pages/AreaView').then(m => ({ default: m.AreaView })))
 const TagView = lazy(() => import('./pages/TagView').then(m => ({ default: m.TagView })))
 const TaskPermalinkView = lazy(() => import('./pages/TaskPermalinkView').then(m => ({ default: m.TaskPermalinkView })))
+const SettingsView = lazy(() => import('./pages/SettingsView').then(m => ({ default: m.SettingsView })))
 const LoginView = lazy(() => import('./pages/LoginView').then(m => ({ default: m.LoginView })))
 
 function App() {
@@ -33,6 +34,7 @@ function App() {
             <Route path="area/:id" element={<AreaView />} />
             <Route path="tag/:id" element={<TagView />} />
             <Route path="task/:slug" element={<TaskPermalinkView />} />
+            <Route path="settings" element={<SettingsView />} />
           </Route>
           <Route path="login" element={<LoginView />} />
         </Routes>
