@@ -151,18 +151,23 @@ function AppDndContextInner({ children }: AppDndContextProps) {
       // Project drag-and-drop to areas
       if (activeId.startsWith('drag-project-')) {
         const projectId = activeId.replace('drag-project-', '')
+        let newAreaId: string | null = null
         if (overId.startsWith('sidebar-area-')) {
-          const areaId = overId.replace('sidebar-area-', '')
-          updateProject(projectId, { area_id: areaId })
+          newAreaId = overId.replace('sidebar-area-', '')
         } else if (overId.startsWith('sidebar-project-')) {
           const targetProjectId = overId.replace('sidebar-project-', '')
           const targetProject = projects.find((p) => p.id === targetProjectId)
-          updateProject(projectId, { area_id: targetProject?.area_id ?? null })
-        } else {
-          updateProject(projectId, { area_id: null })
+          newAreaId = targetProject?.area_id ?? null
         }
-        queryClient.invalidateQueries({ queryKey: ['projects'] })
-        queryClient.invalidateQueries({ queryKey: ['areas'] })
+        // Optimistic update
+        queryClient.setQueriesData<{ projects: typeof projects }>(
+          { queryKey: ['projects'] },
+          (old) => old ? { ...old, projects: old.projects.map((p) => p.id === projectId ? { ...p, area_id: newAreaId } : p) } : old,
+        )
+        updateProject(projectId, { area_id: newAreaId }).then(() => {
+          queryClient.invalidateQueries({ queryKey: ['projects'] })
+          queryClient.invalidateQueries({ queryKey: ['areas'] })
+        })
         return
       }
 
