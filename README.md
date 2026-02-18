@@ -2,6 +2,8 @@
 
 A self-hosted, Things 3 / Todoist inspired task manager.
 
+![ThingsToDo screenshot](docs/screenshots/screenshot-light.png)
+
 ## Features
 
 - **Projects & Areas** — organize tasks into projects (completable) and areas (ongoing)
