@@ -2,7 +2,7 @@ import { useEffect, useRef, useCallback } from 'react'
 import { useHotkeys } from 'react-hotkeys-hook'
 import { useNavigate } from 'react-router'
 import { useAppStore } from '../stores/app'
-import { useCompleteTask, useCancelTask, useDeleteTask, useUpdateTask } from './queries'
+import { useCompleteTask, useDeleteTask, useUpdateTask } from './queries'
 
 const VIEW_ROUTES = ['/inbox', '/today', '/upcoming', '/anytime', '/someday', '/logbook']
 
@@ -128,7 +128,6 @@ export function useTaskShortcuts() {
   const startEditingTask = useAppStore((s) => s.startEditingTask)
   const visibleTaskIds = useAppStore((s) => s.visibleTaskIds)
   const completeTask = useCompleteTask()
-  const cancelTask = useCancelTask()
   const deleteTask = useDeleteTask()
   const updateTask = useUpdateTask()
 
@@ -194,12 +193,6 @@ export function useTaskShortcuts() {
     if (selectedTaskId) completeTask.mutate(selectedTaskId)
   }, { enabled })
 
-  // Cancel task
-  useHotkeys('alt+shift+k', (e) => {
-    e.preventDefault()
-    if (selectedTaskId) cancelTask.mutate(selectedTaskId)
-  }, { enabled })
-
   // Move to Today
   useHotkeys('alt+t', (e) => {
     e.preventDefault()
@@ -219,7 +212,7 @@ export function useTaskShortcuts() {
   }, { enabled })
 
   // Move to Someday
-  useHotkeys('alt+shift+s', (e) => {
+  useHotkeys('alt+s', (e) => {
     e.preventDefault()
     if (selectedTaskId) {
       updateTask.mutate({ id: selectedTaskId, data: { when_date: 'someday' } })
