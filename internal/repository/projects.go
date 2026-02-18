@@ -275,7 +275,7 @@ func setProjectTags(db *sql.DB, projectID string, tagIDs []string) {
 
 func getTaskListItems(db *sql.DB, filterCol, filterVal string) []model.TaskListItem {
 	rows, err := db.Query(`
-		SELECT t.id, t.title, t.notes, t.status, t.when_date, t.when_evening,
+		SELECT t.id, t.title, t.notes, t.status, t.when_date, t.when_evening, t.high_priority,
 			t.deadline, t.project_id, t.area_id, t.heading_id,
 			t.sort_order_today, t.sort_order_project, t.sort_order_heading,
 			t.completed_at, t.canceled_at, t.deleted_at, t.created_at, t.updated_at,
@@ -296,7 +296,7 @@ func getTaskListItems(db *sql.DB, filterCol, filterVal string) []model.TaskListI
 
 func getTaskListItemsNoHeading(db *sql.DB, projectID string) []model.TaskListItem {
 	rows, err := db.Query(`
-		SELECT t.id, t.title, t.notes, t.status, t.when_date, t.when_evening,
+		SELECT t.id, t.title, t.notes, t.status, t.when_date, t.when_evening, t.high_priority,
 			t.deadline, t.project_id, t.area_id, t.heading_id,
 			t.sort_order_today, t.sort_order_project, t.sort_order_heading,
 			t.completed_at, t.canceled_at, t.deleted_at, t.created_at, t.updated_at,
@@ -319,9 +319,9 @@ func scanTaskListItems(db *sql.DB, rows *sql.Rows) []model.TaskListItem {
 	var tasks []model.TaskListItem
 	for rows.Next() {
 		var t model.TaskListItem
-		var whenEvening, hasNotes, hasLinks, hasFiles, hasRepeat int
+		var whenEvening, highPriority, hasNotes, hasLinks, hasFiles, hasRepeat int
 		_ = rows.Scan(
-			&t.ID, &t.Title, &t.Notes, &t.Status, &t.WhenDate, &whenEvening,
+			&t.ID, &t.Title, &t.Notes, &t.Status, &t.WhenDate, &whenEvening, &highPriority,
 			&t.Deadline, &t.ProjectID, &t.AreaID, &t.HeadingID,
 			&t.SortOrderToday, &t.SortOrderProject, &t.SortOrderHeading,
 			&t.CompletedAt, &t.CanceledAt, &t.DeletedAt, &t.CreatedAt, &t.UpdatedAt,
@@ -329,6 +329,7 @@ func scanTaskListItems(db *sql.DB, rows *sql.Rows) []model.TaskListItem {
 			&hasNotes, &hasLinks, &hasFiles, &hasRepeat,
 		)
 		t.WhenEvening = whenEvening == 1
+		t.HighPriority = highPriority == 1
 		t.HasNotes = hasNotes == 1
 		t.HasLinks = hasLinks == 1
 		t.HasFiles = hasFiles == 1

@@ -91,7 +91,7 @@ func (r *TagRepository) Delete(id string) error {
 
 func (r *TagRepository) GetTasksByTag(tagID string) ([]model.TaskListItem, error) {
 	rows, err := r.db.Query(`
-		SELECT t.id, t.title, t.notes, t.status, t.when_date, t.when_evening,
+		SELECT t.id, t.title, t.notes, t.status, t.when_date, t.when_evening, t.high_priority,
 			t.deadline, t.project_id, t.area_id, t.heading_id,
 			t.sort_order_today, t.sort_order_project, t.sort_order_heading,
 			t.completed_at, t.canceled_at, t.deleted_at, t.created_at, t.updated_at,

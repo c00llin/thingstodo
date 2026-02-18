@@ -82,6 +82,7 @@ export interface Task {
   status: TaskStatus
   when_date: string | null
   when_evening: boolean
+  high_priority: boolean
   deadline: string | null
   project_id: string | null
   area_id: string | null
@@ -119,6 +120,7 @@ export interface CreateTaskRequest {
   notes?: string
   when_date?: string | null
   when_evening?: boolean
+  high_priority?: boolean
   deadline?: string | null
   project_id?: string | null
   area_id?: string | null
@@ -131,6 +133,7 @@ export interface UpdateTaskRequest {
   notes?: string
   when_date?: string | null
   when_evening?: boolean
+  high_priority?: boolean
   deadline?: string | null
   project_id?: string | null
   area_id?: string | null

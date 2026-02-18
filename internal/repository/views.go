@@ -18,7 +18,7 @@ func NewViewRepository(db *sql.DB) *ViewRepository {
 
 func (r *ViewRepository) Inbox() ([]model.TaskListItem, error) {
 	rows, err := r.db.Query(`
-		SELECT t.id, t.title, t.notes, t.status, t.when_date, t.when_evening,
+		SELECT t.id, t.title, t.notes, t.status, t.when_date, t.when_evening, t.high_priority,
 			t.deadline, t.project_id, t.area_id, t.heading_id,
 			t.sort_order_today, t.sort_order_project, t.sort_order_heading,
 			t.completed_at, t.canceled_at, t.deleted_at, t.created_at, t.updated_at,
@@ -44,7 +44,7 @@ func (r *ViewRepository) Today() (*model.TodayView, error) {
 
 	// Today tasks (not evening)
 	todayRows, err := r.db.Query(`
-		SELECT t.id, t.title, t.notes, t.status, t.when_date, t.when_evening,
+		SELECT t.id, t.title, t.notes, t.status, t.when_date, t.when_evening, t.high_priority,
 			t.deadline, t.project_id, t.area_id, t.heading_id,
 			t.sort_order_today, t.sort_order_project, t.sort_order_heading,
 			t.completed_at, t.canceled_at, t.deleted_at, t.created_at, t.updated_at,
@@ -66,7 +66,7 @@ func (r *ViewRepository) Today() (*model.TodayView, error) {
 
 	// Evening tasks
 	eveningRows, err := r.db.Query(`
-		SELECT t.id, t.title, t.notes, t.status, t.when_date, t.when_evening,
+		SELECT t.id, t.title, t.notes, t.status, t.when_date, t.when_evening, t.high_priority,
 			t.deadline, t.project_id, t.area_id, t.heading_id,
 			t.sort_order_today, t.sort_order_project, t.sort_order_heading,
 			t.completed_at, t.canceled_at, t.deleted_at, t.created_at, t.updated_at,
@@ -88,7 +88,7 @@ func (r *ViewRepository) Today() (*model.TodayView, error) {
 
 	// Overdue
 	overdueRows, err := r.db.Query(`
-		SELECT t.id, t.title, t.notes, t.status, t.when_date, t.when_evening,
+		SELECT t.id, t.title, t.notes, t.status, t.when_date, t.when_evening, t.high_priority,
 			t.deadline, t.project_id, t.area_id, t.heading_id,
 			t.sort_order_today, t.sort_order_project, t.sort_order_heading,
 			t.completed_at, t.canceled_at, t.deleted_at, t.created_at, t.updated_at,
@@ -128,7 +128,7 @@ func (r *ViewRepository) Upcoming(from string, days int) (*model.UpcomingView, e
 	endDate := startDate.AddDate(0, 0, days).Format("2006-01-02")
 
 	rows, err := r.db.Query(`
-		SELECT t.id, t.title, t.notes, t.status, t.when_date, t.when_evening,
+		SELECT t.id, t.title, t.notes, t.status, t.when_date, t.when_evening, t.high_priority,
 			t.deadline, t.project_id, t.area_id, t.heading_id,
 			t.sort_order_today, t.sort_order_project, t.sort_order_heading,
 			t.completed_at, t.canceled_at, t.deleted_at, t.created_at, t.updated_at,
@@ -261,7 +261,7 @@ func (r *ViewRepository) getAnytimeTasks(projectID, areaID *string, byProject, s
 	var args []interface{}
 
 	query = `
-		SELECT t.id, t.title, t.notes, t.status, t.when_date, t.when_evening,
+		SELECT t.id, t.title, t.notes, t.status, t.when_date, t.when_evening, t.high_priority,
 			t.deadline, t.project_id, t.area_id, t.heading_id,
 			t.sort_order_today, t.sort_order_project, t.sort_order_heading,
 			t.completed_at, t.canceled_at, t.deleted_at, t.created_at, t.updated_at,
@@ -303,7 +303,7 @@ func (r *ViewRepository) getAnytimeTasks(projectID, areaID *string, byProject, s
 func (r *ViewRepository) getAnytimeStandaloneNoArea(somedayOnly bool) []model.TaskListItem {
 	var query string
 	query = `
-		SELECT t.id, t.title, t.notes, t.status, t.when_date, t.when_evening,
+		SELECT t.id, t.title, t.notes, t.status, t.when_date, t.when_evening, t.high_priority,
 			t.deadline, t.project_id, t.area_id, t.heading_id,
 			t.sort_order_today, t.sort_order_project, t.sort_order_heading,
 			t.completed_at, t.canceled_at, t.deleted_at, t.created_at, t.updated_at,
@@ -341,7 +341,7 @@ func (r *ViewRepository) Logbook(limit, offset int) (*model.LogbookView, error) 
 	_ = r.db.QueryRow("SELECT COUNT(*) FROM tasks WHERE status IN ('completed', 'canceled', 'wont_do') AND deleted_at IS NULL").Scan(&total)
 
 	rows, err := r.db.Query(`
-		SELECT t.id, t.title, t.notes, t.status, t.when_date, t.when_evening,
+		SELECT t.id, t.title, t.notes, t.status, t.when_date, t.when_evening, t.high_priority,
 			t.deadline, t.project_id, t.area_id, t.heading_id,
 			t.sort_order_today, t.sort_order_project, t.sort_order_heading,
 			t.completed_at, t.canceled_at, t.deleted_at, t.created_at, t.updated_at,
@@ -400,7 +400,7 @@ func (r *ViewRepository) Trash(limit, offset int) (*model.LogbookView, error) {
 	_ = r.db.QueryRow("SELECT COUNT(*) FROM tasks WHERE deleted_at IS NOT NULL").Scan(&total)
 
 	rows, err := r.db.Query(`
-		SELECT t.id, t.title, t.notes, t.status, t.when_date, t.when_evening,
+		SELECT t.id, t.title, t.notes, t.status, t.when_date, t.when_evening, t.high_priority,
 			t.deadline, t.project_id, t.area_id, t.heading_id,
 			t.sort_order_today, t.sort_order_project, t.sort_order_heading,
 			t.completed_at, t.canceled_at, t.deleted_at, t.created_at, t.updated_at,

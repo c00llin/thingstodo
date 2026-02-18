@@ -12,6 +12,7 @@ import { formatRelativeDate } from '../lib/format-date'
 import { TaskStatusIcon } from './TaskStatusIcon'
 import { TagAutocomplete } from './TagAutocomplete'
 import { ProjectAutocomplete } from './ProjectAutocomplete'
+import { PriorityAutocomplete } from './PriorityAutocomplete'
 
 function DelayedReveal({ children }: { children: React.ReactNode }) {
   const [visible, setVisible] = useState(false)
@@ -225,7 +226,9 @@ export function TaskItem({ task, showProject = true }: TaskItemProps) {
             <Checkbox.Root
               checked={isCompleted}
               onCheckedChange={handleCheck}
-              className="flex h-5 w-5 items-center justify-center rounded-full border-2 border-neutral-300 transition-colors data-[state=checked]:border-red-500 data-[state=checked]:bg-red-500 dark:border-neutral-500"
+              className={`flex h-5 w-5 items-center justify-center rounded-full border-2 transition-colors data-[state=checked]:border-red-500 data-[state=checked]:bg-red-500 ${
+                task.high_priority ? 'border-red-500 dark:border-red-500' : 'border-neutral-300 dark:border-neutral-500'
+              }`}
             >
               <Checkbox.Indicator>
                 <Check size={12} className="text-white" />
@@ -268,6 +271,12 @@ export function TaskItem({ task, showProject = true }: TaskItemProps) {
                 />
                 <TagAutocomplete inputRef={inputRef} value={title} onChange={setTitle} />
                 <ProjectAutocomplete inputRef={inputRef} value={title} onChange={setTitle} />
+                <PriorityAutocomplete
+                  inputRef={inputRef}
+                  value={title}
+                  onChange={setTitle}
+                  onSetHighPriority={() => updateTask.mutate({ id: task.id, data: { high_priority: true } })}
+                />
               </>
             ) : (
               <span

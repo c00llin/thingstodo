@@ -18,7 +18,7 @@ func NewTaskRepository(db *sql.DB) *TaskRepository {
 
 func (r *TaskRepository) List(f model.TaskFilters) ([]model.TaskListItem, error) {
 	query := `
-		SELECT t.id, t.title, t.notes, t.status, t.when_date, t.when_evening,
+		SELECT t.id, t.title, t.notes, t.status, t.when_date, t.when_evening, t.high_priority,
 			t.deadline, t.project_id, t.area_id, t.heading_id,
 			t.sort_order_today, t.sort_order_project, t.sort_order_heading,
 			t.completed_at, t.canceled_at, t.deleted_at, t.created_at, t.updated_at,
@@ -106,9 +106,9 @@ func (r *TaskRepository) List(f model.TaskFilters) ([]model.TaskListItem, error)
 	var tasks []model.TaskListItem
 	for rows.Next() {
 		var t model.TaskListItem
-		var whenEvening, hasNotes, hasLinks, hasFiles, hasRepeat int
+		var whenEvening, highPriority, hasNotes, hasLinks, hasFiles, hasRepeat int
 		if err := rows.Scan(
-			&t.ID, &t.Title, &t.Notes, &t.Status, &t.WhenDate, &whenEvening,
+			&t.ID, &t.Title, &t.Notes, &t.Status, &t.WhenDate, &whenEvening, &highPriority,
 			&t.Deadline, &t.ProjectID, &t.AreaID, &t.HeadingID,
 			&t.SortOrderToday, &t.SortOrderProject, &t.SortOrderHeading,
 			&t.CompletedAt, &t.CanceledAt, &t.DeletedAt, &t.CreatedAt, &t.UpdatedAt,
@@ -118,6 +118,7 @@ func (r *TaskRepository) List(f model.TaskFilters) ([]model.TaskListItem, error)
 			return nil, fmt.Errorf("scan task: %w", err)
 		}
 		t.WhenEvening = whenEvening == 1
+		t.HighPriority = highPriority == 1
 		t.HasNotes = hasNotes == 1
 		t.HasLinks = hasLinks == 1
 		t.HasFiles = hasFiles == 1
@@ -133,14 +134,14 @@ func (r *TaskRepository) List(f model.TaskFilters) ([]model.TaskListItem, error)
 
 func (r *TaskRepository) GetByID(id string) (*model.TaskDetail, error) {
 	var t model.TaskDetail
-	var whenEvening int
+	var whenEvening, highPriority int
 	err := r.db.QueryRow(`
-		SELECT id, title, notes, status, when_date, when_evening,
+		SELECT id, title, notes, status, when_date, when_evening, high_priority,
 			deadline, project_id, area_id, heading_id,
 			sort_order_today, sort_order_project, sort_order_heading,
 			completed_at, canceled_at, deleted_at, created_at, updated_at
 		FROM tasks WHERE id = ?`, id).Scan(
-		&t.ID, &t.Title, &t.Notes, &t.Status, &t.WhenDate, &whenEvening,
+		&t.ID, &t.Title, &t.Notes, &t.Status, &t.WhenDate, &whenEvening, &highPriority,
 		&t.Deadline, &t.ProjectID, &t.AreaID, &t.HeadingID,
 		&t.SortOrderToday, &t.SortOrderProject, &t.SortOrderHeading,
 		&t.CompletedAt, &t.CanceledAt, &t.DeletedAt, &t.CreatedAt, &t.UpdatedAt,
@@ -152,6 +153,7 @@ func (r *TaskRepository) GetByID(id string) (*model.TaskDetail, error) {
 		return nil, fmt.Errorf("get task: %w", err)
 	}
 	t.WhenEvening = whenEvening == 1
+	t.HighPriority = highPriority == 1
 
 	// Load related refs
 	if t.ProjectID != nil {
@@ -179,11 +181,11 @@ func (r *TaskRepository) Create(input model.CreateTaskInput) (*model.TaskDetail,
 	_ = r.db.QueryRow("SELECT COALESCE(MAX(sort_order_today), 0) FROM tasks").Scan(&maxSort)
 
 	_, err := r.db.Exec(`
-		INSERT INTO tasks (id, title, notes, when_date, when_evening, deadline,
+		INSERT INTO tasks (id, title, notes, when_date, when_evening, high_priority, deadline,
 			project_id, area_id, heading_id, sort_order_today, sort_order_project, sort_order_heading)
-		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
 		id, input.Title, input.Notes, input.WhenDate, boolToInt(input.WhenEvening),
-		input.Deadline, input.ProjectID, input.AreaID, input.HeadingID,
+		boolToInt(input.HighPriority), input.Deadline, input.ProjectID, input.AreaID, input.HeadingID,
 		maxSort+1024, maxSort+1024, maxSort+1024,
 	)
 	if err != nil {
@@ -216,6 +218,10 @@ func (r *TaskRepository) Update(id string, input model.UpdateTaskInput) (*model.
 	if input.WhenEvening != nil {
 		sets = append(sets, "when_evening = ?")
 		args = append(args, boolToInt(*input.WhenEvening))
+	}
+	if input.HighPriority != nil {
+		sets = append(sets, "high_priority = ?")
+		args = append(args, boolToInt(*input.HighPriority))
 	}
 	if _, ok := input.Raw["deadline"]; ok {
 		sets = append(sets, "deadline = ?")

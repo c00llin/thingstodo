@@ -4,6 +4,7 @@ import { useCreateTask } from '../hooks/queries'
 import { useResolveTags } from '../hooks/useResolveTags'
 import { TagAutocomplete } from './TagAutocomplete'
 import { ProjectAutocomplete } from './ProjectAutocomplete'
+import { PriorityAutocomplete } from './PriorityAutocomplete'
 import { StickyNote, Calendar, Flag, X } from 'lucide-react'
 import { DateInput } from './DateInput'
 
@@ -19,6 +20,7 @@ export function QuickEntry() {
   const [whenDate, setWhenDate] = useState('')
   const [whenEvening, setWhenEvening] = useState(false)
   const [deadline, setDeadline] = useState('')
+  const [highPriority, setHighPriority] = useState(false)
   const [showNotes, setShowNotes] = useState(false)
   const [showWhen, setShowWhen] = useState(false)
   const [showDeadline, setShowDeadline] = useState(false)
@@ -44,6 +46,7 @@ export function QuickEntry() {
     setWhenDate('')
     setWhenEvening(false)
     setDeadline('')
+    setHighPriority(false)
     setShowNotes(false)
     setShowWhen(false)
     setShowDeadline(false)
@@ -83,6 +86,7 @@ export function QuickEntry() {
         notes: notes.trim() || undefined,
         when_date: whenDate || undefined,
         when_evening: whenEvening || undefined,
+        high_priority: highPriority || undefined,
         deadline: deadline || undefined,
         tag_ids: tagIds.length > 0 ? tagIds : undefined,
         project_id: projectId ?? undefined,
@@ -96,7 +100,7 @@ export function QuickEntry() {
         },
       }
     )
-  }, [title, notes, whenDate, whenEvening, deadline, resolveTags, createTask, close])
+  }, [title, notes, whenDate, whenEvening, highPriority, deadline, resolveTags, createTask, close])
 
   if (!open) return null
 
@@ -153,6 +157,8 @@ export function QuickEntry() {
             setDeadline(date ?? '')
             if (!date) setShowDeadline(false)
           }}
+          highPriority={highPriority}
+          onSetHighPriority={() => setHighPriority(true)}
           showNotes={showNotes}
           onToggleNotes={setShowNotes}
           showWhen={showWhen}
@@ -161,7 +167,7 @@ export function QuickEntry() {
           onToggleDeadline={setShowDeadline}
         />
         <div className="flex items-center justify-between border-t border-neutral-200 px-4 py-2 text-xs text-neutral-400 dark:border-neutral-700 dark:text-neutral-500">
-          <span>Enter to create · #tag $project *notes @when ^deadline</span>
+          <span>Enter to create · #tag $project *notes @when ^deadline !high</span>
           <span>Esc to close</span>
         </div>
       </div>
@@ -183,6 +189,8 @@ function CreateMode({
   onWhenDateChange,
   deadline,
   onDeadlineChange,
+  highPriority,
+  onSetHighPriority,
   showNotes,
   onToggleNotes,
   showWhen,
@@ -203,6 +211,8 @@ function CreateMode({
   onWhenDateChange: (date: string | null, evening?: boolean) => void
   deadline: string
   onDeadlineChange: (date: string | null) => void
+  highPriority: boolean
+  onSetHighPriority: () => void
   showNotes: boolean
   onToggleNotes: (v: boolean) => void
   showWhen: boolean
@@ -281,7 +291,7 @@ function CreateMode({
     >
       <div className="p-4">
         <div className="flex items-center gap-3">
-          <div className="flex h-5 w-5 items-center justify-center rounded-full border-2 border-neutral-300 dark:border-neutral-600" />
+          <div className={`flex h-5 w-5 items-center justify-center rounded-full border-2 ${highPriority ? 'border-red-500' : 'border-neutral-300 dark:border-neutral-600'}`} />
           <input
             ref={inputRef}
             autoFocus
@@ -296,6 +306,7 @@ function CreateMode({
       </div>
       <TagAutocomplete inputRef={inputRef} value={title} onChange={onTitleChange} />
       <ProjectAutocomplete inputRef={inputRef} value={title} onChange={onTitleChange} />
+      <PriorityAutocomplete inputRef={inputRef} value={title} onChange={onTitleChange} onSetHighPriority={onSetHighPriority} />
 
       {/* Detail sections — shown when toggled */}
       {showToolbar && (showNotes || showWhen || showDeadline) && (

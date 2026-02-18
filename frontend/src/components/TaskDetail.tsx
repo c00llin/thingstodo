@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
 import * as Checkbox from '@radix-ui/react-checkbox'
-import { Check, Plus, Paperclip, Link, Trash2, X, Calendar, Flag, ListChecks, StickyNote, CircleMinus, CircleX, RefreshCw } from 'lucide-react'
+import { Check, Plus, Paperclip, Link, Trash2, X, Calendar, Flag, ListChecks, StickyNote, CircleMinus, CircleX, RefreshCw, CircleAlert } from 'lucide-react'
 import { DateInput } from './DateInput'
 import {
   useTask,
@@ -340,7 +340,7 @@ export function TaskDetail({ taskId }: TaskDetailProps) {
 
       {/* Toolbar — icon buttons for adding when, deadline, file, link, repeat */}
       <div className={`flex items-center gap-0.5 -ml-[6px] ${
-        (hasNotes || showNotes || hasWhen || showWhen || hasDeadline || showDeadline || hasChecklist || showChecklist || task.attachments.length > 0 || hasRepeatRule || showRepeat)
+        (hasNotes || showNotes || hasWhen || showWhen || hasDeadline || showDeadline || hasChecklist || showChecklist || task.attachments.length > 0 || hasRepeatRule || showRepeat || task.high_priority)
           ? 'border-t border-neutral-100 pt-3 dark:border-neutral-700'
           : ''
       }`}>
@@ -386,6 +386,26 @@ export function TaskDetail({ taskId }: TaskDetailProps) {
         )}
         <FileUploadButton taskId={taskId} />
         <LinkAddButton taskId={taskId} />
+        {task.high_priority ? (
+          <button
+            onClick={() => updateTask.mutate({ id: taskId, data: { high_priority: false } })}
+            className="ml-1 flex items-center gap-1 rounded-md border border-red-200 px-1.5 py-0.5 text-red-500 hover:bg-red-50 dark:border-red-800 dark:hover:bg-red-900/20"
+            aria-label="Remove high priority"
+            title="High priority"
+          >
+            <CircleAlert size={14} />
+            <span className="text-xs">High</span>
+          </button>
+        ) : (
+          <button
+            onClick={() => updateTask.mutate({ id: taskId, data: { high_priority: true } })}
+            className="rounded-md p-1 text-neutral-400 hover:bg-neutral-100 hover:text-neutral-600 dark:hover:bg-neutral-800 dark:hover:text-neutral-300"
+            aria-label="Set high priority"
+            title="High priority"
+          >
+            <CircleAlert size={16} />
+          </button>
+        )}
         {hasRepeatRule && !showRepeat && task.repeat_rule ? (
           <button
             onClick={() => setShowRepeat(true)}

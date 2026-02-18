@@ -83,6 +83,7 @@ type Task struct {
 	Status            string  `json:"status"`
 	WhenDate          *string `json:"when_date"`
 	WhenEvening       bool    `json:"when_evening"`
+	HighPriority      bool    `json:"high_priority"`
 	Deadline          *string `json:"deadline"`
 	ProjectID         *string `json:"project_id"`
 	AreaID            *string `json:"area_id"`
@@ -193,11 +194,12 @@ type UpdateUserSettingsInput struct {
 // --- Input types ---
 
 type CreateTaskInput struct {
-	Title       string   `json:"title"`
-	Notes       string   `json:"notes"`
-	WhenDate    *string  `json:"when_date"`
-	WhenEvening bool     `json:"when_evening"`
-	Deadline    *string  `json:"deadline"`
+	Title        string   `json:"title"`
+	Notes        string   `json:"notes"`
+	WhenDate     *string  `json:"when_date"`
+	WhenEvening  bool     `json:"when_evening"`
+	HighPriority bool     `json:"high_priority"`
+	Deadline     *string  `json:"deadline"`
 	ProjectID   *string  `json:"project_id"`
 	AreaID      *string  `json:"area_id"`
 	HeadingID   *string  `json:"heading_id"`
@@ -205,11 +207,12 @@ type CreateTaskInput struct {
 }
 
 type UpdateTaskInput struct {
-	Title       *string  `json:"title"`
-	Notes       *string  `json:"notes"`
-	WhenDate    *string  `json:"when_date"`
-	WhenEvening *bool    `json:"when_evening"`
-	Deadline    *string  `json:"deadline"`
+	Title        *string  `json:"title"`
+	Notes        *string  `json:"notes"`
+	WhenDate     *string  `json:"when_date"`
+	WhenEvening  *bool    `json:"when_evening"`
+	HighPriority *bool    `json:"high_priority"`
+	Deadline     *string  `json:"deadline"`
 	ProjectID   *string  `json:"project_id"`
 	AreaID      *string  `json:"area_id"`
 	HeadingID   *string  `json:"heading_id"`

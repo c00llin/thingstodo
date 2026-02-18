@@ -20,7 +20,9 @@ export function TaskItemDragOverlay({ task }: TaskItemDragOverlayProps) {
             className={`flex h-5 w-5 items-center justify-center rounded-full border-2 ${
               isCompleted
                 ? 'border-red-500 bg-red-500'
-                : 'border-neutral-300 dark:border-neutral-500'
+                : task.high_priority
+                  ? 'border-red-500 dark:border-red-500'
+                  : 'border-neutral-300 dark:border-neutral-500'
             }`}
           >
             {isCompleted && <Check size={12} className="text-white" />}
