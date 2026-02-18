@@ -11,6 +11,7 @@ import * as repeatApi from '../api/repeat'
 import * as viewsApi from '../api/views'
 import * as searchApi from '../api/search'
 import * as authApi from '../api/auth'
+import { playCompleteSound } from '../lib/sounds'
 import type {
   Task,
   CreateTaskRequest,
@@ -345,6 +346,7 @@ export function useCompleteTask() {
         completed_at: new Date().toISOString(),
       })
       useAppStore.getState().setDepartingTaskId(id)
+      playCompleteSound()
       return { snapshot }
     },
     onError: (_err, _id, context) => {
