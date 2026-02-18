@@ -93,7 +93,8 @@ func (h *AuthHandler) Me(w http.ResponseWriter, r *http.Request) {
 	// In proxy mode, the user may not exist in the database — return the proxy identity directly.
 	if h.cfg.AuthMode == "proxy" {
 		writeJSON(w, http.StatusOK, map[string]interface{}{
-			"user": map[string]string{"id": uid, "username": uid},
+			"user":      map[string]string{"id": uid, "username": uid},
+			"auth_mode": h.cfg.AuthMode,
 		})
 		return
 	}
@@ -104,7 +105,8 @@ func (h *AuthHandler) Me(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	writeJSON(w, http.StatusOK, map[string]interface{}{
-		"user": map[string]string{"id": user.ID, "username": user.Username},
+		"user":      map[string]string{"id": user.ID, "username": user.Username},
+		"auth_mode": h.cfg.AuthMode,
 	})
 }
 

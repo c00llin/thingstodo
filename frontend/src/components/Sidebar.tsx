@@ -16,6 +16,7 @@ import {
   Blocks,
   CirclePlus,
   Settings,
+  LogOut,
 } from 'lucide-react'
 import * as Collapsible from '@radix-ui/react-collapsible'
 import * as Popover from '@radix-ui/react-popover'
@@ -23,7 +24,7 @@ import { useDraggable } from '@dnd-kit/core'
 
 import { motion, AnimatePresence, LayoutGroup } from 'framer-motion'
 import { ApiError } from '../api/client'
-import { useAreas, useProjects, useTags, useCreateProject, useCreateArea, useViewCounts, useUpdateProject, useUpdateArea, useUpdateTag, useSettings } from '../hooks/queries'
+import { useAreas, useProjects, useTags, useCreateProject, useCreateArea, useViewCounts, useUpdateProject, useUpdateArea, useUpdateTag, useSettings, useMe, useLogout } from '../hooks/queries'
 import { useAppStore } from '../stores/app'
 import { ThemeToggle } from './ThemeToggle'
 import { SidebarDropTarget } from './SidebarDropTarget'
@@ -711,6 +712,25 @@ function PlusMenu({ side }: { side: 'top' | 'right' }) {
   )
 }
 
+function LogoutButton({ size = 16 }: { size?: number }) {
+  const { data } = useMe()
+  const logout = useLogout()
+  const navigate = useNavigate()
+
+  if (data?.auth_mode !== 'builtin') return null
+
+  return (
+    <button
+      onClick={() => logout.mutate(undefined, { onSuccess: () => navigate('/login') })}
+      className="rounded-lg p-1.5 text-neutral-500 hover:bg-neutral-200 dark:text-neutral-400 dark:hover:bg-neutral-700"
+      aria-label="Log out"
+      title="Log out"
+    >
+      <LogOut size={size} />
+    </button>
+  )
+}
+
 export function Sidebar() {
   const collapsed = useAppStore((s) => s.sidebarCollapsed)
   const toggleSidebar = useAppStore((s) => s.toggleSidebar)
@@ -754,13 +774,6 @@ export function Sidebar() {
         </LayoutGroup>
         <div className="mt-auto flex flex-col items-center gap-1">
           <PlusMenu side="right" />
-          <button
-            onClick={() => navigate('/settings')}
-            className="rounded-lg p-1.5 text-neutral-500 hover:bg-neutral-200 dark:text-neutral-400 dark:hover:bg-neutral-700"
-            aria-label="Settings"
-          >
-            <Settings size={18} />
-          </button>
         </div>
       </aside>
     )
@@ -794,6 +807,7 @@ export function Sidebar() {
         <PlusMenu side="top" />
         <div className="flex items-center gap-1">
           <ThemeToggle />
+          <LogoutButton />
           <button
             onClick={() => navigate('/settings')}
             className="rounded-lg p-1.5 text-neutral-500 hover:bg-neutral-200 dark:text-neutral-400 dark:hover:bg-neutral-700"

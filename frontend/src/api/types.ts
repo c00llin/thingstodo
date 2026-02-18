@@ -17,6 +17,7 @@ export interface User {
 
 export interface AuthResponse {
   user: User
+  auth_mode: string
 }
 
 export interface LoginRequest {
