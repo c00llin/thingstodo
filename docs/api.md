@@ -30,7 +30,7 @@ All entity IDs are nanoid strings (8-10 chars). Task IDs double as permalink slu
 ## Authentication
 
 ### POST /api/auth/login
-**Mode: builtin only**
+**Mode: builtin only** (returns 404 in proxy mode)
 
 Request:
 ```json
@@ -53,7 +53,10 @@ Response (200): Clears JWT cookie
 ### GET /api/auth/me
 Response (200):
 ```json
-{ "user": { "id": "string", "username": "string" } }
+{
+  "user": { "id": "string", "username": "string" },
+  "auth_mode": "builtin|proxy|none"
+}
 ```
 
 ---
@@ -74,6 +77,7 @@ Response (200):
       "status": "open|completed|canceled|wont_do",
       "when_date": "string|null",
       "when_evening": false,
+      "high_priority": false,
       "deadline": "string|null",
       "project_id": "string|null",
       "area_id": "string|null",
@@ -104,6 +108,7 @@ Request:
   "notes": "string",
   "when_date": "string|null",
   "when_evening": false,
+  "high_priority": false,
   "deadline": "string|null",
   "project_id": "string|null",
   "area_id": "string|null",
@@ -124,6 +129,7 @@ Response (200): Full task object with nested checklist, attachments, tags, repea
   "status": "open|completed|canceled|wont_do",
   "when_date": "string|null",
   "when_evening": false,
+  "high_priority": false,
   "deadline": "string|null",
   "project_id": "string|null",
   "project": { "id": "string", "title": "string" },
@@ -177,6 +183,7 @@ Request: Partial update (any subset of task fields)
   "notes": "string",
   "when_date": "string|null",
   "when_evening": false,
+  "high_priority": false,
   "deadline": "string|null",
   "project_id": "string|null",
   "area_id": "string|null",
@@ -188,6 +195,13 @@ Request: Partial update (any subset of task fields)
 Response (200): Updated full task object
 
 ### DELETE /api/tasks/:id
+Soft delete (moves to trash).
+
+Response (204): No content
+
+### DELETE /api/tasks/:id/purge
+Permanently deletes the task.
+
 Response (204): No content
 
 ### PATCH /api/tasks/:id/complete
@@ -201,6 +215,27 @@ Response (200): Updated task with status=wont_do
 
 ### PATCH /api/tasks/:id/reopen
 Response (200): Updated task with status=open
+
+### PATCH /api/tasks/:id/restore
+Restores a soft-deleted task from trash.
+
+Response (200): Updated task with deleted_at cleared
+
+### PATCH /api/tasks/:id/move
+Move task to a different project, area, or heading.
+
+Request:
+```json
+{
+  "project_id": "string|null",
+  "area_id": "string|null",
+  "heading_id": "string|null",
+  "when_date": "string|null",
+  "when_evening": true
+}
+```
+
+Response (200): Updated task
 
 ### PATCH /api/tasks/reorder
 Request:
@@ -382,6 +417,21 @@ Response (204): No content
 ### PATCH /api/projects/:id/complete
 Response (200): Updated project with status=completed
 
+### PATCH /api/projects/reorder
+Request:
+```json
+{
+  "items": [
+    { "id": "string", "sort_order": 0.0 }
+  ]
+}
+```
+
+Response (200):
+```json
+{ "ok": true }
+```
+
 ---
 
 ## Headings
@@ -414,6 +464,21 @@ Response (200): Updated heading
 
 ### DELETE /api/headings/:id
 Response (204): No content
+
+### PATCH /api/headings/reorder
+Request:
+```json
+{
+  "items": [
+    { "id": "string", "sort_order": 0.0 }
+  ]
+}
+```
+
+Response (200):
+```json
+{ "ok": true }
+```
 
 ---
 
@@ -552,6 +617,34 @@ Response (204): No content
 
 ---
 
+## User Settings
+
+### GET /api/user/settings
+Response (200):
+```json
+{
+  "play_complete_sound": true,
+  "show_count_main": true,
+  "show_count_projects": true,
+  "show_count_tags": true
+}
+```
+
+### PATCH /api/user/settings
+Request: Partial update (any subset of fields)
+```json
+{
+  "play_complete_sound": true,
+  "show_count_main": true,
+  "show_count_projects": true,
+  "show_count_tags": true
+}
+```
+
+Response (200): Updated settings object
+
+---
+
 ## View Endpoints
 
 Pre-structured data for each smart list. Complex grouping/filtering happens server-side.
@@ -649,6 +742,34 @@ Query params: `limit` (default 50), `offset` (default 0)
 }
 ```
 
+### GET /api/views/trash
+Query params: `limit` (default 50), `offset` (default 0)
+```json
+{
+  "groups": [
+    {
+      "date": "2024-03-15",
+      "tasks": [/* soft-deleted task objects */]
+    }
+  ],
+  "total": 150
+}
+```
+
+### GET /api/views/counts
+Response (200):
+```json
+{
+  "inbox": 5,
+  "today": 3,
+  "overdue": 1,
+  "anytime": 12,
+  "someday": 4,
+  "logbook": 50,
+  "trash": 2
+}
+```
+
 ---
 
 ## Search
@@ -675,7 +796,7 @@ Response (200):
 ## SSE Events
 
 ### GET /api/events
-Response: text/event-stream
+**No auth required.** Response: text/event-stream
 
 Event types:
 ```
@@ -686,6 +807,9 @@ event: task_updated
 data: {"id": "string", "task": {/* task object */}}
 
 event: task_deleted
+data: {"id": "string"}
+
+event: task_purged
 data: {"id": "string"}
 
 event: project_updated
@@ -706,6 +830,8 @@ data: {"type": "reorder|move|delete", "entity": "task|project|heading", "ids": [
 ## Health
 
 ### GET /health
+**No auth required.**
+
 Response (200):
 ```json
 { "status": "ok" }

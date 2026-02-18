@@ -715,13 +715,12 @@ function PlusMenu({ side }: { side: 'top' | 'right' }) {
 function LogoutButton({ size = 16 }: { size?: number }) {
   const { data } = useMe()
   const logout = useLogout()
-  const navigate = useNavigate()
 
   if (data?.auth_mode !== 'builtin') return null
 
   return (
     <button
-      onClick={() => logout.mutate(undefined, { onSuccess: () => navigate('/login') })}
+      onClick={() => logout.mutate()}
       className="rounded-lg p-1.5 text-neutral-500 hover:bg-neutral-200 dark:text-neutral-400 dark:hover:bg-neutral-700"
       aria-label="Log out"
       title="Log out"

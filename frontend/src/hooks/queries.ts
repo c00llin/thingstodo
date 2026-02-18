@@ -786,6 +786,7 @@ export function useLogout() {
   return useMutation({
     mutationFn: () => authApi.logout(),
     onSuccess: () => {
+      window.location.href = '/login'
       queryClient.clear()
     },
   })
