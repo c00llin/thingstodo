@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"log"
 	"net/http"
 
 	mw "github.com/collinjanssen/thingstodo/internal/middleware"
@@ -20,6 +21,7 @@ func (h *UserSettingsHandler) Get(w http.ResponseWriter, r *http.Request) {
 	userID := r.Context().Value(mw.UserIDKey).(string)
 	settings, err := h.repo.GetOrCreate(userID)
 	if err != nil {
+		log.Printf("ERROR user_settings.Get userID=%s: %v", userID, err)
 		writeError(w, http.StatusInternalServerError, err.Error(), "INTERNAL")
 		return
 	}
@@ -35,6 +37,7 @@ func (h *UserSettingsHandler) Update(w http.ResponseWriter, r *http.Request) {
 	}
 	settings, err := h.repo.Update(userID, input)
 	if err != nil {
+		log.Printf("ERROR user_settings.Update userID=%s: %v", userID, err)
 		writeError(w, http.StatusInternalServerError, err.Error(), "INTERNAL")
 		return
 	}
