@@ -87,7 +87,18 @@ func (h *AuthHandler) Me(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusUnauthorized, "not authenticated", "UNAUTHORIZED")
 		return
 	}
-	user, err := h.repo.GetByID(userID.(string))
+
+	uid := userID.(string)
+
+	// In proxy mode, the user may not exist in the database — return the proxy identity directly.
+	if h.cfg.AuthMode == "proxy" {
+		writeJSON(w, http.StatusOK, map[string]interface{}{
+			"user": map[string]string{"id": uid, "username": uid},
+		})
+		return
+	}
+
+	user, err := h.repo.GetByID(uid)
 	if err != nil || user == nil {
 		writeError(w, http.StatusUnauthorized, "user not found", "UNAUTHORIZED")
 		return

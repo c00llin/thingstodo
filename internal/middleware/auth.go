@@ -25,12 +25,12 @@ func Auth(cfg config.Config) func(http.Handler) http.Handler {
 			case "proxy":
 				// Trust proxy header
 				userHeader := r.Header.Get(cfg.AuthProxyHeader)
-				if userHeader != "" {
-					ctx := context.WithValue(r.Context(), UserIDKey, userHeader)
-					next.ServeHTTP(w, r.WithContext(ctx))
-				} else {
-					next.ServeHTTP(w, r)
+				if userHeader == "" {
+					http.Error(w, `{"error":"unauthorized","code":"UNAUTHORIZED"}`, http.StatusUnauthorized)
+					return
 				}
+				ctx := context.WithValue(r.Context(), UserIDKey, userHeader)
+				next.ServeHTTP(w, r.WithContext(ctx))
 
 			default: // "builtin"
 				cookie, err := r.Cookie("token")
