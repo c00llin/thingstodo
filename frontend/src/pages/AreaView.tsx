@@ -53,15 +53,15 @@ export function AreaView() {
                 <Link
                   key={project.id}
                   to={`/project/${project.id}`}
-                  className="flex items-center gap-3 rounded-lg px-3 py-2 hover:bg-neutral-50"
+                  className="flex items-center gap-3 rounded-lg px-3 py-2 hover:bg-neutral-50 dark:hover:bg-neutral-800"
                 >
-                  <div className="h-2 w-16 overflow-hidden rounded-full bg-neutral-200">
+                  <div className="h-2 w-16 overflow-hidden rounded-full bg-neutral-200 dark:bg-neutral-700">
                     <div
                       className="h-full rounded-full bg-red-500"
                       style={{ width: `${progress}%` }}
                     />
                   </div>
-                  <span className="text-sm text-neutral-900">{project.title}</span>
+                  <span className="text-sm text-neutral-900 dark:text-neutral-100">{project.title}</span>
                   <span className="ml-auto text-xs text-neutral-400">
                     {project.completed_task_count}/{project.task_count}
                   </span>
