@@ -476,6 +476,25 @@ func groupByProject(db *sql.DB, tasks []model.TaskListItem) []model.TaskGroup {
 	return groups
 }
 
+func (r *ViewRepository) Counts() (*model.ViewCounts, error) {
+	today := time.Now().Format("2006-01-02")
+	var c model.ViewCounts
+	err := r.db.QueryRow(`
+		SELECT
+			(SELECT COUNT(*) FROM tasks WHERE project_id IS NULL AND area_id IS NULL AND status = 'open' AND when_date IS NULL AND deleted_at IS NULL),
+			(SELECT COUNT(*) FROM tasks WHERE status = 'open' AND (when_date = ? OR deadline = ?) AND (deadline IS NULL OR deadline >= ?) AND deleted_at IS NULL),
+			(SELECT COUNT(*) FROM tasks WHERE status = 'open' AND deadline < ? AND deleted_at IS NULL),
+			(SELECT COUNT(*) FROM tasks WHERE status = 'open' AND when_date IS NULL AND deleted_at IS NULL AND (project_id IS NOT NULL OR area_id IS NOT NULL OR deadline IS NOT NULL)),
+			(SELECT COUNT(*) FROM tasks WHERE status = 'open' AND when_date = 'someday' AND deleted_at IS NULL),
+			(SELECT COUNT(*) FROM tasks WHERE status IN ('completed', 'canceled', 'wont_do') AND deleted_at IS NULL),
+			(SELECT COUNT(*) FROM tasks WHERE deleted_at IS NOT NULL)
+	`, today, today, today, today).Scan(&c.Inbox, &c.Today, &c.Overdue, &c.Anytime, &c.Someday, &c.Logbook, &c.Trash)
+	if err != nil {
+		return nil, err
+	}
+	return &c, nil
+}
+
 // helper for parsing int from query params
 func ParseIntDefault(s string, def int) int {
 	if s == "" {

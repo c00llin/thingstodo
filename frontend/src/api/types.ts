@@ -207,6 +207,7 @@ export interface Area {
   sort_order: number
   project_count: number
   task_count: number
+  standalone_task_count: number
   created_at: string
   updated_at: string
 }
@@ -344,6 +345,16 @@ export interface LogbookView {
 }
 
 export type TrashView = LogbookView
+
+export interface ViewCounts {
+  inbox: number
+  today: number
+  overdue: number
+  anytime: number
+  someday: number
+  logbook: number
+  trash: number
+}
 
 // Search
 export interface SearchResult {

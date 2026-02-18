@@ -85,3 +85,12 @@ func (h *ViewHandler) Trash(w http.ResponseWriter, r *http.Request) {
 	}
 	writeJSON(w, http.StatusOK, view)
 }
+
+func (h *ViewHandler) Counts(w http.ResponseWriter, r *http.Request) {
+	counts, err := h.repo.Counts()
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, err.Error(), "INTERNAL")
+		return
+	}
+	writeJSON(w, http.StatusOK, counts)
+}

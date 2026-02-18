@@ -26,8 +26,9 @@ type Area struct {
 	SortOrder    float64 `json:"sort_order"`
 	CreatedAt    string `json:"created_at"`
 	UpdatedAt    string `json:"updated_at"`
-	ProjectCount int    `json:"project_count,omitempty"`
-	TaskCount    int    `json:"task_count,omitempty"`
+	ProjectCount       int `json:"project_count,omitempty"`
+	TaskCount          int `json:"task_count,omitempty"`
+	StandaloneTaskCount int `json:"standalone_task_count,omitempty"`
 }
 
 type AreaDetail struct {
@@ -366,6 +367,16 @@ type AnytimeNoArea struct {
 type LogbookView struct {
 	Groups []DateGroup `json:"groups"`
 	Total  int         `json:"total"`
+}
+
+type ViewCounts struct {
+	Inbox   int `json:"inbox"`
+	Today   int `json:"today"`
+	Overdue int `json:"overdue"`
+	Anytime int `json:"anytime"`
+	Someday int `json:"someday"`
+	Logbook int `json:"logbook"`
+	Trash   int `json:"trash"`
 }
 
 type SearchResult struct {

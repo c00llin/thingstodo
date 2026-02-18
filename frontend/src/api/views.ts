@@ -7,6 +7,7 @@ import type {
   SomedayView,
   LogbookView,
   TrashView,
+  ViewCounts,
 } from './types'
 
 export function getInbox() {
@@ -47,4 +48,8 @@ export function getTrash(params?: { limit?: number; offset?: number }) {
   if (params?.offset) search.set('offset', String(params.offset))
   const qs = search.toString()
   return api.get<TrashView>(`/views/trash${qs ? `?${qs}` : ''}`)
+}
+
+export function getCounts() {
+  return api.get<ViewCounts>('/views/counts')
 }

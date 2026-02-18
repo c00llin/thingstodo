@@ -143,6 +143,7 @@ func New(db *sql.DB, cfg config.Config, broker *sse.Broker, sched *scheduler.Sch
 			r.Get("/views/someday", viewH.Someday)
 			r.Get("/views/logbook", viewH.Logbook)
 			r.Get("/views/trash", viewH.Trash)
+			r.Get("/views/counts", viewH.Counts)
 
 			// Search
 			r.Get("/search", searchH.Search)

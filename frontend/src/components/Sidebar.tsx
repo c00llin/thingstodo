@@ -21,7 +21,7 @@ import * as Popover from '@radix-ui/react-popover'
 import { useDraggable } from '@dnd-kit/core'
 
 import { motion, AnimatePresence, LayoutGroup } from 'framer-motion'
-import { useAreas, useProjects, useTags, useCreateProject, useCreateArea, useToday } from '../hooks/queries'
+import { useAreas, useProjects, useTags, useCreateProject, useCreateArea, useViewCounts } from '../hooks/queries'
 import { useAppStore } from '../stores/app'
 import { ThemeToggle } from './ThemeToggle'
 import { SidebarDropTarget } from './SidebarDropTarget'
@@ -76,13 +76,25 @@ const smartLists = [
   { to: '/trash', label: 'Trash', icon: Trash2, dropId: 'sidebar-trash' },
 ] as const
 
+const countKeyMap: Record<string, keyof import('../api/types').ViewCounts | null> = {
+  Inbox: 'inbox',
+  Today: 'today',
+  Upcoming: null,
+  Anytime: 'anytime',
+  Someday: 'someday',
+  Completed: 'logbook',
+  Trash: 'trash',
+}
+
 function SmartListNav() {
-  const { data: todayData } = useToday()
-  const overdueCount = todayData?.overdue?.length ?? 0
+  const { data: counts } = useViewCounts()
+  const overdueCount = counts?.overdue ?? 0
 
   return (
     <nav className="space-y-0.5">
       {smartLists.map(({ to, label, icon: Icon, dropId }) => {
+        const countKey = countKeyMap[label]
+        const count = countKey && counts ? counts[countKey] : 0
         const link = (
           <SidebarNavLink
             to={to}
@@ -93,9 +105,18 @@ function SmartListNav() {
           >
             <Icon size={18} className="relative z-10" />
             <span className="relative z-10">{label}</span>
-            {label === 'Today' && overdueCount > 0 && (
-              <span className="relative z-10 ml-auto flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-medium text-white">
-                {overdueCount}
+            {(overdueCount > 0 && label === 'Today' || count > 0) && (
+              <span className="relative z-10 ml-auto flex items-center gap-1.5">
+                {label === 'Today' && overdueCount > 0 && (
+                  <span className="flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-medium text-white">
+                    {overdueCount}
+                  </span>
+                )}
+                {count > 0 && (
+                  <span className="text-xs text-neutral-400">
+                    {count}
+                  </span>
+                )}
               </span>
             )}
           </SidebarNavLink>
@@ -170,9 +191,16 @@ function AreaList() {
                       >
                         <Blocks size={16} className="relative z-10" />
                         <span className="relative z-10">{area.title}</span>
+                        {area.standalone_task_count > 0 && (
+                          <span className="relative z-10 ml-auto text-xs text-neutral-400">
+                            {area.standalone_task_count}
+                          </span>
+                        )}
                       </SidebarNavLink>
                     </SidebarDropTarget>
-                    {areaProjects.map((project) => (
+                    {areaProjects.map((project) => {
+                      const openCount = project.task_count - project.completed_task_count
+                      return (
                       <SidebarDropTarget key={project.id} id={`sidebar-project-${project.id}`}>
                         <DraggableProject projectId={project.id}>
                           <SidebarNavLink
@@ -184,16 +212,24 @@ function AreaList() {
                           >
                             <Package size={14} className="relative z-10 text-neutral-400 dark:text-neutral-500" />
                             <span className="relative z-10 truncate">{project.title}</span>
+                            {openCount > 0 && (
+                              <span className="relative z-10 ml-auto text-xs text-neutral-400">
+                                {openCount}
+                              </span>
+                            )}
                           </SidebarNavLink>
                         </DraggableProject>
                       </SidebarDropTarget>
-                    ))}
+                      )
+                    })}
                   </div>
                 )
               })}
               {projects
                 .filter((p) => !p.area_id)
-                .map((project) => (
+                .map((project) => {
+                  const openCount = project.task_count - project.completed_task_count
+                  return (
                   <SidebarDropTarget key={project.id} id={`sidebar-project-${project.id}`}>
                     <DraggableProject projectId={project.id}>
                       <SidebarNavLink
@@ -210,10 +246,16 @@ function AreaList() {
                               : 'text-neutral-400 dark:text-neutral-500'
                         }`} />
                         <span className="relative z-10 truncate">{project.title}</span>
+                        {openCount > 0 && (
+                          <span className="relative z-10 ml-auto text-xs text-neutral-400">
+                            {openCount}
+                          </span>
+                        )}
                       </SidebarNavLink>
                     </DraggableProject>
                   </SidebarDropTarget>
-                ))}
+                  )
+                })}
             </motion.div>
           </Collapsible.Content>
         )}
@@ -444,8 +486,8 @@ function PlusMenu({ side }: { side: 'top' | 'right' }) {
 export function Sidebar() {
   const collapsed = useAppStore((s) => s.sidebarCollapsed)
   const toggleSidebar = useAppStore((s) => s.toggleSidebar)
-  const { data: todayData } = useToday()
-  const overdueCount = todayData?.overdue?.length ?? 0
+  const { data: counts } = useViewCounts()
+  const overdueCount = counts?.overdue ?? 0
 
   if (collapsed) {
     return (

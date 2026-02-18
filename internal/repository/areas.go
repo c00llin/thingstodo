@@ -19,7 +19,8 @@ func (r *AreaRepository) List() ([]model.Area, error) {
 	rows, err := r.db.Query(`
 		SELECT a.id, a.title, a.sort_order, a.created_at, a.updated_at,
 			COALESCE((SELECT COUNT(*) FROM projects WHERE area_id = a.id), 0),
-			COALESCE((SELECT COUNT(*) FROM tasks WHERE area_id = a.id AND deleted_at IS NULL), 0)
+			COALESCE((SELECT COUNT(*) FROM tasks WHERE area_id = a.id AND deleted_at IS NULL), 0),
+			COALESCE((SELECT COUNT(*) FROM tasks WHERE area_id = a.id AND project_id IS NULL AND status = 'open' AND deleted_at IS NULL), 0)
 		FROM areas a ORDER BY a.sort_order ASC`)
 	if err != nil {
 		return nil, err
@@ -29,7 +30,7 @@ func (r *AreaRepository) List() ([]model.Area, error) {
 	var areas []model.Area
 	for rows.Next() {
 		var a model.Area
-		if err := rows.Scan(&a.ID, &a.Title, &a.SortOrder, &a.CreatedAt, &a.UpdatedAt, &a.ProjectCount, &a.TaskCount); err != nil {
+		if err := rows.Scan(&a.ID, &a.Title, &a.SortOrder, &a.CreatedAt, &a.UpdatedAt, &a.ProjectCount, &a.TaskCount, &a.StandaloneTaskCount); err != nil {
 			return nil, fmt.Errorf("scan area: %w", err)
 		}
 		areas = append(areas, a)

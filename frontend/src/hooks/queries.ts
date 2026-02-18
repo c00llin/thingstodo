@@ -64,6 +64,7 @@ export const queryKeys = {
     someday: ['views', 'someday'] as const,
     logbook: (limit?: number, offset?: number) => ['views', 'logbook', limit, offset] as const,
     trash: (limit?: number, offset?: number) => ['views', 'trash', limit, offset] as const,
+    counts: ['views', 'counts'] as const,
   },
   search: (q: string) => ['search', q] as const,
   auth: {
@@ -119,6 +120,13 @@ export function useTrash(limit?: number, offset?: number) {
   return useQuery({
     queryKey: queryKeys.views.trash(limit, offset),
     queryFn: () => viewsApi.getTrash({ limit, offset }),
+  })
+}
+
+export function useViewCounts() {
+  return useQuery({
+    queryKey: queryKeys.views.counts,
+    queryFn: () => viewsApi.getCounts(),
   })
 }
 
