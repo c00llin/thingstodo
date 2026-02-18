@@ -93,6 +93,10 @@ func (h *TaskHandler) Create(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, "title is required", "VALIDATION")
 		return
 	}
+	if input.WhenDate != nil && input.Deadline != nil && *input.WhenDate != "someday" && *input.Deadline < *input.WhenDate {
+		writeError(w, http.StatusBadRequest, "deadline cannot be before the when date", "VALIDATION")
+		return
+	}
 	task, err := h.repo.Create(input)
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, err.Error(), "INTERNAL")
@@ -111,6 +115,36 @@ func (h *TaskHandler) Update(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	input.Raw = raw
+
+	// Validate deadline >= when_date: resolve effective values from input + existing task
+	if _, hasWhen := input.Raw["when_date"]; hasWhen {
+		if _, hasDeadline := input.Raw["deadline"]; hasDeadline {
+			// Both changing — validate directly
+			if input.WhenDate != nil && input.Deadline != nil && *input.WhenDate != "someday" && *input.Deadline < *input.WhenDate {
+				writeError(w, http.StatusBadRequest, "deadline cannot be before the when date", "VALIDATION")
+				return
+			}
+		}
+	}
+	if needsDateCrossCheck(input) {
+		existing, err := h.repo.GetByID(id)
+		if err != nil || existing == nil {
+			writeError(w, http.StatusNotFound, "task not found", "NOT_FOUND")
+			return
+		}
+		whenDate := existing.WhenDate
+		if _, ok := input.Raw["when_date"]; ok {
+			whenDate = input.WhenDate
+		}
+		deadline := existing.Deadline
+		if _, ok := input.Raw["deadline"]; ok {
+			deadline = input.Deadline
+		}
+		if whenDate != nil && deadline != nil && *whenDate != "someday" && *deadline < *whenDate {
+			writeError(w, http.StatusBadRequest, "deadline cannot be before the when date", "VALIDATION")
+			return
+		}
+	}
 
 	task, err := h.repo.Update(id, input)
 	if err != nil {
@@ -269,4 +303,12 @@ func (h *TaskHandler) Reorder(w http.ResponseWriter, r *http.Request) {
 		"type": "reorder", "entity": "task", "ids": ids,
 	})
 	writeJSON(w, http.StatusOK, map[string]bool{"ok": true})
+}
+
+// needsDateCrossCheck returns true when only one of when_date/deadline is
+// changing, so we need to fetch the existing task to validate the pair.
+func needsDateCrossCheck(input model.UpdateTaskInput) bool {
+	_, hasWhen := input.Raw["when_date"]
+	_, hasDeadline := input.Raw["deadline"]
+	return (hasWhen && !hasDeadline) || (!hasWhen && hasDeadline)
 }

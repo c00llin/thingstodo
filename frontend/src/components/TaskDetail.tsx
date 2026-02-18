@@ -46,6 +46,8 @@ export function TaskDetail({ taskId }: TaskDetailProps) {
   const [showDeadline, setShowDeadline] = useState(false)
   const [showChecklist, setShowChecklist] = useState(false)
   const [showRepeat, setShowRepeat] = useState(false)
+  const [dateError, setDateError] = useState<string | null>(null)
+  const dateErrorTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const whenDateInputRef = useRef<HTMLDivElement>(null)
   const deadlineDateInputRef = useRef<HTMLDivElement>(null)
 
@@ -134,7 +136,17 @@ export function TaskDetail({ taskId }: TaskDetailProps) {
     }
   }
 
+  function showDateError(msg: string) {
+    if (dateErrorTimerRef.current) clearTimeout(dateErrorTimerRef.current)
+    setDateError(msg)
+    dateErrorTimerRef.current = setTimeout(() => setDateError(null), 3000)
+  }
+
   function handleWhenDateChange(date: string | null, evening?: boolean) {
+    if (date && date !== 'someday' && task?.deadline && date > task.deadline) {
+      showDateError('When date cannot be after the deadline')
+      return
+    }
     updateTask.mutate({
       id: taskId,
       data: { when_date: date, when_evening: evening ?? false },
@@ -143,6 +155,10 @@ export function TaskDetail({ taskId }: TaskDetailProps) {
   }
 
   function handleDeadlineChange(date: string | null) {
+    if (date && task?.when_date && task.when_date !== 'someday' && date < task.when_date) {
+      showDateError('Deadline cannot be before the when date')
+      return
+    }
     updateTask.mutate({
       id: taskId,
       data: { deadline: date },
@@ -313,6 +329,13 @@ export function TaskDetail({ taskId }: TaskDetailProps) {
       {/* Repeat rule picker */}
       {showRepeat && (
         <RepeatRulePicker taskId={taskId} existingRule={task.repeat_rule} onClose={() => setShowRepeat(false)} />
+      )}
+
+      {/* Date validation error */}
+      {dateError && (
+        <div className="rounded-md bg-red-50 px-3 py-1.5 text-xs text-red-600 dark:bg-red-900/20 dark:text-red-400">
+          {dateError}
+        </div>
       )}
 
       {/* Toolbar — icon buttons for adding when, deadline, file, link, repeat */}
