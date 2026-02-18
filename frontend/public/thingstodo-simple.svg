@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">
+  <!-- Back rounded square - outline (L-shape visible behind front square) -->
+  <path d="M3.4 0C1.52 0 0 1.52 0 3.4v13.2C0 18.48 1.52 20 3.4 20h13.2c1.88 0 3.4-1.52 3.4-3.4V3.4C20 1.52 18.48 0 16.6 0ZM3.5 1.8h13.1c.94 0 1.7.76 1.7 1.7v13.1c0 .94-.76 1.7-1.7 1.7H3.5c-.94 0-1.7-.76-1.7-1.7V3.5c0-.94.76-1.7 1.7-1.7Z" fill="currentColor"/>
+  <!-- Front rounded square with checkmark cutout -->
+  <path fill-rule="evenodd" d="M7.4 4C5.52 4 4 5.52 4 7.4v13.2C4 22.48 5.52 24 7.4 24h13.2c1.88 0 3.4-1.52 3.4-3.4V7.4C24 5.52 22.48 4 20.6 4Zm4.95 12.95a1.2 1.2 0 0 1-1.7 0l-2.3-2.3a1.2 1.2 0 0 1 1.7-1.7l1.45 1.45 4.5-4.5a1.2 1.2 0 0 1 1.7 1.7Z" fill="currentColor"/>
+</svg>
