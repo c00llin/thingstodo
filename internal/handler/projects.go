@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"errors"
 	"net/http"
 
 	"github.com/collinjanssen/thingstodo/internal/model"
@@ -61,6 +62,10 @@ func (h *ProjectHandler) Create(w http.ResponseWriter, r *http.Request) {
 	}
 	project, err := h.repo.Create(input)
 	if err != nil {
+		if errors.Is(err, repository.ErrDuplicateProjectName) {
+			writeError(w, http.StatusConflict, "There is already a project with that name", "DUPLICATE_NAME")
+			return
+		}
 		writeError(w, http.StatusInternalServerError, err.Error(), "INTERNAL")
 		return
 	}
@@ -80,6 +85,10 @@ func (h *ProjectHandler) Update(w http.ResponseWriter, r *http.Request) {
 
 	project, err := h.repo.Update(id, input)
 	if err != nil {
+		if errors.Is(err, repository.ErrDuplicateProjectName) {
+			writeError(w, http.StatusConflict, "There is already a project with that name", "DUPLICATE_NAME")
+			return
+		}
 		writeError(w, http.StatusInternalServerError, err.Error(), "INTERNAL")
 		return
 	}

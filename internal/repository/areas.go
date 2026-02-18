@@ -3,6 +3,7 @@ package repository
 import (
 	"database/sql"
 	"fmt"
+	"strings"
 
 	"github.com/collinjanssen/thingstodo/internal/model"
 )
@@ -111,6 +112,9 @@ func (r *AreaRepository) Create(input model.CreateAreaInput) (*model.Area, error
 	_, err := r.db.Exec("INSERT INTO areas (id, title, sort_order) VALUES (?, ?, ?)",
 		id, input.Title, maxSort+1024)
 	if err != nil {
+		if strings.Contains(err.Error(), "UNIQUE constraint failed") {
+			return nil, ErrDuplicateAreaName
+		}
 		return nil, fmt.Errorf("create area: %w", err)
 	}
 
@@ -122,7 +126,13 @@ func (r *AreaRepository) Create(input model.CreateAreaInput) (*model.Area, error
 
 func (r *AreaRepository) Update(id string, input model.UpdateAreaInput) (*model.Area, error) {
 	if input.Title != nil {
-		_, _ = r.db.Exec("UPDATE areas SET title = ?, updated_at = datetime('now') WHERE id = ?", *input.Title, id)
+		_, err := r.db.Exec("UPDATE areas SET title = ?, updated_at = datetime('now') WHERE id = ?", *input.Title, id)
+		if err != nil {
+			if strings.Contains(err.Error(), "UNIQUE constraint failed") {
+				return nil, ErrDuplicateAreaName
+			}
+			return nil, err
+		}
 	}
 	if input.SortOrder != nil {
 		_, _ = r.db.Exec("UPDATE areas SET sort_order = ?, updated_at = datetime('now') WHERE id = ?", *input.SortOrder, id)

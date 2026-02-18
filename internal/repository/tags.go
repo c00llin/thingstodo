@@ -3,6 +3,7 @@ package repository
 import (
 	"database/sql"
 	"fmt"
+	"strings"
 
 	"github.com/collinjanssen/thingstodo/internal/model"
 )
@@ -45,6 +46,9 @@ func (r *TagRepository) Create(input model.CreateTagInput) (*model.Tag, error) {
 	_, err := r.db.Exec("INSERT INTO tags (id, title, parent_tag_id, sort_order) VALUES (?, ?, ?, ?)",
 		id, input.Title, input.ParentTagID, maxSort+1024)
 	if err != nil {
+		if strings.Contains(err.Error(), "UNIQUE constraint failed") {
+			return nil, ErrDuplicateTagName
+		}
 		return nil, fmt.Errorf("create tag: %w", err)
 	}
 
@@ -56,7 +60,13 @@ func (r *TagRepository) Create(input model.CreateTagInput) (*model.Tag, error) {
 
 func (r *TagRepository) Update(id string, input model.UpdateTagInput) (*model.Tag, error) {
 	if input.Title != nil {
-		_, _ = r.db.Exec("UPDATE tags SET title = ? WHERE id = ?", *input.Title, id)
+		_, err := r.db.Exec("UPDATE tags SET title = ? WHERE id = ?", *input.Title, id)
+		if err != nil {
+			if strings.Contains(err.Error(), "UNIQUE constraint failed") {
+				return nil, ErrDuplicateTagName
+			}
+			return nil, err
+		}
 	}
 	if _, ok := input.Raw["parent_tag_id"]; ok {
 		_, _ = r.db.Exec("UPDATE tags SET parent_tag_id = ? WHERE id = ?", input.ParentTagID, id)

@@ -8,6 +8,10 @@ import (
 	"github.com/collinjanssen/thingstodo/internal/model"
 )
 
+func isUniqueConstraintError(err error) bool {
+	return err != nil && strings.Contains(err.Error(), "UNIQUE constraint failed")
+}
+
 type ProjectRepository struct {
 	db *sql.DB
 }
@@ -129,6 +133,9 @@ func (r *ProjectRepository) Create(input model.CreateProjectInput) (*model.Proje
 		VALUES (?, ?, ?, ?, ?, ?, ?)`,
 		id, input.Title, input.Notes, input.AreaID, input.WhenDate, input.Deadline, maxSort+1024)
 	if err != nil {
+		if isUniqueConstraintError(err) {
+			return nil, ErrDuplicateProjectName
+		}
 		return nil, fmt.Errorf("create project: %w", err)
 	}
 	if len(input.TagIDs) > 0 {
@@ -171,6 +178,9 @@ func (r *ProjectRepository) Update(id string, input model.UpdateProjectInput) (*
 		args = append(args, id)
 		_, err := r.db.Exec("UPDATE projects SET "+strings.Join(sets, ", ")+" WHERE id = ?", args...)
 		if err != nil {
+			if isUniqueConstraintError(err) {
+				return nil, ErrDuplicateProjectName
+			}
 			return nil, err
 		}
 	}

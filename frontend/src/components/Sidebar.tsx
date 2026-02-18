@@ -1,5 +1,5 @@
-import { useState, useRef, useEffect } from 'react'
-import { NavLink, useLocation } from 'react-router'
+import { useState, useRef, useEffect, useCallback } from 'react'
+import { NavLink, useLocation, useNavigate } from 'react-router'
 import {
   Inbox,
   Sun,
@@ -21,7 +21,8 @@ import * as Popover from '@radix-ui/react-popover'
 import { useDraggable } from '@dnd-kit/core'
 
 import { motion, AnimatePresence, LayoutGroup } from 'framer-motion'
-import { useAreas, useProjects, useTags, useCreateProject, useCreateArea, useViewCounts } from '../hooks/queries'
+import { ApiError } from '../api/client'
+import { useAreas, useProjects, useTags, useCreateProject, useCreateArea, useViewCounts, useUpdateProject, useUpdateArea, useUpdateTag } from '../hooks/queries'
 import { useAppStore } from '../stores/app'
 import { ThemeToggle } from './ThemeToggle'
 import { SidebarDropTarget } from './SidebarDropTarget'
@@ -60,6 +61,176 @@ function SidebarNavLink({
             />
           )}
           {children}
+        </>
+      )}
+    </NavLink>
+  )
+}
+
+function getDuplicateErrorMessage(err: unknown): string | null {
+  if (err instanceof ApiError && err.status === 409) {
+    try {
+      const body = JSON.parse(err.message)
+      return body.error || 'A duplicate already exists'
+    } catch {
+      return 'A duplicate already exists'
+    }
+  }
+  return null
+}
+
+function EditableSidebarItem({
+  to,
+  className,
+  activeClassName,
+  inactiveClassName,
+  layoutId,
+  icon,
+  title,
+  badge,
+  onSave,
+  editingId,
+  itemId,
+  onEditStart,
+  onEditEnd,
+}: {
+  to: string
+  className: string
+  activeClassName: string
+  inactiveClassName: string
+  layoutId: string
+  icon: React.ReactNode
+  title: string
+  badge?: React.ReactNode
+  onSave: (newTitle: string) => Promise<void>
+  editingId: string | null
+  itemId: string
+  onEditStart: (id: string) => void
+  onEditEnd: () => void
+}) {
+  const navigate = useNavigate()
+  const location = useLocation()
+  const clickTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const inputRef = useRef<HTMLInputElement>(null)
+  const skipBlurRef = useRef(false)
+  const [errorMsg, setErrorMsg] = useState<string | null>(null)
+  const isEditing = editingId === itemId
+  const isActive = location.pathname === to
+
+  useEffect(() => {
+    return () => {
+      if (clickTimerRef.current) clearTimeout(clickTimerRef.current)
+    }
+  }, [])
+
+  useEffect(() => {
+    if (isEditing) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- reset on edit start
+      setErrorMsg(null)
+      requestAnimationFrame(() => {
+        inputRef.current?.focus()
+        inputRef.current?.select()
+      })
+    }
+  }, [isEditing])
+
+  const saveAndExit = useCallback(async (value: string) => {
+    const trimmed = value.trim()
+    if (trimmed && trimmed !== title) {
+      try {
+        await onSave(trimmed)
+      } catch (err) {
+        const dupMsg = getDuplicateErrorMessage(err)
+        if (dupMsg) {
+          setErrorMsg(dupMsg)
+          return
+        }
+      }
+    }
+    onEditEnd()
+  }, [title, onSave, onEditEnd])
+
+  const handleClick = useCallback((e: React.MouseEvent) => {
+    e.preventDefault()
+    if (clickTimerRef.current) {
+      clearTimeout(clickTimerRef.current)
+      clickTimerRef.current = null
+      // Save current editing item if any, then start editing this one
+      onEditStart(itemId)
+      return
+    }
+    clickTimerRef.current = setTimeout(() => {
+      clickTimerRef.current = null
+      navigate(to)
+    }, 200)
+  }, [navigate, to, onEditStart, itemId])
+
+  if (isEditing) {
+    return (
+      <div>
+        <div className={`relative ${className} ${isActive ? activeClassName : inactiveClassName}`}>
+          {isActive && (
+            <motion.div
+              layoutId={layoutId}
+              className="absolute inset-0 rounded-lg bg-red-50 dark:bg-red-900/30"
+              transition={indicatorTransition}
+            />
+          )}
+          {icon}
+          <input
+            ref={inputRef}
+            type="text"
+            defaultValue={title}
+            className="relative z-10 min-w-0 flex-1 bg-transparent outline-none"
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                e.preventDefault()
+                skipBlurRef.current = true
+                saveAndExit(e.currentTarget.value)
+              } else if (e.key === 'Escape') {
+                e.preventDefault()
+                e.stopPropagation()
+                skipBlurRef.current = true
+                setErrorMsg(null)
+                onEditEnd()
+              }
+            }}
+            onBlur={(e) => {
+              if (skipBlurRef.current) {
+                skipBlurRef.current = false
+                return
+              }
+              saveAndExit(e.currentTarget.value)
+            }}
+          />
+        </div>
+        {errorMsg && (
+          <p className="px-3 pt-0.5 text-xs text-red-500">{errorMsg}</p>
+        )}
+      </div>
+    )
+  }
+
+  return (
+    <NavLink
+      to={to}
+      onClick={handleClick}
+      className={({ isActive: active }) =>
+        `relative ${className} ${active ? activeClassName : inactiveClassName}`
+      }
+    >
+      {({ isActive: active }) => (
+        <>
+          {active && (
+            <motion.div
+              layoutId={layoutId}
+              className="absolute inset-0 rounded-lg bg-red-50 dark:bg-red-900/30"
+              transition={indicatorTransition}
+            />
+          )}
+          {icon}
+          <span className="relative z-10 truncate">{title}</span>
+          {badge}
         </>
       )}
     </NavLink>
@@ -151,9 +322,14 @@ function AreaList() {
   const { data: projectsData } = useProjects()
   const open = useAppStore((s) => s.sidebarAreasOpen)
   const setOpen = useAppStore((s) => s.setSidebarAreasOpen)
+  const [editingItemId, setEditingItemId] = useState<string | null>(null)
+  const updateProject = useUpdateProject()
+  const updateArea = useUpdateArea()
 
   const areas = areasData?.areas ?? []
   const projects = projectsData?.projects ?? []
+
+  const clearEditing = useCallback(() => setEditingItemId(null), [])
 
   if (areas.length === 0 && projects.length === 0) return null
 
@@ -182,42 +358,50 @@ function AreaList() {
                 return (
                   <div key={area.id}>
                     <SidebarDropTarget id={`sidebar-area-${area.id}`}>
-                      <SidebarNavLink
+                      <EditableSidebarItem
                         to={`/area/${area.id}`}
                         className="flex items-center gap-2 rounded-lg px-3 py-1.5 text-sm"
                         activeClassName="text-red-700 dark:text-red-400"
                         inactiveClassName="text-neutral-600 hover:bg-neutral-100 dark:text-neutral-400 dark:hover:bg-neutral-800"
                         layoutId="sidebar-active-indicator"
-                      >
-                        <Blocks size={16} className="relative z-10" />
-                        <span className="relative z-10">{area.title}</span>
-                        {area.standalone_task_count > 0 && (
+                        icon={<Blocks size={16} className="relative z-10" />}
+                        title={area.title}
+                        badge={area.standalone_task_count > 0 ? (
                           <span className="relative z-10 ml-auto text-xs text-neutral-400">
                             {area.standalone_task_count}
                           </span>
-                        )}
-                      </SidebarNavLink>
+                        ) : undefined}
+                        onSave={async (t) => { await updateArea.mutateAsync({ id: area.id, data: { title: t } }) }}
+                        editingId={editingItemId}
+                        itemId={area.id}
+                        onEditStart={setEditingItemId}
+                        onEditEnd={clearEditing}
+                      />
                     </SidebarDropTarget>
                     {areaProjects.map((project) => {
                       const openCount = project.task_count - project.completed_task_count
                       return (
                       <SidebarDropTarget key={project.id} id={`sidebar-project-${project.id}`}>
                         <DraggableProject projectId={project.id}>
-                          <SidebarNavLink
+                          <EditableSidebarItem
                             to={`/project/${project.id}`}
                             className="flex items-center gap-2 rounded-lg py-1.5 pl-8 pr-3 text-sm"
                             activeClassName="text-red-700 dark:text-red-400"
                             inactiveClassName="text-neutral-500 hover:bg-neutral-100 dark:text-neutral-400 dark:hover:bg-neutral-800"
                             layoutId="sidebar-active-indicator"
-                          >
-                            <Package size={14} className="relative z-10 text-neutral-400 dark:text-neutral-500" />
-                            <span className="relative z-10 truncate">{project.title}</span>
-                            {openCount > 0 && (
+                            icon={<Package size={14} className="relative z-10 text-neutral-400 dark:text-neutral-500" />}
+                            title={project.title}
+                            badge={openCount > 0 ? (
                               <span className="relative z-10 ml-auto text-xs text-neutral-400">
                                 {openCount}
                               </span>
-                            )}
-                          </SidebarNavLink>
+                            ) : undefined}
+                            onSave={async (t) => { await updateProject.mutateAsync({ id: project.id, data: { title: t } }) }}
+                            editingId={editingItemId}
+                            itemId={project.id}
+                            onEditStart={setEditingItemId}
+                            onEditEnd={clearEditing}
+                          />
                         </DraggableProject>
                       </SidebarDropTarget>
                       )
@@ -232,26 +416,30 @@ function AreaList() {
                   return (
                   <SidebarDropTarget key={project.id} id={`sidebar-project-${project.id}`}>
                     <DraggableProject projectId={project.id}>
-                      <SidebarNavLink
+                      <EditableSidebarItem
                         to={`/project/${project.id}`}
                         className="flex items-center gap-2 rounded-lg px-3 py-1.5 text-sm"
                         activeClassName="text-red-700 dark:text-red-400"
                         inactiveClassName="text-neutral-500 hover:bg-neutral-100 dark:text-neutral-400 dark:hover:bg-neutral-800"
                         layoutId="sidebar-active-indicator"
-                      >
-                        <Package size={14} className={`relative z-10 ${
+                        icon={<Package size={14} className={`relative z-10 ${
                             project.task_count > 0 &&
                             project.completed_task_count === project.task_count
                               ? 'text-green-500'
                               : 'text-neutral-400 dark:text-neutral-500'
-                        }`} />
-                        <span className="relative z-10 truncate">{project.title}</span>
-                        {openCount > 0 && (
+                        }`} />}
+                        title={project.title}
+                        badge={openCount > 0 ? (
                           <span className="relative z-10 ml-auto text-xs text-neutral-400">
                             {openCount}
                           </span>
-                        )}
-                      </SidebarNavLink>
+                        ) : undefined}
+                        onSave={async (t) => { await updateProject.mutateAsync({ id: project.id, data: { title: t } }) }}
+                        editingId={editingItemId}
+                        itemId={project.id}
+                        onEditStart={setEditingItemId}
+                        onEditEnd={clearEditing}
+                      />
                     </DraggableProject>
                   </SidebarDropTarget>
                   )
@@ -269,7 +457,11 @@ function TagList() {
   const { data } = useTags()
   const open = useAppStore((s) => s.sidebarTagsOpen)
   const setOpen = useAppStore((s) => s.setSidebarTagsOpen)
+  const [editingItemId, setEditingItemId] = useState<string | null>(null)
+  const updateTag = useUpdateTag()
   const tags = data?.tags ?? []
+
+  const clearEditing = useCallback(() => setEditingItemId(null), [])
 
   if (tags.length === 0) return null
 
@@ -300,34 +492,42 @@ function TagList() {
                   return (
                     <div key={tag.id}>
                       <SidebarDropTarget id={`sidebar-tag-${tag.id}`}>
-                        <SidebarNavLink
+                        <EditableSidebarItem
                           to={`/tag/${tag.id}`}
                           className="flex items-center gap-2 rounded-lg px-3 py-1.5 text-sm"
                           activeClassName="text-red-700 dark:text-red-400"
                           inactiveClassName="text-neutral-600 hover:bg-neutral-100 dark:text-neutral-400 dark:hover:bg-neutral-800"
                           layoutId="sidebar-active-indicator"
-                        >
-                          <Tag size={14} className="relative z-10" />
-                          <span className="relative z-10">{tag.title}</span>
-                          {tag.task_count > 0 && (
+                          icon={<Tag size={14} className="relative z-10" />}
+                          title={tag.title}
+                          badge={tag.task_count > 0 ? (
                             <span className="relative z-10 ml-auto text-xs text-neutral-400">
                               {tag.task_count}
                             </span>
-                          )}
-                        </SidebarNavLink>
+                          ) : undefined}
+                          onSave={async (t) => { await updateTag.mutateAsync({ id: tag.id, data: { title: t } }) }}
+                          editingId={editingItemId}
+                          itemId={tag.id}
+                          onEditStart={setEditingItemId}
+                          onEditEnd={clearEditing}
+                        />
                       </SidebarDropTarget>
                       {children.map((child) => (
                         <SidebarDropTarget key={child.id} id={`sidebar-tag-${child.id}`}>
-                          <SidebarNavLink
+                          <EditableSidebarItem
                             to={`/tag/${child.id}`}
                             className="flex items-center gap-2 rounded-lg py-1.5 pl-8 pr-3 text-sm"
                             activeClassName="text-red-700 dark:text-red-400"
                             inactiveClassName="text-neutral-500 hover:bg-neutral-100 dark:text-neutral-400 dark:hover:bg-neutral-800"
                             layoutId="sidebar-active-indicator"
-                          >
-                            <Tag size={12} className="relative z-10" />
-                            <span className="relative z-10">{child.title}</span>
-                          </SidebarNavLink>
+                            icon={<Tag size={12} className="relative z-10" />}
+                            title={child.title}
+                            onSave={async (t) => { await updateTag.mutateAsync({ id: child.id, data: { title: t } }) }}
+                            editingId={editingItemId}
+                            itemId={child.id}
+                            onEditStart={setEditingItemId}
+                            onEditEnd={clearEditing}
+                          />
                         </SidebarDropTarget>
                       ))}
                     </div>
@@ -355,18 +555,37 @@ function NameInputDialog({
   placeholder: string
   open: boolean
   onClose: () => void
-  onSubmit: (name: string) => void
+  onSubmit: (name: string) => Promise<void>
 }) {
   const [value, setValue] = useState('')
+  const [errorMsg, setErrorMsg] = useState<string | null>(null)
   const inputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
     if (open) {
       // eslint-disable-next-line react-hooks/set-state-in-effect -- reset on open
       setValue('')
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- reset on open
+      setErrorMsg(null)
       requestAnimationFrame(() => inputRef.current?.focus())
     }
   }, [open])
+
+  const handleSubmit = useCallback(async () => {
+    const trimmed = value.trim()
+    if (!trimmed) return
+    try {
+      await onSubmit(trimmed)
+      onClose()
+    } catch (err) {
+      const dupMsg = getDuplicateErrorMessage(err)
+      if (dupMsg) {
+        setErrorMsg(dupMsg)
+      } else {
+        onClose()
+      }
+    }
+  }, [value, onSubmit, onClose])
 
   if (!open) return null
 
@@ -393,20 +612,22 @@ function NameInputDialog({
               type="text"
               placeholder={placeholder}
               value={value}
-              onChange={(e) => setValue(e.target.value)}
+              onChange={(e) => {
+                setValue(e.target.value)
+                if (errorMsg) setErrorMsg(null)
+              }}
               onKeyDown={(e) => {
                 if (e.key === 'Enter') {
                   e.preventDefault()
-                  const trimmed = value.trim()
-                  if (trimmed) {
-                    onSubmit(trimmed)
-                    onClose()
-                  }
+                  handleSubmit()
                 }
               }}
               className="flex-1 bg-transparent text-base outline-none placeholder:text-neutral-400 dark:placeholder:text-neutral-500"
             />
           </div>
+          {errorMsg && (
+            <p className="mt-2 text-sm text-red-500">{errorMsg}</p>
+          )}
         </div>
         <div className="flex items-center justify-between border-t border-neutral-200 px-4 py-2 text-xs text-neutral-400 dark:border-neutral-700 dark:text-neutral-500">
           <span>Enter to create {label}</span>
@@ -469,7 +690,7 @@ function PlusMenu({ side }: { side: 'top' | 'right' }) {
         placeholder="New project name..."
         open={dialogType === 'project'}
         onClose={() => setDialogType(null)}
-        onSubmit={(name) => createProject.mutate({ title: name, area_id: currentAreaId })}
+        onSubmit={async (name) => { await createProject.mutateAsync({ title: name, area_id: currentAreaId }) }}
       />
       <NameInputDialog
         icon={<Blocks size={18} />}
@@ -477,7 +698,7 @@ function PlusMenu({ side }: { side: 'top' | 'right' }) {
         placeholder="New area name..."
         open={dialogType === 'area'}
         onClose={() => setDialogType(null)}
-        onSubmit={(name) => createArea.mutate({ title: name })}
+        onSubmit={async (name) => { await createArea.mutateAsync({ title: name }) }}
       />
     </>
   )

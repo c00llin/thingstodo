@@ -54,6 +54,10 @@ func (h *AreaHandler) Create(w http.ResponseWriter, r *http.Request) {
 	}
 	area, err := h.repo.Create(input)
 	if err != nil {
+		if errors.Is(err, repository.ErrDuplicateAreaName) {
+			writeError(w, http.StatusConflict, "There is already an area with that name", "DUPLICATE_NAME")
+			return
+		}
 		writeError(w, http.StatusInternalServerError, err.Error(), "INTERNAL")
 		return
 	}
@@ -70,6 +74,10 @@ func (h *AreaHandler) Update(w http.ResponseWriter, r *http.Request) {
 	}
 	area, err := h.repo.Update(id, input)
 	if err != nil {
+		if errors.Is(err, repository.ErrDuplicateAreaName) {
+			writeError(w, http.StatusConflict, "There is already an area with that name", "DUPLICATE_NAME")
+			return
+		}
 		writeError(w, http.StatusInternalServerError, err.Error(), "INTERNAL")
 		return
 	}

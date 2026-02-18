@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"errors"
 	"net/http"
 
 	"github.com/collinjanssen/thingstodo/internal/model"
@@ -39,6 +40,10 @@ func (h *TagHandler) Create(w http.ResponseWriter, r *http.Request) {
 	}
 	tag, err := h.repo.Create(input)
 	if err != nil {
+		if errors.Is(err, repository.ErrDuplicateTagName) {
+			writeError(w, http.StatusConflict, "There is already a tag with that name", "DUPLICATE_NAME")
+			return
+		}
 		writeError(w, http.StatusInternalServerError, err.Error(), "INTERNAL")
 		return
 	}
@@ -58,6 +63,10 @@ func (h *TagHandler) Update(w http.ResponseWriter, r *http.Request) {
 
 	tag, err := h.repo.Update(id, input)
 	if err != nil {
+		if errors.Is(err, repository.ErrDuplicateTagName) {
+			writeError(w, http.StatusConflict, "There is already a tag with that name", "DUPLICATE_NAME")
+			return
+		}
 		writeError(w, http.StatusInternalServerError, err.Error(), "INTERNAL")
 		return
 	}
