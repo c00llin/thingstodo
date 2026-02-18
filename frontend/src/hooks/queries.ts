@@ -318,11 +318,15 @@ export function useDeleteTask() {
     onSettled: (_data, _err, id) => {
       setTimeout(() => {
         const store = useAppStore.getState()
-        store.setDepartingTaskId(null)
         if (store.expandedTaskId === id) {
           store.expandTask(null)
         }
         invalidate()
+        // Clear departingTaskId after invalidation starts so the task
+        // doesn't briefly reappear between animation end and fresh data
+        setTimeout(() => {
+          useAppStore.getState().setDepartingTaskId(null)
+        }, 200)
       }, 800)
     },
   })
@@ -361,11 +365,15 @@ export function useCompleteTask() {
     onSettled: (_data, _err, id) => {
       setTimeout(() => {
         const store = useAppStore.getState()
-        store.setDepartingTaskId(null)
         if (store.expandedTaskId === id) {
           store.expandTask(null)
         }
         invalidate()
+        // Clear departingTaskId after invalidation starts so the task
+        // doesn't briefly reappear between animation end and fresh data
+        setTimeout(() => {
+          useAppStore.getState().setDepartingTaskId(null)
+        }, 200)
       }, 800)
     },
   })
@@ -392,11 +400,15 @@ export function useCancelTask() {
     onSettled: (_data, _err, id) => {
       setTimeout(() => {
         const store = useAppStore.getState()
-        store.setDepartingTaskId(null)
         if (store.expandedTaskId === id) {
           store.expandTask(null)
         }
         invalidate()
+        // Clear departingTaskId after invalidation starts so the task
+        // doesn't briefly reappear between animation end and fresh data
+        setTimeout(() => {
+          useAppStore.getState().setDepartingTaskId(null)
+        }, 200)
       }, 800)
     },
   })
@@ -423,11 +435,15 @@ export function useWontDoTask() {
     onSettled: (_data, _err, id) => {
       setTimeout(() => {
         const store = useAppStore.getState()
-        store.setDepartingTaskId(null)
         if (store.expandedTaskId === id) {
           store.expandTask(null)
         }
         invalidate()
+        // Clear departingTaskId after invalidation starts so the task
+        // doesn't briefly reappear between animation end and fresh data
+        setTimeout(() => {
+          useAppStore.getState().setDepartingTaskId(null)
+        }, 200)
       }, 800)
     },
   })
