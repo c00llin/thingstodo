@@ -19,7 +19,9 @@ func NewEventHandler(broker *sse.Broker) *EventHandler {
 func (h *EventHandler) Stream(w http.ResponseWriter, r *http.Request) {
 	flusher, ok := w.(http.Flusher)
 	if !ok {
-		writeError(w, http.StatusInternalServerError, "streaming not supported", "INTERNAL")
+		// Reverse proxies may not support streaming; return 204 so the
+		// frontend can fall back to polling instead of seeing a 500.
+		w.WriteHeader(http.StatusNoContent)
 		return
 	}
 
