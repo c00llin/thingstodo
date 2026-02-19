@@ -301,6 +301,7 @@ export interface TodayViewSection {
 export interface TodayView {
   sections: TodayViewSection[]
   overdue: Task[]
+  earlier: Task[]
 }
 
 export interface UpcomingViewDate {
@@ -310,6 +311,7 @@ export interface UpcomingViewDate {
 
 export interface UpcomingView {
   dates: UpcomingViewDate[]
+  earlier: Task[]
 }
 
 export interface AnytimeViewProjectGroup {

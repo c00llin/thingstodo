@@ -33,6 +33,14 @@ export function TodayView() {
         </div>
       )}
 
+      {/* Earlier: past-dated tasks without overdue deadline */}
+      {data?.earlier && data.earlier.length > 0 && (
+        <div className="mb-8">
+          <h2 className="mb-3 text-lg font-semibold text-neutral-800 dark:text-neutral-200">Earlier</h2>
+          <SortableTaskList tasks={data.earlier} sortField="sort_order_today" />
+        </div>
+      )}
+
       {/* Sections: Today + This Evening */}
       {sections.map((section) => {
         const hasTasks = section.tasks.length > 0
