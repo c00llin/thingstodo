@@ -337,8 +337,9 @@ type TaskFilters struct {
 // --- View response types ---
 
 type TodayView struct {
-	Sections []TodaySection  `json:"sections"`
-	Overdue  []TaskListItem  `json:"overdue"`
+	Sections []TodaySection `json:"sections"`
+	Overdue  []TaskListItem `json:"overdue"`
+	Earlier  []TaskListItem `json:"earlier"`
 }
 
 type TodaySection struct {
@@ -352,7 +353,9 @@ type TaskGroup struct {
 }
 
 type UpcomingView struct {
-	Dates []DateGroup `json:"dates"`
+	Overdue []TaskListItem `json:"overdue"`
+	Dates   []DateGroup    `json:"dates"`
+	Earlier []TaskListItem `json:"earlier"`
 }
 
 type DateGroup struct {

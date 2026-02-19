@@ -107,12 +107,37 @@ func (r *ViewRepository) Today() (*model.TodayView, error) {
 	defer overdueRows.Close()
 	overdueTasks := scanTaskListItems(r.db, overdueRows)
 
+	// Earlier: tasks with when_date before today, but not overdue (no overdue deadline)
+	earlierRows, err := r.db.Query(`
+		SELECT t.id, t.title, t.notes, t.status, t.when_date, t.when_evening, t.high_priority,
+			t.deadline, t.project_id, t.area_id, t.heading_id,
+			t.sort_order_today, t.sort_order_project, t.sort_order_heading,
+			t.completed_at, t.canceled_at, t.deleted_at, t.created_at, t.updated_at,
+			COALESCE((SELECT COUNT(*) FROM checklist_items WHERE task_id = t.id), 0),
+			COALESCE((SELECT COUNT(*) FROM checklist_items WHERE task_id = t.id AND completed = 1), 0),
+			CASE WHEN t.notes != '' THEN 1 ELSE 0 END,
+			CASE WHEN EXISTS(SELECT 1 FROM attachments WHERE task_id = t.id AND type = 'link') THEN 1 ELSE 0 END,
+			CASE WHEN EXISTS(SELECT 1 FROM attachments WHERE task_id = t.id AND type = 'file') THEN 1 ELSE 0 END,
+			CASE WHEN EXISTS(SELECT 1 FROM repeat_rules WHERE task_id = t.id) THEN 1 ELSE 0 END
+		FROM tasks t
+		WHERE t.status = 'open'
+			AND t.when_date < ? AND t.when_date != 'someday'
+			AND (t.deadline IS NULL OR t.deadline >= ?)
+			AND t.deleted_at IS NULL
+		ORDER BY t.when_date ASC, t.sort_order_today ASC`, today, today)
+	if err != nil {
+		return nil, err
+	}
+	defer earlierRows.Close()
+	earlierTasks := scanTaskListItems(r.db, earlierRows)
+
 	return &model.TodayView{
 		Sections: []model.TodaySection{
 			{Title: "Today", Groups: groupByProject(r.db, todayTasks)},
 			{Title: "This Evening", Groups: groupByProject(r.db, eveningTasks)},
 		},
 		Overdue: overdueTasks,
+		Earlier: earlierTasks,
 	}, nil
 }
 
@@ -170,7 +195,52 @@ func (r *ViewRepository) Upcoming(from string, days int) (*model.UpcomingView, e
 		dates = []model.DateGroup{}
 	}
 
-	return &model.UpcomingView{Dates: dates}, nil
+	// Overdue: tasks with deadline before today
+	overdueRows, err := r.db.Query(`
+		SELECT t.id, t.title, t.notes, t.status, t.when_date, t.when_evening, t.high_priority,
+			t.deadline, t.project_id, t.area_id, t.heading_id,
+			t.sort_order_today, t.sort_order_project, t.sort_order_heading,
+			t.completed_at, t.canceled_at, t.deleted_at, t.created_at, t.updated_at,
+			COALESCE((SELECT COUNT(*) FROM checklist_items WHERE task_id = t.id), 0),
+			COALESCE((SELECT COUNT(*) FROM checklist_items WHERE task_id = t.id AND completed = 1), 0),
+			CASE WHEN t.notes != '' THEN 1 ELSE 0 END,
+			CASE WHEN EXISTS(SELECT 1 FROM attachments WHERE task_id = t.id AND type = 'link') THEN 1 ELSE 0 END,
+			CASE WHEN EXISTS(SELECT 1 FROM attachments WHERE task_id = t.id AND type = 'file') THEN 1 ELSE 0 END,
+			CASE WHEN EXISTS(SELECT 1 FROM repeat_rules WHERE task_id = t.id) THEN 1 ELSE 0 END
+		FROM tasks t
+		WHERE t.status = 'open' AND t.deadline < ? AND t.deleted_at IS NULL
+		ORDER BY t.deadline ASC`, from)
+	if err != nil {
+		return nil, err
+	}
+	defer overdueRows.Close()
+	overdueTasks := scanTaskListItems(r.db, overdueRows)
+
+	// Earlier: tasks with when_date before the from date, not someday, not overdue
+	earlierRows, err := r.db.Query(`
+		SELECT t.id, t.title, t.notes, t.status, t.when_date, t.when_evening, t.high_priority,
+			t.deadline, t.project_id, t.area_id, t.heading_id,
+			t.sort_order_today, t.sort_order_project, t.sort_order_heading,
+			t.completed_at, t.canceled_at, t.deleted_at, t.created_at, t.updated_at,
+			COALESCE((SELECT COUNT(*) FROM checklist_items WHERE task_id = t.id), 0),
+			COALESCE((SELECT COUNT(*) FROM checklist_items WHERE task_id = t.id AND completed = 1), 0),
+			CASE WHEN t.notes != '' THEN 1 ELSE 0 END,
+			CASE WHEN EXISTS(SELECT 1 FROM attachments WHERE task_id = t.id AND type = 'link') THEN 1 ELSE 0 END,
+			CASE WHEN EXISTS(SELECT 1 FROM attachments WHERE task_id = t.id AND type = 'file') THEN 1 ELSE 0 END,
+			CASE WHEN EXISTS(SELECT 1 FROM repeat_rules WHERE task_id = t.id) THEN 1 ELSE 0 END
+		FROM tasks t
+		WHERE t.status = 'open'
+			AND t.when_date < ? AND t.when_date != 'someday'
+			AND (t.deadline IS NULL OR t.deadline >= ?)
+			AND t.deleted_at IS NULL
+		ORDER BY t.when_date ASC, t.sort_order_today ASC`, from, from)
+	if err != nil {
+		return nil, err
+	}
+	defer earlierRows.Close()
+	earlierTasks := scanTaskListItems(r.db, earlierRows)
+
+	return &model.UpcomingView{Overdue: overdueTasks, Dates: dates, Earlier: earlierTasks}, nil
 }
 
 func (r *ViewRepository) Anytime() (*model.AnytimeView, error) {
