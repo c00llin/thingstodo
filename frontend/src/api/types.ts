@@ -310,6 +310,7 @@ export interface UpcomingViewDate {
 }
 
 export interface UpcomingView {
+  overdue: Task[]
   dates: UpcomingViewDate[]
   earlier: Task[]
 }

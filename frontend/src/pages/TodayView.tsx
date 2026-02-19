@@ -1,4 +1,5 @@
 import { useMemo } from 'react'
+import { format } from 'date-fns'
 import { useToday } from '../hooks/queries'
 import { SortableTaskList } from '../components/SortableTaskList'
 import { TaskItem } from '../components/TaskItem'
@@ -26,10 +27,12 @@ export function TodayView() {
 
   return (
     <div className="mx-auto max-w-2xl p-6">
+      <h2 className="mb-3 text-2xl font-bold text-neutral-900 dark:text-neutral-100">Today</h2>
+
       {/* Overdue tasks */}
       {data?.overdue && data.overdue.length > 0 && (
-        <div className="mb-8">
-          <h1 className="mb-3 text-2xl font-bold text-red-600 dark:text-red-400">Overdue</h1>
+        <div className="mb-6">
+          <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-neutral-500 dark:text-neutral-400">Overdue</h3>
           <div className="space-y-0.5">
             {data.overdue.map((task) => (
               <TaskItem key={task.id} task={task} />
@@ -40,8 +43,8 @@ export function TodayView() {
 
       {/* Earlier: past-dated tasks without overdue deadline */}
       {data?.earlier && data.earlier.length > 0 && (
-        <div className="mb-8">
-          <h2 className="mb-3 text-lg font-semibold text-neutral-800 dark:text-neutral-200">Earlier</h2>
+        <div className="mb-6">
+          <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-neutral-500 dark:text-neutral-400">Earlier</h3>
           <div className="space-y-0.5">
             {data.earlier.map((task) => (
               <TaskItem key={task.id} task={task} />
@@ -54,13 +57,12 @@ export function TodayView() {
       {sections.map((section) => {
         const hasTasks = section.tasks.length > 0
         if (!hasTasks && section.title !== 'Today') return null
+        const sectionTitle = section.title === 'Today'
+          ? `Today - ${format(new Date(), 'EEE, MMM d')}`
+          : section.title
         return (
-          <div key={section.title} className="mb-8">
-            {section.title === 'Today' ? (
-              <h1 className="mb-3 text-2xl font-bold text-neutral-900 dark:text-neutral-100">{section.title}</h1>
-            ) : (
-              <h2 className="mb-3 text-lg font-semibold text-neutral-800 dark:text-neutral-200">{section.title}</h2>
-            )}
+          <div key={section.title} className="mb-6">
+            <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-neutral-500 dark:text-neutral-400">{sectionTitle}</h3>
             {!hasTasks ? (
               <p className="py-4 text-sm text-neutral-400">No tasks</p>
             ) : (

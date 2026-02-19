@@ -353,6 +353,7 @@ type TaskGroup struct {
 }
 
 type UpcomingView struct {
+	Overdue []TaskListItem `json:"overdue"`
 	Dates   []DateGroup    `json:"dates"`
 	Earlier []TaskListItem `json:"earlier"`
 }
