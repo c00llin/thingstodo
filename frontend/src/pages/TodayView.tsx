@@ -1,6 +1,7 @@
 import { useMemo } from 'react'
 import { useToday } from '../hooks/queries'
 import { SortableTaskList } from '../components/SortableTaskList'
+import { TaskItem } from '../components/TaskItem'
 
 export function TodayView() {
   const { data, isLoading } = useToday()
@@ -29,7 +30,11 @@ export function TodayView() {
       {data?.overdue && data.overdue.length > 0 && (
         <div className="mb-8">
           <h1 className="mb-3 text-2xl font-bold text-red-600 dark:text-red-400">Overdue</h1>
-          <SortableTaskList tasks={data.overdue} sortField="sort_order_today" />
+          <div className="space-y-0.5">
+            {data.overdue.map((task) => (
+              <TaskItem key={task.id} task={task} />
+            ))}
+          </div>
         </div>
       )}
 
@@ -37,7 +42,11 @@ export function TodayView() {
       {data?.earlier && data.earlier.length > 0 && (
         <div className="mb-8">
           <h2 className="mb-3 text-lg font-semibold text-neutral-800 dark:text-neutral-200">Earlier</h2>
-          <SortableTaskList tasks={data.earlier} sortField="sort_order_today" />
+          <div className="space-y-0.5">
+            {data.earlier.map((task) => (
+              <TaskItem key={task.id} task={task} />
+            ))}
+          </div>
         </div>
       )}
 

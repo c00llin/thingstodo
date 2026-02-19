@@ -17,7 +17,7 @@ export function UpcomingView() {
     <div className="mx-auto max-w-2xl p-6">
       <h2 className="mb-3 text-2xl font-bold text-neutral-900 dark:text-neutral-100">Upcoming</h2>
       {data?.earlier && data.earlier.length > 0 && (
-        <TaskGroup title="Earlier" tasks={data.earlier} sortable sortField="sort_order_today" />
+        <TaskGroup title="Earlier" tasks={data.earlier} />
       )}
       {!data?.dates || data.dates.length === 0 ? (
         !data?.earlier?.length && (
