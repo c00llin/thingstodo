@@ -238,20 +238,8 @@ export function SortableTaskItem({
           : { opacity: 0, height: 0, transition: { duration: 0.2 } }
       }
       transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-      className={`group relative ${isMultiSelected ? 'ring-2 ring-red-400 ring-inset rounded-lg' : ''}`}
+      className={`group ${isMultiSelected ? 'ring-2 ring-red-400 ring-inset rounded-lg' : ''}`}
     >
-      {showReviewCheckbox && (
-        <button
-          className="absolute -right-7 top-1/2 -translate-y-1/2 rounded p-0.5 text-neutral-300 opacity-0 transition-opacity hover:text-neutral-500 group-hover:opacity-100 dark:text-neutral-600 dark:hover:text-neutral-400"
-          onClick={(e) => {
-            e.stopPropagation()
-            reviewTask.mutate(task.id)
-          }}
-          aria-label="Mark as reviewed"
-        >
-          <Square size={16} />
-        </button>
-      )}
       <div
         className={`relative flex cursor-pointer items-center gap-3 rounded-lg px-3 py-2 transition-colors ${
           isSelected
@@ -396,6 +384,18 @@ export function SortableTaskItem({
             <p className="mt-0.5 text-[10px] leading-tight text-neutral-400">{taskContext}</p>
           )}
         </div>
+        {showReviewCheckbox && (
+          <button
+            className="shrink-0 rounded p-0.5 text-neutral-300 opacity-0 transition-opacity hover:text-neutral-500 group-hover:opacity-100 dark:text-neutral-600 dark:hover:text-neutral-400"
+            onClick={(e) => {
+              e.stopPropagation()
+              reviewTask.mutate(task.id)
+            }}
+            aria-label="Mark as reviewed"
+          >
+            <Square size={16} />
+          </button>
+        )}
       </div>
       {isExpanded && !isDragging && (
         <DelayedReveal>

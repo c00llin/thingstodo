@@ -203,19 +203,7 @@ export function TaskItem({ task, showProject = true, showReviewCheckbox = false 
 
 
   return (
-    <div ref={setNodeRef} className="group relative" style={{ opacity: isDragging ? 0.4 : 1 }}>
-      {showReviewCheckbox && (
-        <button
-          className="absolute -right-7 top-1/2 -translate-y-1/2 rounded p-0.5 text-neutral-300 opacity-0 transition-opacity hover:text-neutral-500 group-hover:opacity-100 dark:text-neutral-600 dark:hover:text-neutral-400"
-          onClick={(e) => {
-            e.stopPropagation()
-            reviewTask.mutate(task.id)
-          }}
-          aria-label="Mark as reviewed"
-        >
-          <Square size={16} />
-        </button>
-      )}
+    <div ref={setNodeRef} className="group" style={{ opacity: isDragging ? 0.4 : 1 }}>
       <div
         className={`relative flex cursor-pointer items-center gap-3 rounded-lg px-3 py-2 transition-colors ${
           isSelected
@@ -359,6 +347,18 @@ export function TaskItem({ task, showProject = true, showReviewCheckbox = false 
             </p>
           )}
         </div>
+        {showReviewCheckbox && (
+          <button
+            className="shrink-0 rounded p-0.5 text-neutral-300 opacity-0 transition-opacity hover:text-neutral-500 group-hover:opacity-100 dark:text-neutral-600 dark:hover:text-neutral-400"
+            onClick={(e) => {
+              e.stopPropagation()
+              reviewTask.mutate(task.id)
+            }}
+            aria-label="Mark as reviewed"
+          >
+            <Square size={16} />
+          </button>
+        )}
       </div>
       {isExpanded && (
         <DelayedReveal>
