@@ -388,12 +388,12 @@ function AreaList() {
   return (
     <div className="border-t border-neutral-200 pt-3 dark:border-neutral-700">
     <Collapsible.Root open={open} onOpenChange={setOpen}>
-      <Collapsible.Trigger className="flex w-full items-center gap-2 px-3 py-2 text-xs font-semibold uppercase tracking-wide text-neutral-500 hover:text-neutral-700 dark:text-neutral-400 dark:hover:text-neutral-300">
+      <Collapsible.Trigger className="flex w-full items-center px-3 py-2 text-xs font-semibold uppercase tracking-wide text-neutral-500 hover:text-neutral-700 dark:text-neutral-400 dark:hover:text-neutral-300">
+        Areas &amp; Projects
         <ChevronRight
           size={14}
-          className={`transition-transform ${open ? 'rotate-90' : ''}`}
+          className={`ml-auto transition-transform ${open ? 'rotate-90' : ''}`}
         />
-        Areas &amp; Projects
       </Collapsible.Trigger>
       <AnimatePresence initial={false}>
         {open && (
@@ -540,12 +540,12 @@ function TagList() {
   return (
     <div className="border-t border-neutral-200 pt-3 dark:border-neutral-700">
     <Collapsible.Root open={open} onOpenChange={setOpen}>
-      <Collapsible.Trigger className="flex w-full items-center gap-2 px-3 py-2 text-xs font-semibold uppercase tracking-wide text-neutral-500 hover:text-neutral-700 dark:text-neutral-400 dark:hover:text-neutral-300">
+      <Collapsible.Trigger className="flex w-full items-center px-3 py-2 text-xs font-semibold uppercase tracking-wide text-neutral-500 hover:text-neutral-700 dark:text-neutral-400 dark:hover:text-neutral-300">
+        Tags
         <ChevronRight
           size={14}
-          className={`transition-transform ${open ? 'rotate-90' : ''}`}
+          className={`ml-auto transition-transform ${open ? 'rotate-90' : ''}`}
         />
-        Tags
       </Collapsible.Trigger>
       <AnimatePresence initial={false}>
         {open && (
