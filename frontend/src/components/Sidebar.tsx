@@ -359,7 +359,7 @@ function AreaProjectsBadge({
       )}
       <ChevronRight
         size={14}
-        className={`transition-transform ${showCount ? 'hidden group-hover/badge:inline-block' : ''} ${!isCollapsed ? 'rotate-90' : ''}`}
+        className={`transition-transform ${showCount ? 'hidden' : 'opacity-0'} group-hover/badge:inline-block group-hover/badge:opacity-100 ${!isCollapsed ? 'rotate-90' : ''}`}
       />
     </button>
   )
