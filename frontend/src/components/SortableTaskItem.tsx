@@ -393,7 +393,7 @@ export function SortableTaskItem({
             }}
             aria-label="Mark as reviewed"
           >
-            <Square size={16} />
+            <Square size={20} />
           </button>
         )}
       </div>
