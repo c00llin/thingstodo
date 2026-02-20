@@ -47,7 +47,7 @@ export function AreaView() {
             Projects
             <ChevronRight
               size={14}
-              className={`ml-auto transition-transform ${projectsOpen ? 'rotate-90' : ''}`}
+              className={`ml-1 transition-transform ${projectsOpen ? 'rotate-90' : ''}`}
             />
           </button>
           {projectsOpen && (
