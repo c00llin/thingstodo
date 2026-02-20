@@ -184,6 +184,7 @@ export interface HeadingWithTasks extends Heading {
 export interface ProjectDetail extends Project {
   headings: HeadingWithTasks[]
   tasks_without_heading: Task[]
+  completed_tasks: Task[]
 }
 
 export interface CreateProjectRequest {
@@ -219,6 +220,7 @@ export interface Area {
 export interface AreaDetail extends Area {
   projects: Project[]
   tasks: Task[]
+  completed_tasks: Task[]
 }
 
 export interface CreateAreaRequest {
@@ -302,6 +304,7 @@ export interface TodayView {
   sections: TodayViewSection[]
   overdue: Task[]
   earlier: Task[]
+  completed: Task[]
 }
 
 export interface UpcomingViewDate {

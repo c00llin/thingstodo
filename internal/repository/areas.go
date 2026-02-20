@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/collinjanssen/thingstodo/internal/model"
 )
@@ -100,6 +101,31 @@ func (r *AreaRepository) GetByID(id string) (*model.AreaDetail, error) {
 	}
 	defer taskRows.Close()
 	a.Tasks = scanTaskListItems(r.db, taskRows)
+
+	// Completed standalone tasks (today only)
+	today := time.Now().Format("2006-01-02")
+	completedRows, err := r.db.Query(`
+		SELECT t.id, t.title, t.notes, t.status, t.when_date, t.when_evening, t.high_priority,
+			t.deadline, t.project_id, t.area_id, t.heading_id,
+			t.sort_order_today, t.sort_order_project, t.sort_order_heading,
+			t.completed_at, t.canceled_at, t.deleted_at, t.created_at, t.updated_at,
+			COALESCE((SELECT COUNT(*) FROM checklist_items WHERE task_id = t.id), 0),
+			COALESCE((SELECT COUNT(*) FROM checklist_items WHERE task_id = t.id AND completed = 1), 0),
+			CASE WHEN t.notes != '' THEN 1 ELSE 0 END,
+			CASE WHEN EXISTS(SELECT 1 FROM attachments WHERE task_id = t.id AND type = 'link') THEN 1 ELSE 0 END,
+			CASE WHEN EXISTS(SELECT 1 FROM attachments WHERE task_id = t.id AND type = 'file') THEN 1 ELSE 0 END,
+			CASE WHEN EXISTS(SELECT 1 FROM repeat_rules WHERE task_id = t.id) THEN 1 ELSE 0 END
+		FROM tasks t
+		WHERE t.area_id = ? AND t.project_id IS NULL
+			AND t.status IN ('completed', 'canceled', 'wont_do')
+			AND COALESCE(t.completed_at, t.canceled_at, t.updated_at) >= ?
+			AND t.deleted_at IS NULL
+		ORDER BY COALESCE(t.completed_at, t.canceled_at, t.updated_at) DESC`, id, today)
+	if err != nil {
+		return nil, err
+	}
+	defer completedRows.Close()
+	a.CompletedTasks = scanTaskListItems(r.db, completedRows)
 
 	return &a, nil
 }

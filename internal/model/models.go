@@ -33,8 +33,9 @@ type Area struct {
 
 type AreaDetail struct {
 	Area
-	Projects []ProjectListItem `json:"projects"`
-	Tasks    []TaskListItem    `json:"tasks"`
+	Projects       []ProjectListItem `json:"projects"`
+	Tasks          []TaskListItem    `json:"tasks"`
+	CompletedTasks []TaskListItem    `json:"completed_tasks"`
 }
 
 type Project struct {
@@ -62,6 +63,7 @@ type ProjectDetail struct {
 	ProjectListItem
 	Headings             []HeadingWithTasks `json:"headings"`
 	TasksWithoutHeading  []TaskListItem     `json:"tasks_without_heading"`
+	CompletedTasks       []TaskListItem     `json:"completed_tasks"`
 }
 
 type Heading struct {
@@ -337,9 +339,10 @@ type TaskFilters struct {
 // --- View response types ---
 
 type TodayView struct {
-	Sections []TodaySection `json:"sections"`
-	Overdue  []TaskListItem `json:"overdue"`
-	Earlier  []TaskListItem `json:"earlier"`
+	Sections  []TodaySection `json:"sections"`
+	Overdue   []TaskListItem `json:"overdue"`
+	Earlier   []TaskListItem `json:"earlier"`
+	Completed []TaskListItem `json:"completed"`
 }
 
 type TodaySection struct {
