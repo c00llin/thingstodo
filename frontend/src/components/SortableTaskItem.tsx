@@ -3,9 +3,9 @@ import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { motion } from 'framer-motion'
 import * as Checkbox from '@radix-ui/react-checkbox'
-import { Check, Calendar, Flag, GripVertical, X, ListChecks, StickyNote, Link, Paperclip, RefreshCw } from 'lucide-react'
+import { Check, Calendar, Flag, GripVertical, X, ListChecks, StickyNote, Link, Paperclip, RefreshCw, Square } from 'lucide-react'
 import type { Task } from '../api/types'
-import { useCompleteTask, useReopenTask, useUpdateTask } from '../hooks/queries'
+import { useCompleteTask, useReopenTask, useUpdateTask, useReviewTask } from '../hooks/queries'
 import { getTaskContext } from '../hooks/useTaskContext'
 import { useAppStore } from '../stores/app'
 import { TaskDetail } from './TaskDetail'
@@ -39,6 +39,7 @@ interface SortableTaskItemProps {
   task: Task
   showProject?: boolean
   hideWhenDate?: boolean
+  showReviewCheckbox?: boolean
   isDragOverlay: boolean
 }
 
@@ -46,6 +47,7 @@ export function SortableTaskItem({
   task,
   showProject = true,
   hideWhenDate = false,
+  showReviewCheckbox = false,
   isDragOverlay,
 }: SortableTaskItemProps) {
   const selectedTaskId = useAppStore((s) => s.selectedTaskId)
@@ -59,6 +61,7 @@ export function SortableTaskItem({
   const completeTask = useCompleteTask()
   const reopenTask = useReopenTask()
   const updateTask = useUpdateTask()
+  const reviewTask = useReviewTask()
   const resolveTags = useResolveTags()
   const taskContext = getTaskContext(task)
   const isSelected = selectedTaskId === task.id
@@ -235,8 +238,20 @@ export function SortableTaskItem({
           : { opacity: 0, height: 0, transition: { duration: 0.2 } }
       }
       transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-      className={`group ${isMultiSelected ? 'ring-2 ring-red-400 ring-inset rounded-lg' : ''}`}
+      className={`group relative ${isMultiSelected ? 'ring-2 ring-red-400 ring-inset rounded-lg' : ''}`}
     >
+      {showReviewCheckbox && (
+        <button
+          className="absolute -right-7 top-1/2 -translate-y-1/2 rounded p-0.5 text-neutral-300 opacity-0 transition-opacity hover:text-neutral-500 group-hover:opacity-100 dark:text-neutral-600 dark:hover:text-neutral-400"
+          onClick={(e) => {
+            e.stopPropagation()
+            reviewTask.mutate(task.id)
+          }}
+          aria-label="Mark as reviewed"
+        >
+          <Square size={16} />
+        </button>
+      )}
       <div
         className={`relative flex cursor-pointer items-center gap-3 rounded-lg px-3 py-2 transition-colors ${
           isSelected

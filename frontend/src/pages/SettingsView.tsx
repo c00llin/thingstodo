@@ -91,7 +91,7 @@ export function SettingsView() {
           Sound
         </h2>
         <SettingsCheckbox
-          label="Play sound on task complete"
+          label="Play sounds"
           checked={settings.play_complete_sound}
           onChange={(v) => updateSettings.mutate({ play_complete_sound: v })}
         />

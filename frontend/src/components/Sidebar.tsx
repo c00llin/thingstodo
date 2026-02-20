@@ -295,7 +295,7 @@ function SmartListNav() {
                     {reviewCount}
                   </span>
                 )}
-                {showCounts && count > 0 && (
+                {showCounts && count > 0 && !(label === 'Inbox' && reviewCount > 0) && (
                   <span className="flex h-5 w-5 items-center justify-center text-xs text-neutral-400">
                     {count}
                   </span>

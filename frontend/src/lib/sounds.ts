@@ -32,4 +32,5 @@ export function playReviewSound() {
   gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.15)
   osc.start(ctx.currentTime)
   osc.stop(ctx.currentTime + 0.15)
+  osc.addEventListener('ended', () => ctx.close())
 }
