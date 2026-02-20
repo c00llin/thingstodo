@@ -40,7 +40,7 @@ export function TodayView() {
             onClick={() => setOverdueOpen((v) => { const next = !v; localStorage.setItem('today-overdue', String(next)); return next })}
             className="mb-2 flex items-center text-xs font-semibold uppercase tracking-wide text-neutral-500 hover:text-neutral-700 dark:text-neutral-400 dark:hover:text-neutral-300"
           >
-            <ChevronRight size={14} className={`-ml-5 mr-1 transition-transform ${overdueOpen ? 'rotate-90' : ''}`} />
+            <ChevronRight size={14} className={`-ml-[18px] mr-1 transition-transform ${overdueOpen ? 'rotate-90' : ''}`} />
             Overdue
           </button>
           {overdueOpen && (
@@ -60,7 +60,7 @@ export function TodayView() {
             onClick={() => setEarlierOpen((v) => { const next = !v; localStorage.setItem('today-earlier', String(next)); return next })}
             className="mb-2 flex items-center text-xs font-semibold uppercase tracking-wide text-neutral-500 hover:text-neutral-700 dark:text-neutral-400 dark:hover:text-neutral-300"
           >
-            <ChevronRight size={14} className={`-ml-5 mr-1 transition-transform ${earlierOpen ? 'rotate-90' : ''}`} />
+            <ChevronRight size={14} className={`-ml-[18px] mr-1 transition-transform ${earlierOpen ? 'rotate-90' : ''}`} />
             Earlier
           </button>
           {earlierOpen && (

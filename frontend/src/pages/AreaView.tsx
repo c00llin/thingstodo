@@ -50,7 +50,7 @@ export function AreaView() {
           >
             <ChevronRight
               size={14}
-              className={`-ml-5 mr-1 transition-transform ${projectsOpen ? 'rotate-90' : ''}`}
+              className={`-ml-[18px] mr-1 transition-transform ${projectsOpen ? 'rotate-90' : ''}`}
             />
             Projects
           </button>
