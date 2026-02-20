@@ -1,5 +1,6 @@
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import { format } from 'date-fns'
+import { ChevronRight } from 'lucide-react'
 import { useToday } from '../hooks/queries'
 import { SortableTaskList } from '../components/SortableTaskList'
 import { TaskItem } from '../components/TaskItem'
@@ -7,6 +8,8 @@ import { CompletedTasksSection } from '../components/CompletedTasksSection'
 
 export function TodayView() {
   const { data, isLoading } = useToday()
+  const [overdueOpen, setOverdueOpen] = useState(() => localStorage.getItem('today-overdue') !== 'false')
+  const [earlierOpen, setEarlierOpen] = useState(() => localStorage.getItem('today-earlier') !== 'false')
 
   // Flatten grouped tasks into a single list per section
   const dataSections = data?.sections
@@ -33,24 +36,40 @@ export function TodayView() {
       {/* Overdue tasks */}
       {data?.overdue && data.overdue.length > 0 && (
         <div className="mb-6">
-          <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-neutral-500 dark:text-neutral-400">Overdue</h3>
-          <div className="space-y-0.5">
-            {data.overdue.map((task) => (
-              <TaskItem key={task.id} task={task} />
-            ))}
-          </div>
+          <button
+            onClick={() => setOverdueOpen((v) => { const next = !v; localStorage.setItem('today-overdue', String(next)); return next })}
+            className="mb-2 flex items-center text-xs font-semibold uppercase tracking-wide text-neutral-500 hover:text-neutral-700 dark:text-neutral-400 dark:hover:text-neutral-300"
+          >
+            <ChevronRight size={14} className={`-ml-5 mr-1 transition-transform ${overdueOpen ? 'rotate-90' : ''}`} />
+            Overdue
+          </button>
+          {overdueOpen && (
+            <div className="space-y-0.5">
+              {data.overdue.map((task) => (
+                <TaskItem key={task.id} task={task} />
+              ))}
+            </div>
+          )}
         </div>
       )}
 
       {/* Earlier: past-dated tasks without overdue deadline */}
       {data?.earlier && data.earlier.length > 0 && (
         <div className="mb-6">
-          <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-neutral-500 dark:text-neutral-400">Earlier</h3>
-          <div className="space-y-0.5">
-            {data.earlier.map((task) => (
-              <TaskItem key={task.id} task={task} />
-            ))}
-          </div>
+          <button
+            onClick={() => setEarlierOpen((v) => { const next = !v; localStorage.setItem('today-earlier', String(next)); return next })}
+            className="mb-2 flex items-center text-xs font-semibold uppercase tracking-wide text-neutral-500 hover:text-neutral-700 dark:text-neutral-400 dark:hover:text-neutral-300"
+          >
+            <ChevronRight size={14} className={`-ml-5 mr-1 transition-transform ${earlierOpen ? 'rotate-90' : ''}`} />
+            Earlier
+          </button>
+          {earlierOpen && (
+            <div className="space-y-0.5">
+              {data.earlier.map((task) => (
+                <TaskItem key={task.id} task={task} />
+              ))}
+            </div>
+          )}
         </div>
       )}
 
