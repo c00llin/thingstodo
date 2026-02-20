@@ -321,12 +321,58 @@ function DraggableProject({ projectId, children }: { projectId: string; children
   )
 }
 
+function AreaProjectsBadge({
+  area,
+  hasProjects,
+  isCollapsed,
+  showCounts,
+  onToggle,
+}: {
+  area: { standalone_task_count: number }
+  hasProjects: boolean
+  isCollapsed: boolean
+  showCounts: boolean
+  onToggle: () => void
+}) {
+  const showCount = showCounts && area.standalone_task_count > 0
+
+  if (!hasProjects) {
+    if (!showCount) return null
+    return (
+      <span className="relative z-10 ml-auto text-xs text-neutral-400">
+        {area.standalone_task_count}
+      </span>
+    )
+  }
+
+  return (
+    <button
+      onClick={(e) => {
+        e.preventDefault()
+        e.stopPropagation()
+        onToggle()
+      }}
+      className="group/badge relative z-10 ml-auto flex h-5 w-5 items-center justify-center rounded text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-300"
+    >
+      {showCount && (
+        <span className="text-xs group-hover/badge:hidden">{area.standalone_task_count}</span>
+      )}
+      <ChevronRight
+        size={14}
+        className={`transition-transform ${showCount ? 'hidden group-hover/badge:block' : ''} ${!isCollapsed ? 'rotate-90' : ''}`}
+      />
+    </button>
+  )
+}
+
 function AreaList() {
   const { data: areasData } = useAreas()
   const { data: projectsData } = useProjects()
   const { data: settings } = useSettings()
   const open = useAppStore((s) => s.sidebarAreasOpen)
   const setOpen = useAppStore((s) => s.setSidebarAreasOpen)
+  const collapsedAreaIds = useAppStore((s) => s.collapsedAreaIds)
+  const toggleAreaCollapsed = useAppStore((s) => s.toggleAreaCollapsed)
   const [editingItemId, setEditingItemId] = useState<string | null>(null)
   const updateProject = useUpdateProject()
   const updateArea = useUpdateArea()
@@ -361,6 +407,7 @@ function AreaList() {
             >
               {areas.map((area) => {
                 const areaProjects = projects.filter((p) => p.area_id === area.id)
+                const isCollapsed = collapsedAreaIds.has(area.id)
                 return (
                   <div key={area.id}>
                     <SidebarDropTarget id={`sidebar-area-${area.id}`}>
@@ -372,11 +419,15 @@ function AreaList() {
                         layoutId="sidebar-active-indicator"
                         icon={<Blocks size={16} className="relative z-10" />}
                         title={area.title}
-                        badge={showCounts && area.standalone_task_count > 0 ? (
-                          <span className="relative z-10 ml-auto text-xs text-neutral-400">
-                            {area.standalone_task_count}
-                          </span>
-                        ) : undefined}
+                        badge={
+                          <AreaProjectsBadge
+                            area={area}
+                            hasProjects={areaProjects.length > 0}
+                            isCollapsed={isCollapsed}
+                            showCounts={showCounts}
+                            onToggle={() => toggleAreaCollapsed(area.id)}
+                          />
+                        }
                         onSave={async (t) => { await updateArea.mutateAsync({ id: area.id, data: { title: t } }) }}
                         editingId={editingItemId}
                         itemId={area.id}
@@ -384,34 +435,47 @@ function AreaList() {
                         onEditEnd={clearEditing}
                       />
                     </SidebarDropTarget>
-                    {areaProjects.map((project) => {
-                      const openCount = project.task_count - project.completed_task_count
-                      return (
-                      <SidebarDropTarget key={project.id} id={`sidebar-project-${project.id}`}>
-                        <DraggableProject projectId={project.id}>
-                          <EditableSidebarItem
-                            to={`/project/${project.id}`}
-                            className="flex items-center gap-2 rounded-lg py-1.5 pl-8 pr-3 text-sm"
-                            activeClassName="text-red-700 dark:text-red-400"
-                            inactiveClassName="text-neutral-500 hover:bg-neutral-100 dark:text-neutral-400 dark:hover:bg-neutral-800"
-                            layoutId="sidebar-active-indicator"
-                            icon={<Package size={14} className="relative z-10 text-neutral-400 dark:text-neutral-500" />}
-                            title={project.title}
-                            badge={showCounts && openCount > 0 ? (
-                              <span className="relative z-10 ml-auto text-xs text-neutral-400">
-                                {openCount}
-                              </span>
-                            ) : undefined}
-                            onSave={async (t) => { await updateProject.mutateAsync({ id: project.id, data: { title: t } }) }}
-                            editingId={editingItemId}
-                            itemId={project.id}
-                            onEditStart={setEditingItemId}
-                            onEditEnd={clearEditing}
-                          />
-                        </DraggableProject>
-                      </SidebarDropTarget>
-                      )
-                    })}
+                    <AnimatePresence initial={false}>
+                      {!isCollapsed && (
+                        <motion.div
+                          key={`area-projects-${area.id}`}
+                          initial={{ height: 0, opacity: 0 }}
+                          animate={{ height: 'auto', opacity: 1 }}
+                          exit={{ height: 0, opacity: 0 }}
+                          transition={{ type: 'spring', stiffness: 400, damping: 35 }}
+                          className="overflow-hidden"
+                        >
+                          {areaProjects.map((project) => {
+                            const openCount = project.task_count - project.completed_task_count
+                            return (
+                            <SidebarDropTarget key={project.id} id={`sidebar-project-${project.id}`}>
+                              <DraggableProject projectId={project.id}>
+                                <EditableSidebarItem
+                                  to={`/project/${project.id}`}
+                                  className="flex items-center gap-2 rounded-lg py-1.5 pl-8 pr-3 text-sm"
+                                  activeClassName="text-red-700 dark:text-red-400"
+                                  inactiveClassName="text-neutral-500 hover:bg-neutral-100 dark:text-neutral-400 dark:hover:bg-neutral-800"
+                                  layoutId="sidebar-active-indicator"
+                                  icon={<Package size={14} className="relative z-10 text-neutral-400 dark:text-neutral-500" />}
+                                  title={project.title}
+                                  badge={showCounts && openCount > 0 ? (
+                                    <span className="relative z-10 ml-auto text-xs text-neutral-400">
+                                      {openCount}
+                                    </span>
+                                  ) : undefined}
+                                  onSave={async (t) => { await updateProject.mutateAsync({ id: project.id, data: { title: t } }) }}
+                                  editingId={editingItemId}
+                                  itemId={project.id}
+                                  onEditStart={setEditingItemId}
+                                  onEditEnd={clearEditing}
+                                />
+                              </DraggableProject>
+                            </SidebarDropTarget>
+                            )
+                          })}
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
                   </div>
                 )
               })}

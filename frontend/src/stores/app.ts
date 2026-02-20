@@ -10,6 +10,8 @@ interface AppStore {
   setSidebarAreasOpen: (open: boolean) => void
   sidebarTagsOpen: boolean
   setSidebarTagsOpen: (open: boolean) => void
+  collapsedAreaIds: Set<string>
+  toggleAreaCollapsed: (areaId: string) => void
 
   // Task selection & detail panel
   selectedTaskId: string | null
@@ -69,6 +71,14 @@ interface AppStore {
   setDetailFieldCompleted: (v: boolean) => void
 }
 
+function getInitialCollapsedAreas(): Set<string> {
+  try {
+    const stored = localStorage.getItem('collapsedAreaIds')
+    if (stored) return new Set(JSON.parse(stored) as string[])
+  } catch { /* ignore */ }
+  return new Set()
+}
+
 function getInitialTheme(): Theme {
   if (typeof window === 'undefined') return 'system'
   const stored = localStorage.getItem('theme')
@@ -89,6 +99,18 @@ export const useAppStore = create<AppStore>((set) => ({
     localStorage.setItem('sidebarTagsOpen', String(open))
     set({ sidebarTagsOpen: open })
   },
+  collapsedAreaIds: getInitialCollapsedAreas(),
+  toggleAreaCollapsed: (areaId) =>
+    set((s) => {
+      const next = new Set(s.collapsedAreaIds)
+      if (next.has(areaId)) {
+        next.delete(areaId)
+      } else {
+        next.add(areaId)
+      }
+      localStorage.setItem('collapsedAreaIds', JSON.stringify([...next]))
+      return { collapsedAreaIds: next }
+    }),
 
   selectedTaskId: null,
   selectTask: (id) => set({ selectedTaskId: id, expandedTaskId: null, editingTaskId: null }),
