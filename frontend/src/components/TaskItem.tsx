@@ -9,6 +9,7 @@ import { useAppStore } from '../stores/app'
 import { TaskDetail } from './TaskDetail'
 import { useResolveTags } from '../hooks/useResolveTags'
 import { formatRelativeDate } from '../lib/format-date'
+import { getTagPillClasses } from '../lib/tag-colors'
 import { TaskStatusIcon } from './TaskStatusIcon'
 import { TagAutocomplete } from './TagAutocomplete'
 import { ProjectAutocomplete } from './ProjectAutocomplete'
@@ -290,7 +291,7 @@ export function TaskItem({ task, showProject = true }: TaskItemProps) {
             {!editing && task.tags.map((tag) => (
               <span
                 key={tag.id}
-                className="group/tag inline-flex items-center gap-0.5 rounded-full bg-neutral-100 py-0.5 pl-2 pr-1.5 text-xs text-neutral-600 dark:bg-neutral-700 dark:text-neutral-300"
+                className={`group/tag inline-flex items-center gap-0.5 rounded-full py-0.5 pl-2 pr-1.5 text-xs ${getTagPillClasses(tag.color)}`}
               >
                 {tag.title}
                 <button

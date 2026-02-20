@@ -17,6 +17,7 @@ import {
   CirclePlus,
   Settings,
   LogOut,
+  RotateCcw,
 } from 'lucide-react'
 import * as Collapsible from '@radix-ui/react-collapsible'
 import * as Popover from '@radix-ui/react-popover'
@@ -28,6 +29,7 @@ import { useAreas, useProjects, useTags, useCreateProject, useCreateArea, useVie
 import { useAppStore } from '../stores/app'
 import { ThemeToggle } from './ThemeToggle'
 import { SidebarDropTarget } from './SidebarDropTarget'
+import { TAG_COLORS, getTagIconClass } from '../lib/tag-colors'
 
 const indicatorTransition = { type: 'spring' as const, stiffness: 400, damping: 35 }
 
@@ -525,6 +527,236 @@ function AreaList() {
   )
 }
 
+function TagSidebarItem({
+  tag,
+  editingId,
+  onEditStart,
+  onEditEnd,
+  onSave,
+  indent,
+  showCounts,
+}: {
+  tag: import('../api/types').Tag
+  editingId: string | null
+  onEditStart: (id: string) => void
+  onEditEnd: () => void
+  onSave: (newTitle: string) => Promise<void>
+  indent?: boolean
+  showCounts: boolean
+}) {
+  const navigate = useNavigate()
+  const location = useLocation()
+  const updateTag = useUpdateTag()
+  const clickTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const iconClickTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const inputRef = useRef<HTMLInputElement>(null)
+  const skipBlurRef = useRef(false)
+  const [errorMsg, setErrorMsg] = useState<string | null>(null)
+  const [colorPickerOpen, setColorPickerOpen] = useState(false)
+  const iconRef = useRef<HTMLButtonElement>(null)
+  const isEditing = editingId === tag.id
+  const to = `/tag/${tag.id}`
+  const isActive = location.pathname === to
+  const iconSize = indent ? 12 : 14
+  const iconColorClass = getTagIconClass(tag.color)
+
+  useEffect(() => {
+    return () => {
+      if (clickTimerRef.current) clearTimeout(clickTimerRef.current)
+      if (iconClickTimerRef.current) clearTimeout(iconClickTimerRef.current)
+    }
+  }, [])
+
+  useEffect(() => {
+    if (isEditing) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- reset on edit start
+      setErrorMsg(null)
+      requestAnimationFrame(() => {
+        inputRef.current?.focus()
+        inputRef.current?.select()
+      })
+    }
+  }, [isEditing])
+
+  const saveAndExit = useCallback(async (value: string) => {
+    const trimmed = value.trim()
+    if (trimmed && trimmed !== tag.title) {
+      try {
+        await onSave(trimmed)
+      } catch (err) {
+        const dupMsg = getDuplicateErrorMessage(err)
+        if (dupMsg) {
+          setErrorMsg(dupMsg)
+          return
+        }
+      }
+    }
+    onEditEnd()
+  }, [tag.title, onSave, onEditEnd])
+
+  // Title click: single = navigate, double = edit name
+  const handleTitleClick = useCallback((e: React.MouseEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    if (clickTimerRef.current) {
+      clearTimeout(clickTimerRef.current)
+      clickTimerRef.current = null
+      onEditStart(tag.id)
+      return
+    }
+    clickTimerRef.current = setTimeout(() => {
+      clickTimerRef.current = null
+      navigate(to)
+    }, 200)
+  }, [navigate, to, onEditStart, tag.id])
+
+  // Icon click: single = navigate, double = color picker
+  const handleIconClick = useCallback((e: React.MouseEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    if (iconClickTimerRef.current) {
+      clearTimeout(iconClickTimerRef.current)
+      iconClickTimerRef.current = null
+      setColorPickerOpen(true)
+      return
+    }
+    iconClickTimerRef.current = setTimeout(() => {
+      iconClickTimerRef.current = null
+      navigate(to)
+    }, 200)
+  }, [navigate, to])
+
+  const className = indent
+    ? 'flex items-center gap-2 rounded-lg py-1.5 pl-8 pr-3 text-sm'
+    : 'flex items-center gap-2 rounded-lg px-3 py-1.5 text-sm'
+
+  if (isEditing) {
+    return (
+      <div>
+        <div className={`relative ${className} ${isActive ? 'text-red-700 dark:text-red-400' : 'text-neutral-600 hover:bg-neutral-100 dark:text-neutral-400 dark:hover:bg-neutral-800'}`}>
+          {isActive && (
+            <motion.div
+              layoutId="sidebar-active-indicator"
+              className="absolute inset-0 rounded-lg bg-red-50 dark:bg-red-900/30"
+              transition={indicatorTransition}
+            />
+          )}
+          <Tag size={iconSize} className={`relative z-10 ${iconColorClass}`} />
+          <input
+            ref={inputRef}
+            type="text"
+            defaultValue={tag.title}
+            className="relative z-10 min-w-0 flex-1 bg-transparent outline-none"
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                e.preventDefault()
+                skipBlurRef.current = true
+                saveAndExit(e.currentTarget.value)
+              } else if (e.key === 'Escape') {
+                e.preventDefault()
+                e.stopPropagation()
+                skipBlurRef.current = true
+                setErrorMsg(null)
+                onEditEnd()
+              }
+            }}
+            onBlur={(e) => {
+              if (skipBlurRef.current) {
+                skipBlurRef.current = false
+                return
+              }
+              saveAndExit(e.currentTarget.value)
+            }}
+          />
+        </div>
+        {errorMsg && (
+          <p className="px-3 pt-0.5 text-xs text-red-500">{errorMsg}</p>
+        )}
+      </div>
+    )
+  }
+
+  return (
+    <Popover.Root open={colorPickerOpen} onOpenChange={setColorPickerOpen}>
+      <NavLink
+        to={to}
+        onClick={(e) => e.preventDefault()}
+        className={({ isActive: active }) =>
+          `relative ${className} ${active ? 'text-red-700 dark:text-red-400' : indent ? 'text-neutral-500 hover:bg-neutral-100 dark:text-neutral-400 dark:hover:bg-neutral-800' : 'text-neutral-600 hover:bg-neutral-100 dark:text-neutral-400 dark:hover:bg-neutral-800'}`
+        }
+      >
+        {({ isActive: active }) => (
+          <>
+            {active && (
+              <motion.div
+                layoutId="sidebar-active-indicator"
+                className="absolute inset-0 rounded-lg bg-red-50 dark:bg-red-900/30"
+                transition={indicatorTransition}
+              />
+            )}
+            <Popover.Anchor asChild>
+              <button
+                ref={iconRef}
+                onClick={handleIconClick}
+                className={`relative z-10 ${iconColorClass}`}
+                title="Double-click to set color"
+              >
+                <Tag size={iconSize} />
+              </button>
+            </Popover.Anchor>
+            <span
+              className="relative z-10 truncate"
+              onClick={handleTitleClick}
+              title="Double-click to rename"
+            >
+              {tag.title}
+            </span>
+            {showCounts && tag.task_count > 0 && (
+              <span className="relative z-10 ml-auto flex h-5 w-5 items-center justify-center text-xs text-neutral-400">
+                {tag.task_count}
+              </span>
+            )}
+          </>
+        )}
+      </NavLink>
+      <Popover.Portal>
+        <Popover.Content
+          side="right"
+          sideOffset={8}
+          className="z-50 rounded-lg border border-neutral-200 bg-white p-2 shadow-lg dark:border-neutral-700 dark:bg-neutral-800"
+          onOpenAutoFocus={(e) => e.preventDefault()}
+        >
+          <div className="flex items-center gap-1.5">
+            {TAG_COLORS.map((c) => (
+              <button
+                key={c.value}
+                className={`h-5 w-5 rounded-full ${c.dot} transition-transform hover:scale-125 ${
+                  tag.color === c.value ? 'ring-2 ring-offset-1 ring-neutral-400 dark:ring-offset-neutral-800' : ''
+                }`}
+                onClick={() => {
+                  updateTag.mutate({ id: tag.id, data: { color: c.value } })
+                  setColorPickerOpen(false)
+                }}
+                aria-label={c.name}
+              />
+            ))}
+            <button
+              className="flex h-5 w-5 items-center justify-center rounded-full text-neutral-400 transition-transform hover:scale-125 hover:text-neutral-600 dark:hover:text-neutral-300"
+              onClick={() => {
+                updateTag.mutate({ id: tag.id, data: { color: null } })
+                setColorPickerOpen(false)
+              }}
+              aria-label="Reset color"
+            >
+              <RotateCcw size={12} />
+            </button>
+          </div>
+        </Popover.Content>
+      </Popover.Portal>
+    </Popover.Root>
+  )
+}
+
 function TagList() {
   const { data } = useTags()
   const { data: settings } = useSettings()
@@ -568,41 +800,25 @@ function TagList() {
                   return (
                     <div key={tag.id}>
                       <SidebarDropTarget id={`sidebar-tag-${tag.id}`}>
-                        <EditableSidebarItem
-                          to={`/tag/${tag.id}`}
-                          className="flex items-center gap-2 rounded-lg px-3 py-1.5 text-sm"
-                          activeClassName="text-red-700 dark:text-red-400"
-                          inactiveClassName="text-neutral-600 hover:bg-neutral-100 dark:text-neutral-400 dark:hover:bg-neutral-800"
-                          layoutId="sidebar-active-indicator"
-                          icon={<Tag size={14} className="relative z-10" />}
-                          title={tag.title}
-                          badge={showCounts && tag.task_count > 0 ? (
-                            <span className="relative z-10 ml-auto flex h-5 w-5 items-center justify-center text-xs text-neutral-400">
-                              {tag.task_count}
-                            </span>
-                          ) : undefined}
-                          onSave={async (t) => { await updateTag.mutateAsync({ id: tag.id, data: { title: t } }) }}
+                        <TagSidebarItem
+                          tag={tag}
                           editingId={editingItemId}
-                          itemId={tag.id}
                           onEditStart={setEditingItemId}
                           onEditEnd={clearEditing}
+                          onSave={async (t) => { await updateTag.mutateAsync({ id: tag.id, data: { title: t } }) }}
+                          showCounts={showCounts}
                         />
                       </SidebarDropTarget>
                       {children.map((child) => (
                         <SidebarDropTarget key={child.id} id={`sidebar-tag-${child.id}`}>
-                          <EditableSidebarItem
-                            to={`/tag/${child.id}`}
-                            className="flex items-center gap-2 rounded-lg py-1.5 pl-8 pr-3 text-sm"
-                            activeClassName="text-red-700 dark:text-red-400"
-                            inactiveClassName="text-neutral-500 hover:bg-neutral-100 dark:text-neutral-400 dark:hover:bg-neutral-800"
-                            layoutId="sidebar-active-indicator"
-                            icon={<Tag size={12} className="relative z-10" />}
-                            title={child.title}
-                            onSave={async (t) => { await updateTag.mutateAsync({ id: child.id, data: { title: t } }) }}
+                          <TagSidebarItem
+                            tag={child}
                             editingId={editingItemId}
-                            itemId={child.id}
                             onEditStart={setEditingItemId}
                             onEditEnd={clearEditing}
+                            onSave={async (t) => { await updateTag.mutateAsync({ id: child.id, data: { title: t } }) }}
+                            indent
+                            showCounts={showCounts}
                           />
                         </SidebarDropTarget>
                       ))}

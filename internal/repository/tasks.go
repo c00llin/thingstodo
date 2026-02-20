@@ -366,7 +366,7 @@ func (r *TaskRepository) Reorder(items []model.ReorderItem) error {
 
 func (r *TaskRepository) getTaskTags(taskID string) ([]model.TagRef, error) {
 	rows, err := r.db.Query(
-		"SELECT t.id, t.title FROM tags t JOIN task_tags tt ON t.id = tt.tag_id WHERE tt.task_id = ? ORDER BY t.sort_order", taskID)
+		"SELECT t.id, t.title, t.color FROM tags t JOIN task_tags tt ON t.id = tt.tag_id WHERE tt.task_id = ? ORDER BY t.sort_order", taskID)
 	if err != nil {
 		return nil, err
 	}
@@ -374,7 +374,7 @@ func (r *TaskRepository) getTaskTags(taskID string) ([]model.TagRef, error) {
 	var tags []model.TagRef
 	for rows.Next() {
 		var t model.TagRef
-		_ = rows.Scan(&t.ID, &t.Title)
+		_ = rows.Scan(&t.ID, &t.Title, &t.Color)
 		tags = append(tags, t)
 	}
 	if tags == nil {
