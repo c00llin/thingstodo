@@ -7,7 +7,8 @@ A self-hosted, Things 3 / Todoist inspired task manager.
 ## Features
 
 - **Projects & Areas** — organize tasks into projects (completable) and areas (ongoing)
-- **Tags** — flexible labeling with inline `#tag` syntax
+- **Tags** — flexible labeling with inline `#tag` syntax and customizable colors
+- **Review Tasks** — tasks not edited for a configurable number of days surface in a Review section in Inbox, so nothing falls through the cracks
 - **Checklists** — subtasks within any task
 - **File Attachments & Links** — attach files or URLs to tasks
 - **Repeating Tasks** — daily, weekly, monthly, and custom schedules
