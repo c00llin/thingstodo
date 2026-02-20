@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useParams, useNavigate, Link } from 'react-router'
-import { Trash2 } from 'lucide-react'
+import { Trash2, ChevronRight } from 'lucide-react'
 import { useArea, useDeleteArea } from '../hooks/queries'
 import { TaskItem } from '../components/TaskItem'
 import { CompletedTasksSection } from '../components/CompletedTasksSection'
@@ -12,6 +12,7 @@ export function AreaView() {
   const { data: area, isLoading } = useArea(id!)
   const deleteArea = useDeleteArea()
   const [showDelete, setShowDelete] = useState(false)
+  const [projectsOpen, setProjectsOpen] = useState(true)
 
   if (isLoading || !area) {
     return (
@@ -39,37 +40,46 @@ export function AreaView() {
 
       {hasProjects && (
         <div className="mb-6">
-          <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-neutral-500">
+          <button
+            onClick={() => setProjectsOpen((v) => !v)}
+            className="mb-2 flex w-full items-center text-xs font-semibold uppercase tracking-wide text-neutral-500 hover:text-neutral-700 dark:hover:text-neutral-300"
+          >
             Projects
-          </h3>
-          <div className="space-y-1">
-            {area.projects.map((project) => {
-              const progress =
-                project.task_count > 0
-                  ? Math.round(
-                      (project.completed_task_count / project.task_count) * 100,
-                    )
-                  : 0
-              return (
-                <Link
-                  key={project.id}
-                  to={`/project/${project.id}`}
-                  className="flex items-center gap-3 rounded-lg px-3 py-2 hover:bg-neutral-50 dark:hover:bg-neutral-800"
-                >
-                  <div className="h-2 w-16 overflow-hidden rounded-full bg-neutral-200 dark:bg-neutral-700">
-                    <div
-                      className="h-full rounded-full bg-red-500"
-                      style={{ width: `${progress}%` }}
-                    />
-                  </div>
-                  <span className="text-sm text-neutral-900 dark:text-neutral-100">{project.title}</span>
-                  <span className="ml-auto text-xs text-neutral-400">
-                    {project.completed_task_count}/{project.task_count}
-                  </span>
-                </Link>
-              )
-            })}
-          </div>
+            <ChevronRight
+              size={14}
+              className={`ml-auto transition-transform ${projectsOpen ? 'rotate-90' : ''}`}
+            />
+          </button>
+          {projectsOpen && (
+            <div className="space-y-1">
+              {area.projects.map((project) => {
+                const progress =
+                  project.task_count > 0
+                    ? Math.round(
+                        (project.completed_task_count / project.task_count) * 100,
+                      )
+                    : 0
+                return (
+                  <Link
+                    key={project.id}
+                    to={`/project/${project.id}`}
+                    className="flex items-center gap-3 rounded-lg px-3 py-2 hover:bg-neutral-50 dark:hover:bg-neutral-800"
+                  >
+                    <div className="h-2 w-16 overflow-hidden rounded-full bg-neutral-200 dark:bg-neutral-700">
+                      <div
+                        className="h-full rounded-full bg-red-500"
+                        style={{ width: `${progress}%` }}
+                      />
+                    </div>
+                    <span className="text-sm text-neutral-900 dark:text-neutral-100">{project.title}</span>
+                    <span className="ml-auto text-xs text-neutral-400">
+                      {project.completed_task_count}/{project.task_count}
+                    </span>
+                  </Link>
+                )
+              })}
+            </div>
+          )}
         </div>
       )}
 
