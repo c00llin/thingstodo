@@ -1,12 +1,14 @@
 import { useDroppable } from '@dnd-kit/core'
 import type { ReactNode } from 'react'
+import { DEFAULT_DROP_CLASSES } from '../lib/tag-colors'
 
 interface SidebarDropTargetProps {
   id: string
   children: ReactNode
+  dropClasses?: string
 }
 
-export function SidebarDropTarget({ id, children }: SidebarDropTargetProps) {
+export function SidebarDropTarget({ id, children, dropClasses }: SidebarDropTargetProps) {
   const { isOver, active, setNodeRef } = useDroppable({ id })
   const showHighlight = isOver && active != null
 
@@ -14,9 +16,7 @@ export function SidebarDropTarget({ id, children }: SidebarDropTargetProps) {
     <div
       ref={setNodeRef}
       className={`rounded-lg transition-colors ${
-        showHighlight
-          ? '[&_a]:!bg-red-100 [&_a]:!text-red-700 [&_a]:!ring-2 [&_a]:!ring-inset [&_a]:!ring-red-300 dark:[&_a]:!bg-red-900/40 dark:[&_a]:!text-red-400 dark:[&_a]:!ring-red-700'
-          : ''
+        showHighlight ? (dropClasses ?? DEFAULT_DROP_CLASSES) : ''
       }`}
     >
       {children}

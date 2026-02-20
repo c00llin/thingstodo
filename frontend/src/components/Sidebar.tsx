@@ -29,7 +29,7 @@ import { useAreas, useProjects, useTags, useCreateProject, useCreateArea, useVie
 import { useAppStore } from '../stores/app'
 import { ThemeToggle } from './ThemeToggle'
 import { SidebarDropTarget } from './SidebarDropTarget'
-import { TAG_COLORS, getTagIconClass } from '../lib/tag-colors'
+import { TAG_COLORS, getTagIconClass, getTagDropClasses } from '../lib/tag-colors'
 
 const indicatorTransition = { type: 'spring' as const, stiffness: 400, damping: 35 }
 
@@ -799,7 +799,7 @@ function TagList() {
                   const children = tags.filter((t) => t.parent_tag_id === tag.id)
                   return (
                     <div key={tag.id}>
-                      <SidebarDropTarget id={`sidebar-tag-${tag.id}`}>
+                      <SidebarDropTarget id={`sidebar-tag-${tag.id}`} dropClasses={getTagDropClasses(tag.color)}>
                         <TagSidebarItem
                           tag={tag}
                           editingId={editingItemId}
@@ -810,7 +810,7 @@ function TagList() {
                         />
                       </SidebarDropTarget>
                       {children.map((child) => (
-                        <SidebarDropTarget key={child.id} id={`sidebar-tag-${child.id}`}>
+                        <SidebarDropTarget key={child.id} id={`sidebar-tag-${child.id}`} dropClasses={getTagDropClasses(child.color)}>
                           <TagSidebarItem
                             tag={child}
                             editingId={editingItemId}
