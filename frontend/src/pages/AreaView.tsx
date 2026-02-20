@@ -12,7 +12,7 @@ export function AreaView() {
   const { data: area, isLoading } = useArea(id!)
   const deleteArea = useDeleteArea()
   const [showDelete, setShowDelete] = useState(false)
-  const [projectsOpen, setProjectsOpen] = useState(true)
+  const [projectsOpen, setProjectsOpen] = useState(() => localStorage.getItem(`area-projects-${id}`) !== 'false')
 
   if (isLoading || !area) {
     return (
@@ -41,7 +41,7 @@ export function AreaView() {
       {hasProjects && (
         <div className="mb-6">
           <button
-            onClick={() => setProjectsOpen((v) => !v)}
+            onClick={() => setProjectsOpen((v) => { const next = !v; localStorage.setItem(`area-projects-${id}`, String(next)); return next })}
             className="mb-2 flex w-full items-center text-xs font-semibold uppercase tracking-wide text-neutral-500 hover:text-neutral-700 dark:hover:text-neutral-300"
           >
             Projects
