@@ -239,7 +239,7 @@ function AppDndContextInner({ children }: AppDndContextProps) {
           const existingTagIds = draggedTask?.tags?.map((t) => t.id) ?? []
           if (!existingTagIds.includes(tagId)) {
             const tag = allTags.find((t: Tag) => t.id === tagId)
-            const newTagRef = { id: tagId, title: tag?.title ?? '' }
+            const newTagRef = { id: tagId, title: tag?.title ?? '', color: tag?.color ?? null }
             updateTaskInCache(queryClient, taskId, {
               tags: [...(draggedTask?.tags ?? []), newTagRef],
             } as Partial<Task>)
