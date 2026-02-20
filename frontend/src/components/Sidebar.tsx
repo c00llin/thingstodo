@@ -339,7 +339,7 @@ function AreaProjectsBadge({
   if (!hasProjects) {
     if (!showCount) return null
     return (
-      <span className="relative z-10 ml-auto text-xs text-neutral-400">
+      <span className="relative z-10 ml-auto flex h-5 w-5 items-center justify-center text-xs text-neutral-400">
         {area.standalone_task_count}
       </span>
     )
@@ -459,7 +459,7 @@ function AreaList() {
                                   icon={<Package size={14} className="relative z-10 text-neutral-400 dark:text-neutral-500" />}
                                   title={project.title}
                                   badge={showCounts && openCount > 0 ? (
-                                    <span className="relative z-10 ml-auto text-xs text-neutral-400">
+                                    <span className="relative z-10 ml-auto flex h-5 w-5 items-center justify-center text-xs text-neutral-400">
                                       {openCount}
                                     </span>
                                   ) : undefined}
@@ -500,7 +500,7 @@ function AreaList() {
                         }`} />}
                         title={project.title}
                         badge={showCounts && openCount > 0 ? (
-                          <span className="relative z-10 ml-auto text-xs text-neutral-400">
+                          <span className="relative z-10 ml-auto flex h-5 w-5 items-center justify-center text-xs text-neutral-400">
                             {openCount}
                           </span>
                         ) : undefined}
@@ -573,7 +573,7 @@ function TagList() {
                           icon={<Tag size={14} className="relative z-10" />}
                           title={tag.title}
                           badge={showCounts && tag.task_count > 0 ? (
-                            <span className="relative z-10 ml-auto text-xs text-neutral-400">
+                            <span className="relative z-10 ml-auto flex h-5 w-5 items-center justify-center text-xs text-neutral-400">
                               {tag.task_count}
                             </span>
                           ) : undefined}
