@@ -29,12 +29,14 @@ export interface LoginRequest {
 export interface TagRef {
   id: string
   title: string
+  color: string | null
 }
 
 // Tags (full)
 export interface Tag {
   id: string
   title: string
+  color: string | null
   parent_tag_id: string | null
   sort_order: number
   task_count: number
@@ -273,6 +275,7 @@ export interface CreateTagRequest {
 
 export interface UpdateTagRequest {
   title?: string
+  color?: string | null
   parent_tag_id?: string | null
   sort_order?: number
 }

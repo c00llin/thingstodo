@@ -1,5 +1,6 @@
 import { Check, Calendar, Flag, StickyNote, Link, Paperclip, RefreshCw } from 'lucide-react'
 import type { Task } from '../api/types'
+import { getTagPillClasses } from '../lib/tag-colors'
 import { TaskStatusIcon } from './TaskStatusIcon'
 
 interface TaskItemDragOverlayProps {
@@ -42,7 +43,7 @@ export function TaskItemDragOverlay({ task }: TaskItemDragOverlayProps) {
             {task.tags.map((tag) => (
               <span
                 key={tag.id}
-                className="inline-flex items-center rounded-full bg-neutral-100 px-2 py-0.5 text-xs text-neutral-600 dark:bg-neutral-700 dark:text-neutral-300"
+                className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs ${getTagPillClasses(tag.color)}`}
               >
                 {tag.title}
               </span>

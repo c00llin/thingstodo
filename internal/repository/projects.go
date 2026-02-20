@@ -272,7 +272,7 @@ func getRef(db *sql.DB, table, id string) *model.Ref {
 
 func getProjectTags(db *sql.DB, projectID string) []model.TagRef {
 	rows, err := db.Query(
-		"SELECT t.id, t.title FROM tags t JOIN project_tags pt ON t.id = pt.tag_id WHERE pt.project_id = ? ORDER BY t.sort_order", projectID)
+		"SELECT t.id, t.title, t.color FROM tags t JOIN project_tags pt ON t.id = pt.tag_id WHERE pt.project_id = ? ORDER BY t.sort_order", projectID)
 	if err != nil {
 		return []model.TagRef{}
 	}
@@ -280,7 +280,7 @@ func getProjectTags(db *sql.DB, projectID string) []model.TagRef {
 	var tags []model.TagRef
 	for rows.Next() {
 		var t model.TagRef
-		_ = rows.Scan(&t.ID, &t.Title)
+		_ = rows.Scan(&t.ID, &t.Title, &t.Color)
 		tags = append(tags, t)
 	}
 	if tags == nil {
@@ -359,12 +359,12 @@ func scanTaskListItems(db *sql.DB, rows *sql.Rows) []model.TaskListItem {
 		t.HasRepeatRule = hasRepeat == 1
 		// Get tags
 		tagRows, _ := db.Query(
-			"SELECT t.id, t.title FROM tags t JOIN task_tags tt ON t.id = tt.tag_id WHERE tt.task_id = ?", t.ID)
+			"SELECT t.id, t.title, t.color FROM tags t JOIN task_tags tt ON t.id = tt.tag_id WHERE tt.task_id = ?", t.ID)
 		if tagRows != nil {
 			var tags []model.TagRef
 			for tagRows.Next() {
 				var tag model.TagRef
-				_ = tagRows.Scan(&tag.ID, &tag.Title)
+				_ = tagRows.Scan(&tag.ID, &tag.Title, &tag.Color)
 				tags = append(tags, tag)
 			}
 			tagRows.Close()

@@ -18,7 +18,7 @@ func NewTagRepository(db *sql.DB) *TagRepository {
 
 func (r *TagRepository) List() ([]model.Tag, error) {
 	rows, err := r.db.Query(`
-		SELECT t.id, t.title, t.parent_tag_id, t.sort_order,
+		SELECT t.id, t.title, t.color, t.parent_tag_id, t.sort_order,
 			COALESCE((SELECT COUNT(*) FROM task_tags tt2 JOIN tasks tk ON tk.id = tt2.task_id WHERE tt2.tag_id = t.id AND tk.deleted_at IS NULL), 0)
 		FROM tags t ORDER BY t.sort_order ASC`)
 	if err != nil {
@@ -29,7 +29,7 @@ func (r *TagRepository) List() ([]model.Tag, error) {
 	var tags []model.Tag
 	for rows.Next() {
 		var t model.Tag
-		_ = rows.Scan(&t.ID, &t.Title, &t.ParentTagID, &t.SortOrder, &t.TaskCount)
+		_ = rows.Scan(&t.ID, &t.Title, &t.Color, &t.ParentTagID, &t.SortOrder, &t.TaskCount)
 		tags = append(tags, t)
 	}
 	if tags == nil {
@@ -53,8 +53,8 @@ func (r *TagRepository) Create(input model.CreateTagInput) (*model.Tag, error) {
 	}
 
 	var t model.Tag
-	_ = r.db.QueryRow("SELECT id, title, parent_tag_id, sort_order FROM tags WHERE id = ?", id).
-		Scan(&t.ID, &t.Title, &t.ParentTagID, &t.SortOrder)
+	_ = r.db.QueryRow("SELECT id, title, color, parent_tag_id, sort_order FROM tags WHERE id = ?", id).
+		Scan(&t.ID, &t.Title, &t.Color, &t.ParentTagID, &t.SortOrder)
 	return &t, nil
 }
 
@@ -68,6 +68,9 @@ func (r *TagRepository) Update(id string, input model.UpdateTagInput) (*model.Ta
 			return nil, err
 		}
 	}
+	if _, ok := input.Raw["color"]; ok {
+		_, _ = r.db.Exec("UPDATE tags SET color = ? WHERE id = ?", input.Color, id)
+	}
 	if _, ok := input.Raw["parent_tag_id"]; ok {
 		_, _ = r.db.Exec("UPDATE tags SET parent_tag_id = ? WHERE id = ?", input.ParentTagID, id)
 	}
@@ -76,8 +79,8 @@ func (r *TagRepository) Update(id string, input model.UpdateTagInput) (*model.Ta
 	}
 
 	var t model.Tag
-	err := r.db.QueryRow("SELECT id, title, parent_tag_id, sort_order FROM tags WHERE id = ?", id).
-		Scan(&t.ID, &t.Title, &t.ParentTagID, &t.SortOrder)
+	err := r.db.QueryRow("SELECT id, title, color, parent_tag_id, sort_order FROM tags WHERE id = ?", id).
+		Scan(&t.ID, &t.Title, &t.Color, &t.ParentTagID, &t.SortOrder)
 	if err == sql.ErrNoRows {
 		return nil, nil
 	}

@@ -147,14 +147,16 @@ type Attachment struct {
 type Tag struct {
 	ID          string  `json:"id"`
 	Title       string  `json:"title"`
+	Color       *string `json:"color"`
 	ParentTagID *string `json:"parent_tag_id"`
 	SortOrder   float64 `json:"sort_order"`
 	TaskCount   int     `json:"task_count,omitempty"`
 }
 
 type TagRef struct {
-	ID    string `json:"id"`
-	Title string `json:"title"`
+	ID    string  `json:"id"`
+	Title string  `json:"title"`
+	Color *string `json:"color"`
 }
 
 type Ref struct {
@@ -278,6 +280,7 @@ type CreateTagInput struct {
 
 type UpdateTagInput struct {
 	Title       *string  `json:"title"`
+	Color       *string  `json:"color"`
 	ParentTagID *string  `json:"parent_tag_id"`
 	SortOrder   *float64 `json:"sort_order"`
 	Raw         map[string]json.RawMessage `json:"-"`
