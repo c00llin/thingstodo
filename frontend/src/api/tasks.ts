@@ -61,6 +61,10 @@ export function restoreTask(id: string) {
   return api.patch<Task>(`/tasks/${id}/restore`, {})
 }
 
+export function reviewTask(id: string) {
+  return api.patch<Task>(`/tasks/${id}/review`, {})
+}
+
 export function reorderTasks(items: ReorderItem[]) {
   return api.patch<{ ok: boolean }>('/tasks/reorder', { items })
 }

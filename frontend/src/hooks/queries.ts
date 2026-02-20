@@ -12,7 +12,7 @@ import * as viewsApi from '../api/views'
 import * as searchApi from '../api/search'
 import * as authApi from '../api/auth'
 import * as settingsApi from '../api/settings'
-import { playCompleteSound } from '../lib/sounds'
+import { playCompleteSound, playReviewSound } from '../lib/sounds'
 import type {
   Task,
   CreateTaskRequest,
@@ -468,6 +468,38 @@ export function useReopenTask() {
       if (context?.snapshot) rollbackViews(queryClient, context.snapshot)
     },
     onSettled: invalidate,
+  })
+}
+
+export function useReviewTask() {
+  const queryClient = useQueryClient()
+  const invalidate = useInvalidateViews()
+  return useMutation({
+    mutationFn: (id: string) => tasksApi.reviewTask(id),
+    onMutate: async (id) => {
+      await queryClient.cancelQueries({ queryKey: ['views'] })
+      const snapshot = snapshotViews(queryClient)
+      updateTaskInCache(queryClient, id, {
+        updated_at: new Date().toISOString(),
+      })
+      useAppStore.getState().setDepartingTaskId(id)
+      const settings = queryClient.getQueryData<UserSettings>(queryKeys.settings)
+      if (settings?.play_complete_sound !== false) {
+        playReviewSound()
+      }
+      return { snapshot }
+    },
+    onError: (_err, _id, context) => {
+      if (context?.snapshot) rollbackViews(queryClient, context.snapshot)
+    },
+    onSettled: () => {
+      setTimeout(() => {
+        invalidate()
+        setTimeout(() => {
+          useAppStore.getState().setDepartingTaskId(null)
+        }, 200)
+      }, 400)
+    },
   })
 }
 

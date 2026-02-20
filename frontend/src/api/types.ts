@@ -291,6 +291,7 @@ export interface CreateRepeatRuleRequest {
 // View responses
 export interface InboxView {
   tasks: Task[]
+  review: Task[]
 }
 
 export interface TodayViewGroup {
@@ -363,6 +364,7 @@ export interface ViewCounts {
   inbox: number
   today: number
   overdue: number
+  review: number
   anytime: number
   someday: number
   logbook: number
@@ -387,6 +389,7 @@ export interface UserSettings {
   show_count_main: boolean
   show_count_projects: boolean
   show_count_tags: boolean
+  review_after_days: number | null
 }
 
 // Task query params
