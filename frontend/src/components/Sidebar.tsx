@@ -60,7 +60,7 @@ function SidebarNavLink({
           {isActive && (
             <motion.div
               layoutId={layoutId}
-              className="absolute inset-0 rounded-lg bg-red-50 dark:bg-red-900/30"
+              className="absolute inset-0 rounded-lg bg-red-100 dark:bg-red-900/50"
               transition={indicatorTransition}
             />
           )}
@@ -176,7 +176,7 @@ function EditableSidebarItem({
           {isActive && (
             <motion.div
               layoutId={layoutId}
-              className="absolute inset-0 rounded-lg bg-red-50 dark:bg-red-900/30"
+              className="absolute inset-0 rounded-lg bg-red-100 dark:bg-red-900/50"
               transition={indicatorTransition}
             />
           )}
@@ -228,7 +228,7 @@ function EditableSidebarItem({
           {active && (
             <motion.div
               layoutId={layoutId}
-              className="absolute inset-0 rounded-lg bg-red-50 dark:bg-red-900/30"
+              className="absolute inset-0 rounded-lg bg-red-100 dark:bg-red-900/50"
               transition={indicatorTransition}
             />
           )}
@@ -637,7 +637,7 @@ function TagSidebarItem({
           {isActive && (
             <motion.div
               layoutId="sidebar-active-indicator"
-              className="absolute inset-0 rounded-lg bg-red-50 dark:bg-red-900/30"
+              className="absolute inset-0 rounded-lg bg-red-100 dark:bg-red-900/50"
               transition={indicatorTransition}
             />
           )}
@@ -690,7 +690,7 @@ function TagSidebarItem({
             {active && (
               <motion.div
                 layoutId="sidebar-active-indicator"
-                className="absolute inset-0 rounded-lg bg-red-50 dark:bg-red-900/30"
+                className="absolute inset-0 rounded-lg bg-red-100 dark:bg-red-900/50"
                 transition={indicatorTransition}
               />
             )}
