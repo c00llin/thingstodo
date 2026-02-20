@@ -44,11 +44,11 @@ export function AreaView() {
             onClick={() => setProjectsOpen((v) => { const next = !v; localStorage.setItem(`area-projects-${id}`, String(next)); return next })}
             className="mb-2 flex w-full items-center text-xs font-semibold uppercase tracking-wide text-neutral-500 hover:text-neutral-700 dark:hover:text-neutral-300"
           >
-            Projects
             <ChevronRight
               size={14}
-              className={`ml-1 transition-transform ${projectsOpen ? 'rotate-90' : ''}`}
+              className={`-ml-5 mr-1 transition-transform ${projectsOpen ? 'rotate-90' : ''}`}
             />
+            Projects
           </button>
           {projectsOpen && (
             <div className="space-y-1">
