@@ -3,6 +3,7 @@ import { useParams, useNavigate, Link } from 'react-router'
 import { Trash2 } from 'lucide-react'
 import { useArea, useDeleteArea } from '../hooks/queries'
 import { TaskItem } from '../components/TaskItem'
+import { CompletedTasksSection } from '../components/CompletedTasksSection'
 import { ConfirmDialog } from '../components/ConfirmDialog'
 
 export function AreaView() {
@@ -84,6 +85,8 @@ export function AreaView() {
           </div>
         </div>
       )}
+
+      <CompletedTasksSection tasks={area.completed_tasks} showProject={false} />
 
       <ConfirmDialog
         open={showDelete}

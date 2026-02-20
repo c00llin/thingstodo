@@ -4,6 +4,7 @@ import { Trash2 } from 'lucide-react'
 import { useProject, useDeleteProject } from '../hooks/queries'
 import { TaskGroup } from '../components/TaskGroup'
 import { SortableTaskList } from '../components/SortableTaskList'
+import { CompletedTasksSection } from '../components/CompletedTasksSection'
 import { ConfirmDialog } from '../components/ConfirmDialog'
 
 export function ProjectView() {
@@ -74,6 +75,8 @@ export function ProjectView() {
           sortField="sort_order_heading"
         />
       ))}
+
+      <CompletedTasksSection tasks={project.completed_tasks} showProject={false} />
 
       <ConfirmDialog
         open={showDelete}

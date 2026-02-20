@@ -120,6 +120,29 @@ func (r *ProjectRepository) GetByID(id string) (*model.ProjectDetail, error) {
 	// Tasks without heading
 	p.TasksWithoutHeading = getTaskListItemsNoHeading(r.db, id)
 
+	// Completed tasks (all time)
+	completedRows, err := r.db.Query(`
+		SELECT t.id, t.title, t.notes, t.status, t.when_date, t.when_evening, t.high_priority,
+			t.deadline, t.project_id, t.area_id, t.heading_id,
+			t.sort_order_today, t.sort_order_project, t.sort_order_heading,
+			t.completed_at, t.canceled_at, t.deleted_at, t.created_at, t.updated_at,
+			COALESCE((SELECT COUNT(*) FROM checklist_items WHERE task_id = t.id), 0),
+			COALESCE((SELECT COUNT(*) FROM checklist_items WHERE task_id = t.id AND completed = 1), 0),
+			CASE WHEN t.notes != '' THEN 1 ELSE 0 END,
+			CASE WHEN EXISTS(SELECT 1 FROM attachments WHERE task_id = t.id AND type = 'link') THEN 1 ELSE 0 END,
+			CASE WHEN EXISTS(SELECT 1 FROM attachments WHERE task_id = t.id AND type = 'file') THEN 1 ELSE 0 END,
+			CASE WHEN EXISTS(SELECT 1 FROM repeat_rules WHERE task_id = t.id) THEN 1 ELSE 0 END
+		FROM tasks t
+		WHERE t.project_id = ?
+			AND t.status IN ('completed', 'canceled', 'wont_do')
+			AND t.deleted_at IS NULL
+		ORDER BY COALESCE(t.completed_at, t.canceled_at, t.updated_at) DESC`, id)
+	if err != nil {
+		return nil, err
+	}
+	defer completedRows.Close()
+	p.CompletedTasks = scanTaskListItems(r.db, completedRows)
+
 	return &p, nil
 }
 

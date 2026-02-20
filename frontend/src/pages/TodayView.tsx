@@ -3,6 +3,7 @@ import { format } from 'date-fns'
 import { useToday } from '../hooks/queries'
 import { SortableTaskList } from '../components/SortableTaskList'
 import { TaskItem } from '../components/TaskItem'
+import { CompletedTasksSection } from '../components/CompletedTasksSection'
 
 export function TodayView() {
   const { data, isLoading } = useToday()
@@ -75,6 +76,8 @@ export function TodayView() {
           </div>
         )
       })}
+
+      {data?.completed && <CompletedTasksSection tasks={data.completed} />}
     </div>
   )
 }
