@@ -390,10 +390,12 @@ function AreaList() {
     <Collapsible.Root open={open} onOpenChange={setOpen}>
       <Collapsible.Trigger className="flex w-full items-center px-3 py-2 text-xs font-semibold uppercase tracking-wide text-neutral-500 hover:text-neutral-700 dark:text-neutral-400 dark:hover:text-neutral-300">
         Areas &amp; Projects
-        <ChevronRight
-          size={14}
-          className={`ml-auto transition-transform ${open ? 'rotate-90' : ''}`}
-        />
+        <span className="ml-auto flex h-5 w-5 items-center justify-center">
+          <ChevronRight
+            size={14}
+            className={`transition-transform ${open ? 'rotate-90' : ''}`}
+          />
+        </span>
       </Collapsible.Trigger>
       <AnimatePresence initial={false}>
         {open && (
@@ -542,10 +544,12 @@ function TagList() {
     <Collapsible.Root open={open} onOpenChange={setOpen}>
       <Collapsible.Trigger className="flex w-full items-center px-3 py-2 text-xs font-semibold uppercase tracking-wide text-neutral-500 hover:text-neutral-700 dark:text-neutral-400 dark:hover:text-neutral-300">
         Tags
-        <ChevronRight
-          size={14}
-          className={`ml-auto transition-transform ${open ? 'rotate-90' : ''}`}
-        />
+        <span className="ml-auto flex h-5 w-5 items-center justify-center">
+          <ChevronRight
+            size={14}
+            className={`transition-transform ${open ? 'rotate-90' : ''}`}
+          />
+        </span>
       </Collapsible.Trigger>
       <AnimatePresence initial={false}>
         {open && (
