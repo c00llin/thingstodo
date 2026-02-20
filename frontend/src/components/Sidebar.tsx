@@ -265,6 +265,7 @@ function SmartListNav() {
   const { data: counts } = useViewCounts()
   const { data: settings } = useSettings()
   const overdueCount = counts?.overdue ?? 0
+  const reviewCount = counts?.review ?? 0
   const showCounts = settings?.show_count_main !== false
 
   return (
@@ -282,17 +283,25 @@ function SmartListNav() {
           >
             <Icon size={18} className="relative z-10" />
             <span className="relative z-10">{label}</span>
-            {(overdueCount > 0 && label === 'Today' || (showCounts && count > 0)) && (
+            {((overdueCount > 0 && label === 'Today') || (reviewCount > 0 && label === 'Inbox') || (showCounts && count > 0)) && (
               <span className="relative z-10 ml-auto flex items-center gap-1.5">
                 {label === 'Today' && overdueCount > 0 && (
                   <span className="flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-medium text-white">
                     {overdueCount}
                   </span>
                 )}
-                {showCounts && count > 0 && (
-                  <span className="flex h-5 w-5 items-center justify-center text-xs text-neutral-400">
-                    {count}
+                {label === 'Inbox' && reviewCount > 0 && (
+                  <span className="flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-medium text-white">
+                    {reviewCount}
                   </span>
+                )}
+                {showCounts && (label === 'Inbox' && reviewCount > 0
+                  ? <span className="flex h-5 w-5 items-center justify-center text-xs text-neutral-400">0</span>
+                  : count > 0 && (
+                    <span className="flex h-5 w-5 items-center justify-center text-xs text-neutral-400">
+                      {count}
+                    </span>
+                  )
                 )}
               </span>
             )}
@@ -680,7 +689,7 @@ function TagSidebarItem({
     <Popover.Root open={colorPickerOpen} onOpenChange={setColorPickerOpen}>
       <NavLink
         to={to}
-        onClick={(e) => e.preventDefault()}
+        onClick={(e) => { e.preventDefault(); navigate(to) }}
         className={({ isActive: active }) =>
           `relative ${className} ${active ? 'text-red-700 dark:text-red-400' : indent ? 'text-neutral-500 hover:bg-neutral-200 dark:text-neutral-400 dark:hover:bg-neutral-700' : 'text-neutral-600 hover:bg-neutral-200 dark:text-neutral-400 dark:hover:bg-neutral-700'}`
         }
@@ -1020,6 +1029,7 @@ export function Sidebar() {
   const navigate = useNavigate()
   const { data: counts } = useViewCounts()
   const overdueCount = counts?.overdue ?? 0
+  const reviewCount = counts?.review ?? 0
 
   if (collapsed) {
     return (
@@ -1046,6 +1056,11 @@ export function Sidebar() {
               {label === 'Today' && overdueCount > 0 && (
                 <span className="absolute -right-0.5 -top-0.5 z-20 flex h-3.5 min-w-3.5 items-center justify-center rounded-full bg-red-500 px-0.5 text-[8px] font-bold text-white">
                   {overdueCount}
+                </span>
+              )}
+              {label === 'Inbox' && reviewCount > 0 && (
+                <span className="absolute -right-0.5 -top-0.5 z-20 flex h-3.5 min-w-3.5 items-center justify-center rounded-full bg-red-500 px-0.5 text-[8px] font-bold text-white">
+                  {reviewCount}
                 </span>
               )}
               <span className="pointer-events-none absolute left-full top-1/2 z-50 ml-2 -translate-y-1/2 whitespace-nowrap rounded-md bg-neutral-900 px-2 py-1 text-xs text-white opacity-0 transition-opacity group-hover:opacity-100 dark:bg-neutral-700">

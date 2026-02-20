@@ -19,7 +19,7 @@ export function UpcomingView() {
   }
 
   return (
-    <div className="mx-auto max-w-2xl p-6">
+    <div className="mx-auto max-w-3xl p-6">
       <h2 className="mb-3 text-2xl font-bold text-neutral-900 dark:text-neutral-100">Upcoming</h2>
       {data?.overdue && data.overdue.length > 0 && (
         <div className="mb-6">
@@ -31,9 +31,9 @@ export function UpcomingView() {
             Overdue
           </button>
           {overdueOpen && (
-            <div className="space-y-0.5">
+            <div>
               {data.overdue.map((task) => (
-                <TaskItem key={task.id} task={task} />
+                <TaskItem key={task.id} task={task} showDivider />
               ))}
             </div>
           )}
@@ -49,9 +49,9 @@ export function UpcomingView() {
             Earlier
           </button>
           {earlierOpen && (
-            <div className="space-y-0.5">
+            <div>
               {data.earlier.map((task) => (
-                <TaskItem key={task.id} task={task} />
+                <TaskItem key={task.id} task={task} showDivider />
               ))}
             </div>
           )}
@@ -65,7 +65,7 @@ export function UpcomingView() {
         )
       ) : (
         data.dates.map((d) => (
-          <TaskGroup key={d.date} title={formatRelativeDate(d.date)} tasks={d.tasks} />
+          <TaskGroup key={d.date} title={formatRelativeDate(d.date)} tasks={d.tasks} hideWhenDate />
         ))
       )}
     </div>

@@ -47,7 +47,7 @@ func New(db *sql.DB, cfg config.Config, broker *sse.Broker, sched *scheduler.Sch
 	attachmentH := handler.NewAttachmentHandler(attachmentRepo, broker, cfg.AttachmentsPath, cfg.MaxUploadSize)
 	repeatRuleH := handler.NewRepeatRuleHandler(repeatRuleRepo, broker)
 	searchH := handler.NewSearchHandler(searchRepo)
-	viewH := handler.NewViewHandler(viewRepo)
+	viewH := handler.NewViewHandler(viewRepo, settingsRepo)
 	authH := handler.NewAuthHandler(userRepo, cfg)
 	settingsH := handler.NewUserSettingsHandler(settingsRepo)
 	eventH := handler.NewEventHandler(broker)
@@ -86,6 +86,7 @@ func New(db *sql.DB, cfg config.Config, broker *sse.Broker, sched *scheduler.Sch
 			r.Patch("/tasks/{id}/wontdo", taskH.WontDo)
 			r.Patch("/tasks/{id}/reopen", taskH.Reopen)
 			r.Patch("/tasks/{id}/restore", taskH.Restore)
+			r.Patch("/tasks/{id}/review", taskH.Review)
 			r.Patch("/tasks/{id}/move", taskH.Move)
 			r.Patch("/tasks/reorder", taskH.Reorder)
 

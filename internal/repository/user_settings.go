@@ -19,9 +19,9 @@ func NewUserSettingsRepository(db *sql.DB) *UserSettingsRepository {
 func (r *UserSettingsRepository) GetOrCreate(userID string) (*model.UserSettings, error) {
 	var s model.UserSettings
 	err := r.db.QueryRow(
-		"SELECT play_complete_sound, show_count_main, show_count_projects, show_count_tags FROM user_settings WHERE user_id = ?",
+		"SELECT play_complete_sound, show_count_main, show_count_projects, show_count_tags, review_after_days FROM user_settings WHERE user_id = ?",
 		userID,
-	).Scan(&s.PlayCompleteSound, &s.ShowCountMain, &s.ShowCountProjects, &s.ShowCountTags)
+	).Scan(&s.PlayCompleteSound, &s.ShowCountMain, &s.ShowCountProjects, &s.ShowCountTags, &s.ReviewAfterDays)
 	if err == sql.ErrNoRows {
 		_, err = r.db.Exec(
 			"INSERT INTO user_settings (user_id) VALUES (?)", userID,
@@ -29,11 +29,13 @@ func (r *UserSettingsRepository) GetOrCreate(userID string) (*model.UserSettings
 		if err != nil {
 			return nil, fmt.Errorf("create default settings: %w", err)
 		}
+		defaultDays := 7
 		s = model.UserSettings{
 			PlayCompleteSound: true,
 			ShowCountMain:     true,
 			ShowCountProjects: true,
 			ShowCountTags:     true,
+			ReviewAfterDays:   &defaultDays,
 		}
 		return &s, nil
 	}
@@ -62,6 +64,14 @@ func (r *UserSettingsRepository) Update(userID string, input model.UpdateUserSet
 	if input.ShowCountTags != nil {
 		setClauses = append(setClauses, "show_count_tags = ?")
 		args = append(args, *input.ShowCountTags)
+	}
+	if _, ok := input.Raw["review_after_days"]; ok {
+		setClauses = append(setClauses, "review_after_days = ?")
+		if input.ReviewAfterDays != nil {
+			args = append(args, *input.ReviewAfterDays)
+		} else {
+			args = append(args, nil)
+		}
 	}
 
 	if len(setClauses) > 0 {

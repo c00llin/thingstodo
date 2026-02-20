@@ -12,7 +12,7 @@ import * as viewsApi from '../api/views'
 import * as searchApi from '../api/search'
 import * as authApi from '../api/auth'
 import * as settingsApi from '../api/settings'
-import { playCompleteSound } from '../lib/sounds'
+import { playCompleteSound, playReviewSound } from '../lib/sounds'
 import type {
   Task,
   CreateTaskRequest,
@@ -471,6 +471,38 @@ export function useReopenTask() {
   })
 }
 
+export function useReviewTask() {
+  const queryClient = useQueryClient()
+  const invalidate = useInvalidateViews()
+  return useMutation({
+    mutationFn: (id: string) => tasksApi.reviewTask(id),
+    onMutate: async (id) => {
+      await queryClient.cancelQueries({ queryKey: ['views'] })
+      const snapshot = snapshotViews(queryClient)
+      updateTaskInCache(queryClient, id, {
+        updated_at: new Date().toISOString(),
+      })
+      useAppStore.getState().setDepartingTaskId(id)
+      const settings = queryClient.getQueryData<UserSettings>(queryKeys.settings)
+      if (settings?.play_complete_sound !== false) {
+        playReviewSound()
+      }
+      return { snapshot }
+    },
+    onError: (_err, _id, context) => {
+      if (context?.snapshot) rollbackViews(queryClient, context.snapshot)
+    },
+    onSettled: () => {
+      setTimeout(() => {
+        invalidate()
+        setTimeout(() => {
+          useAppStore.getState().setDepartingTaskId(null)
+        }, 200)
+      }, 400)
+    },
+  })
+}
+
 // --- Project Hooks ---
 
 export function useProjects(params?: { area_id?: string; status?: ProjectStatus }) {
@@ -811,15 +843,20 @@ export function useUpdateSettings() {
       if (previous) {
         queryClient.setQueryData(queryKeys.settings, { ...previous, ...data })
       }
-      return { previous }
+      return { previous, data }
     },
     onError: (_err, _data, context) => {
       if (context?.previous) {
         queryClient.setQueryData(queryKeys.settings, context.previous)
       }
     },
-    onSettled: () => {
+    onSettled: (_result, _err, _vars, context) => {
       queryClient.invalidateQueries({ queryKey: queryKeys.settings })
+      // Review setting affects inbox view and sidebar counts
+      if (context?.data && 'review_after_days' in context.data) {
+        queryClient.invalidateQueries({ queryKey: queryKeys.views.inbox })
+        queryClient.invalidateQueries({ queryKey: queryKeys.views.counts })
+      }
     },
   })
 }

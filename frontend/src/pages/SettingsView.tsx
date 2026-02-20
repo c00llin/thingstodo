@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { useSettings, useUpdateSettings } from '../hooks/queries'
 
 function SettingsCheckbox({
@@ -22,6 +23,64 @@ function SettingsCheckbox({
   )
 }
 
+function ReviewSetting({
+  value,
+  onChange,
+}: {
+  value: number | null
+  onChange: (v: number | null) => void
+}) {
+  const enabled = value !== null
+  const [draft, setDraft] = useState(String(value ?? 7))
+
+  return (
+    <div className="space-y-2">
+      <label className="flex cursor-pointer items-center gap-3 py-1.5">
+        <input
+          type="checkbox"
+          checked={enabled}
+          onChange={(e) => {
+            if (e.target.checked) {
+              const days = parseInt(draft, 10)
+              onChange(days > 0 ? days : 7)
+            } else {
+              onChange(null)
+            }
+          }}
+          className="h-4 w-4 rounded border-neutral-300 accent-red-500 dark:border-neutral-600"
+        />
+        <span className="flex items-center gap-1.5 text-sm text-neutral-700 dark:text-neutral-300">
+          Review tasks after
+          {enabled && (
+            <input
+              type="number"
+              min={1}
+              value={draft}
+              onChange={(e) => setDraft(e.target.value)}
+              onBlur={() => {
+                const days = parseInt(draft, 10)
+                if (days > 0) {
+                  onChange(days)
+                } else {
+                  setDraft(String(value ?? 7))
+                }
+              }}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.currentTarget.blur()
+                }
+              }}
+              onClick={(e) => e.stopPropagation()}
+              className="w-12 rounded border border-neutral-300 bg-transparent px-1.5 py-0.5 text-center text-sm text-neutral-900 dark:border-neutral-600 dark:text-neutral-100"
+            />
+          )}
+          days
+        </span>
+      </label>
+    </div>
+  )
+}
+
 export function SettingsView() {
   const { data: settings } = useSettings()
   const updateSettings = useUpdateSettings()
@@ -29,7 +88,7 @@ export function SettingsView() {
   if (!settings) return null
 
   return (
-    <div className="mx-auto max-w-2xl p-6">
+    <div className="mx-auto max-w-3xl p-6">
       <h1 className="mb-6 text-xl font-semibold text-neutral-900 dark:text-neutral-100">Settings</h1>
 
       <section className="mb-8">
@@ -37,9 +96,19 @@ export function SettingsView() {
           Sound
         </h2>
         <SettingsCheckbox
-          label="Play sound on task complete"
+          label="Play sounds"
           checked={settings.play_complete_sound}
           onChange={(v) => updateSettings.mutate({ play_complete_sound: v })}
+        />
+      </section>
+
+      <section className="mb-8">
+        <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-neutral-500 dark:text-neutral-400">
+          Review
+        </h2>
+        <ReviewSetting
+          value={settings.review_after_days}
+          onChange={(v) => updateSettings.mutate({ review_after_days: v })}
         />
       </section>
 

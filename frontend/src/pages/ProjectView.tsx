@@ -28,7 +28,7 @@ export function ProjectView() {
       : 0
 
   return (
-    <div className="mx-auto max-w-2xl p-6">
+    <div className="mx-auto max-w-3xl p-6">
       <div className="flex items-center justify-between">
         <h2 className="mb-1 text-2xl font-bold text-neutral-900 dark:text-neutral-100">{project.title}</h2>
         <button

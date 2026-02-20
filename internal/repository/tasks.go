@@ -342,6 +342,14 @@ func (r *TaskRepository) Reopen(id string) (*model.TaskDetail, error) {
 	return r.GetByID(id)
 }
 
+func (r *TaskRepository) MarkReviewed(id string) (*model.TaskDetail, error) {
+	_, err := r.db.Exec("UPDATE tasks SET updated_at = datetime('now') WHERE id = ?", id)
+	if err != nil {
+		return nil, err
+	}
+	return r.GetByID(id)
+}
+
 func (r *TaskRepository) Reorder(items []model.ReorderItem) error {
 	tx, err := r.db.Begin()
 	if err != nil {

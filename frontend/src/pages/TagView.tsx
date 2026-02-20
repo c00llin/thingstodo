@@ -24,7 +24,7 @@ export function TagView() {
   }
 
   return (
-    <div className="mx-auto max-w-2xl p-6">
+    <div className="mx-auto max-w-3xl p-6">
       <div className="flex items-center justify-between">
         <h2 className="mb-3 text-2xl font-bold text-neutral-900 dark:text-neutral-100">
           {tag?.title ?? 'Tag'}
@@ -43,9 +43,9 @@ export function TagView() {
           No tasks with this tag.
         </p>
       ) : (
-        <div className="space-y-0.5">
+        <div>
           {data.tasks.map((task) => (
-            <TaskItem key={task.id} task={task} />
+            <TaskItem key={task.id} task={task} showDivider />
           ))}
         </div>
       )}

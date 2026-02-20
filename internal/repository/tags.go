@@ -106,7 +106,7 @@ func (r *TagRepository) GetTasksByTag(tagID string) ([]model.TaskListItem, error
 			CASE WHEN EXISTS(SELECT 1 FROM repeat_rules WHERE task_id = t.id) THEN 1 ELSE 0 END
 		FROM tasks t
 		JOIN task_tags tt ON t.id = tt.task_id
-		WHERE tt.tag_id = ? AND t.deleted_at IS NULL
+		WHERE tt.tag_id = ? AND t.deleted_at IS NULL AND t.status = 'open'
 		ORDER BY t.sort_order_today`, tagID)
 	if err != nil {
 		return nil, err

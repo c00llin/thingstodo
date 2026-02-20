@@ -58,6 +58,7 @@ export function SortableTaskList({ tasks, sortField, showProject, hideWhenDate }
             showProject={showProject}
             hideWhenDate={hideWhenDate}
             isDragOverlay={false}
+            showDivider
           />
         ))}
       </AnimatePresence>
