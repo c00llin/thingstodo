@@ -31,10 +31,12 @@ func (h *UserSettingsHandler) Get(w http.ResponseWriter, r *http.Request) {
 func (h *UserSettingsHandler) Update(w http.ResponseWriter, r *http.Request) {
 	userID := r.Context().Value(mw.UserIDKey).(string)
 	var input model.UpdateUserSettingsInput
-	if err := decodeJSON(r, &input); err != nil {
+	raw, err := decodeJSONWithRaw(r, &input)
+	if err != nil {
 		writeError(w, http.StatusBadRequest, "invalid JSON", "BAD_REQUEST")
 		return
 	}
+	input.Raw = raw
 	settings, err := h.repo.Update(userID, input)
 	if err != nil {
 		log.Printf("ERROR user_settings.Update userID=%s: %v", userID, err)

@@ -1,26 +1,42 @@
 package handler
 
 import (
+	"log"
 	"net/http"
 
+	mw "github.com/collinjanssen/thingstodo/internal/middleware"
 	"github.com/collinjanssen/thingstodo/internal/repository"
 )
 
 type ViewHandler struct {
-	repo *repository.ViewRepository
+	repo         *repository.ViewRepository
+	settingsRepo *repository.UserSettingsRepository
 }
 
-func NewViewHandler(repo *repository.ViewRepository) *ViewHandler {
-	return &ViewHandler{repo: repo}
+func NewViewHandler(repo *repository.ViewRepository, settingsRepo *repository.UserSettingsRepository) *ViewHandler {
+	return &ViewHandler{repo: repo, settingsRepo: settingsRepo}
+}
+
+func (h *ViewHandler) getReviewDays(r *http.Request) *int {
+	userID, ok := r.Context().Value(mw.UserIDKey).(string)
+	if !ok || userID == "" {
+		return nil
+	}
+	settings, err := h.settingsRepo.GetOrCreate(userID)
+	if err != nil {
+		log.Printf("WARN views.getReviewDays: %v", err)
+		return nil
+	}
+	return settings.ReviewAfterDays
 }
 
 func (h *ViewHandler) Inbox(w http.ResponseWriter, r *http.Request) {
-	tasks, err := h.repo.Inbox()
+	view, err := h.repo.Inbox(h.getReviewDays(r))
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, err.Error(), "INTERNAL")
 		return
 	}
-	writeJSON(w, http.StatusOK, map[string]interface{}{"tasks": tasks})
+	writeJSON(w, http.StatusOK, view)
 }
 
 func (h *ViewHandler) Today(w http.ResponseWriter, r *http.Request) {
@@ -87,7 +103,7 @@ func (h *ViewHandler) Trash(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *ViewHandler) Counts(w http.ResponseWriter, r *http.Request) {
-	counts, err := h.repo.Counts()
+	counts, err := h.repo.Counts(h.getReviewDays(r))
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, err.Error(), "INTERNAL")
 		return

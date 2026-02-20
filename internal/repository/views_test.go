@@ -28,15 +28,15 @@ func TestViewInboxShowsOnlyUnassignedOpenTasks(t *testing.T) {
 	_, _ = db.Exec("INSERT INTO areas (id, title) VALUES ('a1', 'Work')")
 	_, _ = taskRepo.Create(model.CreateTaskInput{Title: "Area task", AreaID: strPtr("a1")})
 
-	tasks, err := viewRepo.Inbox()
+	view, err := viewRepo.Inbox(nil)
 	if err != nil {
 		t.Fatalf("failed to get inbox: %v", err)
 	}
-	if len(tasks) != 1 {
-		t.Fatalf("expected 1 inbox task, got %d", len(tasks))
+	if len(view.Tasks) != 1 {
+		t.Fatalf("expected 1 inbox task, got %d", len(view.Tasks))
 	}
-	if tasks[0].Title != "Inbox task" {
-		t.Errorf("expected 'Inbox task', got %q", tasks[0].Title)
+	if view.Tasks[0].Title != "Inbox task" {
+		t.Errorf("expected 'Inbox task', got %q", view.Tasks[0].Title)
 	}
 }
 
@@ -49,9 +49,9 @@ func TestViewInboxExcludesCompletedTasks(t *testing.T) {
 	_, _ = taskRepo.Complete(task.ID)
 	_, _ = taskRepo.Create(model.CreateTaskInput{Title: "Open"})
 
-	tasks, _ := viewRepo.Inbox()
-	if len(tasks) != 1 {
-		t.Fatalf("expected 1 open inbox task, got %d", len(tasks))
+	view, _ := viewRepo.Inbox(nil)
+	if len(view.Tasks) != 1 {
+		t.Fatalf("expected 1 open inbox task, got %d", len(view.Tasks))
 	}
 }
 
@@ -59,12 +59,12 @@ func TestViewInboxEmpty(t *testing.T) {
 	db := testutil.SetupTestDB(t)
 	viewRepo := repository.NewViewRepository(db)
 
-	tasks, err := viewRepo.Inbox()
+	view, err := viewRepo.Inbox(nil)
 	if err != nil {
 		t.Fatalf("failed: %v", err)
 	}
-	if len(tasks) != 0 {
-		t.Errorf("expected 0 tasks, got %d", len(tasks))
+	if len(view.Tasks) != 0 {
+		t.Errorf("expected 0 tasks, got %d", len(view.Tasks))
 	}
 }
 

@@ -16,7 +16,7 @@ func NewViewRepository(db *sql.DB) *ViewRepository {
 	return &ViewRepository{db: db}
 }
 
-func (r *ViewRepository) Inbox() ([]model.TaskListItem, error) {
+func (r *ViewRepository) Inbox(reviewAfterDays *int) (*model.InboxView, error) {
 	rows, err := r.db.Query(`
 		SELECT t.id, t.title, t.notes, t.status, t.when_date, t.when_evening, t.high_priority,
 			t.deadline, t.project_id, t.area_id, t.heading_id,
@@ -36,7 +36,49 @@ func (r *ViewRepository) Inbox() ([]model.TaskListItem, error) {
 		return nil, err
 	}
 	defer rows.Close()
-	return scanTaskListItems(r.db, rows), nil
+	inboxTasks := scanTaskListItems(r.db, rows)
+
+	// Collect inbox task IDs to exclude from review
+	inboxIDs := make(map[string]bool, len(inboxTasks))
+	for _, t := range inboxTasks {
+		inboxIDs[t.ID] = true
+	}
+
+	var reviewTasks []model.TaskListItem
+	if reviewAfterDays != nil && *reviewAfterDays > 0 {
+		reviewRows, err := r.db.Query(`
+			SELECT t.id, t.title, t.notes, t.status, t.when_date, t.when_evening, t.high_priority,
+				t.deadline, t.project_id, t.area_id, t.heading_id,
+				t.sort_order_today, t.sort_order_project, t.sort_order_heading,
+				t.completed_at, t.canceled_at, t.deleted_at, t.created_at, t.updated_at,
+				COALESCE((SELECT COUNT(*) FROM checklist_items WHERE task_id = t.id), 0),
+				COALESCE((SELECT COUNT(*) FROM checklist_items WHERE task_id = t.id AND completed = 1), 0),
+				CASE WHEN t.notes != '' THEN 1 ELSE 0 END,
+				CASE WHEN EXISTS(SELECT 1 FROM attachments WHERE task_id = t.id AND type = 'link') THEN 1 ELSE 0 END,
+				CASE WHEN EXISTS(SELECT 1 FROM attachments WHERE task_id = t.id AND type = 'file') THEN 1 ELSE 0 END,
+				CASE WHEN EXISTS(SELECT 1 FROM repeat_rules WHERE task_id = t.id) THEN 1 ELSE 0 END
+			FROM tasks t
+			WHERE t.status = 'open' AND t.deleted_at IS NULL
+				AND date(t.updated_at) < date('now', '-' || ? || ' days')
+			ORDER BY t.updated_at ASC`, *reviewAfterDays)
+		if err != nil {
+			return nil, err
+		}
+		defer reviewRows.Close()
+		allReview := scanTaskListItems(r.db, reviewRows)
+
+		// Exclude tasks already in inbox
+		for _, t := range allReview {
+			if !inboxIDs[t.ID] {
+				reviewTasks = append(reviewTasks, t)
+			}
+		}
+	}
+	if reviewTasks == nil {
+		reviewTasks = []model.TaskListItem{}
+	}
+
+	return &model.InboxView{Tasks: inboxTasks, Review: reviewTasks}, nil
 }
 
 func (r *ViewRepository) Today() (*model.TodayView, error) {
@@ -570,7 +612,7 @@ func groupByProject(db *sql.DB, tasks []model.TaskListItem) []model.TaskGroup {
 	return groups
 }
 
-func (r *ViewRepository) Counts() (*model.ViewCounts, error) {
+func (r *ViewRepository) Counts(reviewAfterDays *int) (*model.ViewCounts, error) {
 	today := time.Now().Format("2006-01-02")
 	var c model.ViewCounts
 	err := r.db.QueryRow(`
@@ -586,6 +628,17 @@ func (r *ViewRepository) Counts() (*model.ViewCounts, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	// Review count: all open non-deleted tasks stale by X days, excluding inbox tasks
+	if reviewAfterDays != nil && *reviewAfterDays > 0 {
+		_ = r.db.QueryRow(`
+			SELECT COUNT(*) FROM tasks
+			WHERE status = 'open' AND deleted_at IS NULL
+				AND date(updated_at) < date('now', '-' || ? || ' days')
+				AND NOT (project_id IS NULL AND area_id IS NULL AND when_date IS NULL)
+		`, *reviewAfterDays).Scan(&c.Review)
+	}
+
 	return &c, nil
 }
 

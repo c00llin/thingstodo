@@ -186,6 +186,7 @@ type UserSettings struct {
 	ShowCountMain     bool `json:"show_count_main"`
 	ShowCountProjects bool `json:"show_count_projects"`
 	ShowCountTags     bool `json:"show_count_tags"`
+	ReviewAfterDays   *int `json:"review_after_days"`
 }
 
 type UpdateUserSettingsInput struct {
@@ -193,6 +194,8 @@ type UpdateUserSettingsInput struct {
 	ShowCountMain     *bool `json:"show_count_main"`
 	ShowCountProjects *bool `json:"show_count_projects"`
 	ShowCountTags     *bool `json:"show_count_tags"`
+	ReviewAfterDays   *int  `json:"review_after_days"`
+	Raw               map[string]json.RawMessage `json:"-"`
 }
 
 // --- Input types ---
@@ -341,6 +344,11 @@ type TaskFilters struct {
 
 // --- View response types ---
 
+type InboxView struct {
+	Tasks  []TaskListItem `json:"tasks"`
+	Review []TaskListItem `json:"review"`
+}
+
 type TodayView struct {
 	Sections  []TodaySection `json:"sections"`
 	Overdue   []TaskListItem `json:"overdue"`
@@ -399,6 +407,7 @@ type ViewCounts struct {
 	Inbox   int `json:"inbox"`
 	Today   int `json:"today"`
 	Overdue int `json:"overdue"`
+	Review  int `json:"review"`
 	Anytime int `json:"anytime"`
 	Someday int `json:"someday"`
 	Logbook int `json:"logbook"`
