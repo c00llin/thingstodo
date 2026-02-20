@@ -843,15 +843,20 @@ export function useUpdateSettings() {
       if (previous) {
         queryClient.setQueryData(queryKeys.settings, { ...previous, ...data })
       }
-      return { previous }
+      return { previous, data }
     },
     onError: (_err, _data, context) => {
       if (context?.previous) {
         queryClient.setQueryData(queryKeys.settings, context.previous)
       }
     },
-    onSettled: () => {
+    onSettled: (_result, _err, _vars, context) => {
       queryClient.invalidateQueries({ queryKey: queryKeys.settings })
+      // Review setting affects inbox view and sidebar counts
+      if (context?.data && 'review_after_days' in context.data) {
+        queryClient.invalidateQueries({ queryKey: queryKeys.views.inbox })
+        queryClient.invalidateQueries({ queryKey: queryKeys.views.counts })
+      }
     },
   })
 }
