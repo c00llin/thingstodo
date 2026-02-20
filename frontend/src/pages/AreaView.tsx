@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useParams, useNavigate, Link } from 'react-router'
 import { Trash2, ChevronRight } from 'lucide-react'
 import { useArea, useDeleteArea } from '../hooks/queries'
@@ -13,6 +13,10 @@ export function AreaView() {
   const deleteArea = useDeleteArea()
   const [showDelete, setShowDelete] = useState(false)
   const [projectsOpen, setProjectsOpen] = useState(() => localStorage.getItem(`area-projects-${id}`) !== 'false')
+
+  useEffect(() => {
+    setProjectsOpen(localStorage.getItem(`area-projects-${id}`) !== 'false')
+  }, [id])
 
   if (isLoading || !area) {
     return (
