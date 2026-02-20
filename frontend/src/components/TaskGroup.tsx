@@ -6,6 +6,7 @@ interface TaskGroupProps {
   title: string
   tasks: Task[]
   showProject?: boolean
+  hideWhenDate?: boolean
   sortable?: boolean
   sortField?: SortField
 }
@@ -14,6 +15,7 @@ export function TaskGroup({
   title,
   tasks,
   showProject,
+  hideWhenDate = false,
   sortable = false,
   sortField = 'sort_order_today',
 }: TaskGroupProps) {
@@ -31,9 +33,9 @@ export function TaskGroup({
           showProject={showProject}
         />
       ) : (
-        <div className="space-y-0.5">
+        <div>
           {tasks.map((task) => (
-            <TaskItem key={task.id} task={task} showProject={showProject} />
+            <TaskItem key={task.id} task={task} showProject={showProject} hideWhenDate={hideWhenDate} showDivider />
           ))}
         </div>
       )}

@@ -31,7 +31,7 @@ export function TaskPermalinkView() {
   }
 
   return (
-    <div className="mx-auto max-w-2xl p-6">
+    <div className="mx-auto max-w-3xl p-6">
       <h2 className="mb-4 text-2xl font-bold text-neutral-900 dark:text-neutral-100">{task.title}</h2>
       <TaskDetail taskId={task.id} />
     </div>

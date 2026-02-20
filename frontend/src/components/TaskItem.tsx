@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react'
 import { useDraggable } from '@dnd-kit/core'
 import * as Checkbox from '@radix-ui/react-checkbox'
-import { Check, Calendar, Flag, GripVertical, X, ListChecks, StickyNote, Link, Paperclip, RefreshCw, Square } from 'lucide-react'
+import { Check, Calendar, Flag, GripVertical, X, ListChecks, StickyNote, Link, Paperclip, RefreshCw } from 'lucide-react'
 import type { Task } from '../api/types'
 import { useCompleteTask, useReopenTask, useUpdateTask, useReviewTask } from '../hooks/queries'
 import { getTaskContext } from '../hooks/useTaskContext'
@@ -36,10 +36,12 @@ function DelayedReveal({ children }: { children: React.ReactNode }) {
 interface TaskItemProps {
   task: Task
   showProject?: boolean
+  hideWhenDate?: boolean
   showReviewCheckbox?: boolean
+  showDivider?: boolean
 }
 
-export function TaskItem({ task, showProject = true, showReviewCheckbox = false }: TaskItemProps) {
+export function TaskItem({ task, showProject = true, hideWhenDate = false, showReviewCheckbox = false, showDivider = false }: TaskItemProps) {
   const selectedTaskId = useAppStore((s) => s.selectedTaskId)
   const selectTask = useAppStore((s) => s.selectTask)
   const expandedTaskId = useAppStore((s) => s.expandedTaskId)
@@ -203,19 +205,21 @@ export function TaskItem({ task, showProject = true, showReviewCheckbox = false 
 
 
   return (
-    <div ref={setNodeRef} className="group" style={{ opacity: isDragging ? 0.4 : 1 }}>
+    <div ref={setNodeRef} className="group/item" style={{ opacity: isDragging ? 0.4 : 1 }}>
+      <div className="flex items-start gap-2">
+      <div className="min-w-0 flex-1">
       <div
         className={`relative flex cursor-pointer items-center gap-3 rounded-lg px-3 py-2 transition-colors ${
           isSelected
             ? 'bg-red-50 dark:bg-red-900/20'
-            : 'hover:bg-neutral-50 dark:hover:bg-neutral-800'
+            : 'group-hover/item:bg-neutral-50 dark:group-hover/item:bg-neutral-800'
         }`}
         onClick={handleClick}
         onDoubleClick={handleDoubleClick}
       >
         {/* Drag handle */}
         <button
-          className="absolute -left-5 top-1/2 -translate-y-1/2 cursor-grab touch-none rounded p-0.5 text-neutral-300 opacity-0 transition-opacity hover:text-neutral-500 group-hover:opacity-100 active:cursor-grabbing dark:text-neutral-600 dark:hover:text-neutral-400"
+          className="absolute -left-5 top-1/2 -translate-y-1/2 cursor-grab touch-none rounded p-0.5 text-neutral-300 opacity-0 transition-opacity hover:text-neutral-500 group-hover/item:opacity-100 active:cursor-grabbing dark:text-neutral-600 dark:hover:text-neutral-400"
           {...attributes}
           {...listeners}
           onClick={(e) => e.stopPropagation()}
@@ -326,7 +330,7 @@ export function TaskItem({ task, showProject = true, showReviewCheckbox = false 
                     {formatRelativeDate(task.deadline)}
                   </span>
                 )}
-                {task.when_date && task.when_date !== 'someday' && (
+                {!hideWhenDate && task.when_date && task.when_date !== 'someday' && (
                   <span className="flex items-center gap-1">
                     <Calendar size={12} />
                     {formatRelativeDate(task.when_date)}
@@ -347,18 +351,21 @@ export function TaskItem({ task, showProject = true, showReviewCheckbox = false 
             </p>
           )}
         </div>
-        {showReviewCheckbox && (
-          <button
-            className="shrink-0 rounded p-0.5 text-neutral-300 opacity-0 transition-opacity hover:text-neutral-500 group-hover:opacity-100 dark:text-neutral-600 dark:hover:text-neutral-400"
-            onClick={(e) => {
-              e.stopPropagation()
-              reviewTask.mutate(task.id)
-            }}
-            aria-label="Mark as reviewed"
-          >
-            <Square size={20} />
-          </button>
-        )}
+      </div>
+      {showDivider && <div className="mx-3 border-b border-neutral-100 dark:border-neutral-800" />}
+      </div>
+      {showReviewCheckbox && (
+        <button
+          className="mt-2 shrink-0 self-start rounded p-1 text-neutral-300 opacity-0 transition-opacity hover:text-neutral-500 group-hover/item:opacity-100 dark:text-neutral-600 dark:hover:text-neutral-400"
+          onClick={(e) => {
+            e.stopPropagation()
+            reviewTask.mutate(task.id)
+          }}
+          aria-label="Mark as reviewed"
+        >
+          <Check size={20} />
+        </button>
+      )}
       </div>
       {isExpanded && (
         <DelayedReveal>

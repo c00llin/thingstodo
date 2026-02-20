@@ -21,9 +21,9 @@ export function CompletedTasksSection({ tasks, showProject }: CompletedTasksSect
         {expanded ? 'Hide completed tasks' : `Show ${tasks.length} completed task${tasks.length === 1 ? '' : 's'}`}
       </button>
       {expanded && (
-        <div className="mt-2 space-y-0.5">
+        <div className="mt-2">
           {tasks.map((task) => (
-            <TaskItem key={task.id} task={task} showProject={showProject} />
+            <TaskItem key={task.id} task={task} showProject={showProject} showDivider />
           ))}
         </div>
       )}

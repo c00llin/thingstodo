@@ -689,7 +689,7 @@ function TagSidebarItem({
     <Popover.Root open={colorPickerOpen} onOpenChange={setColorPickerOpen}>
       <NavLink
         to={to}
-        onClick={(e) => e.preventDefault()}
+        onClick={(e) => { e.preventDefault(); navigate(to) }}
         className={({ isActive: active }) =>
           `relative ${className} ${active ? 'text-red-700 dark:text-red-400' : indent ? 'text-neutral-500 hover:bg-neutral-200 dark:text-neutral-400 dark:hover:bg-neutral-700' : 'text-neutral-600 hover:bg-neutral-200 dark:text-neutral-400 dark:hover:bg-neutral-700'}`
         }

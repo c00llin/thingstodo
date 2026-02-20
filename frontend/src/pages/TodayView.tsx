@@ -30,7 +30,7 @@ export function TodayView() {
   }
 
   return (
-    <div className="mx-auto max-w-2xl p-6">
+    <div className="mx-auto max-w-3xl p-6">
       <h2 className="mb-3 text-2xl font-bold text-neutral-900 dark:text-neutral-100">Today</h2>
 
       {/* Overdue tasks */}
@@ -44,9 +44,9 @@ export function TodayView() {
             Overdue
           </button>
           {overdueOpen && (
-            <div className="space-y-0.5">
+            <div>
               {data.overdue.map((task) => (
-                <TaskItem key={task.id} task={task} />
+                <TaskItem key={task.id} task={task} showDivider />
               ))}
             </div>
           )}
@@ -64,9 +64,9 @@ export function TodayView() {
             Earlier
           </button>
           {earlierOpen && (
-            <div className="space-y-0.5">
+            <div>
               {data.earlier.map((task) => (
-                <TaskItem key={task.id} task={task} />
+                <TaskItem key={task.id} task={task} showDivider />
               ))}
             </div>
           )}

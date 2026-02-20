@@ -3,7 +3,7 @@ import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { motion } from 'framer-motion'
 import * as Checkbox from '@radix-ui/react-checkbox'
-import { Check, Calendar, Flag, GripVertical, X, ListChecks, StickyNote, Link, Paperclip, RefreshCw, Square } from 'lucide-react'
+import { Check, Calendar, Flag, GripVertical, X, ListChecks, StickyNote, Link, Paperclip, RefreshCw } from 'lucide-react'
 import type { Task } from '../api/types'
 import { useCompleteTask, useReopenTask, useUpdateTask, useReviewTask } from '../hooks/queries'
 import { getTaskContext } from '../hooks/useTaskContext'
@@ -40,6 +40,7 @@ interface SortableTaskItemProps {
   showProject?: boolean
   hideWhenDate?: boolean
   showReviewCheckbox?: boolean
+  showDivider?: boolean
   isDragOverlay: boolean
 }
 
@@ -48,6 +49,7 @@ export function SortableTaskItem({
   showProject = true,
   hideWhenDate = false,
   showReviewCheckbox = false,
+  showDivider = false,
   isDragOverlay,
 }: SortableTaskItemProps) {
   const selectedTaskId = useAppStore((s) => s.selectedTaskId)
@@ -238,20 +240,21 @@ export function SortableTaskItem({
           : { opacity: 0, height: 0, transition: { duration: 0.2 } }
       }
       transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-      className={`group ${isMultiSelected ? 'ring-2 ring-red-400 ring-inset rounded-lg' : ''}`}
+      className={`group/item ${isMultiSelected ? 'ring-2 ring-red-400 ring-inset rounded-lg' : ''}`}
     >
+      <div className="flex items-center gap-2">
       <div
-        className={`relative flex cursor-pointer items-center gap-3 rounded-lg px-3 py-2 transition-colors ${
+        className={`relative flex min-w-0 flex-1 cursor-pointer items-center gap-3 rounded-lg px-3 py-2 transition-colors ${
           isSelected
             ? 'bg-red-50 dark:bg-red-900/20'
-            : 'hover:bg-neutral-50 dark:hover:bg-neutral-800'
+            : 'group-hover/item:bg-neutral-50 dark:group-hover/item:bg-neutral-800'
         }`}
         onClick={handleClick}
         onDoubleClick={handleDoubleClick}
       >
         {/* Drag handle */}
         <button
-          className="absolute -left-5 top-1/2 -translate-y-1/2 cursor-grab touch-none rounded p-0.5 text-neutral-300 opacity-0 transition-opacity hover:text-neutral-500 group-hover:opacity-100 active:cursor-grabbing dark:text-neutral-600 dark:hover:text-neutral-400"
+          className="absolute -left-5 top-1/2 -translate-y-1/2 cursor-grab touch-none rounded p-0.5 text-neutral-300 opacity-0 transition-opacity hover:text-neutral-500 group-hover/item:opacity-100 active:cursor-grabbing dark:text-neutral-600 dark:hover:text-neutral-400"
           {...attributes}
           {...listeners}
           onClick={(e) => e.stopPropagation()}
@@ -384,24 +387,26 @@ export function SortableTaskItem({
             <p className="mt-0.5 text-[10px] leading-tight text-neutral-400">{taskContext}</p>
           )}
         </div>
-        {showReviewCheckbox && (
-          <button
-            className="shrink-0 rounded p-0.5 text-neutral-300 opacity-0 transition-opacity hover:text-neutral-500 group-hover:opacity-100 dark:text-neutral-600 dark:hover:text-neutral-400"
-            onClick={(e) => {
-              e.stopPropagation()
-              reviewTask.mutate(task.id)
-            }}
-            aria-label="Mark as reviewed"
-          >
-            <Square size={20} />
-          </button>
-        )}
+      </div>
+      {showReviewCheckbox && (
+        <button
+          className="shrink-0 rounded p-1 text-neutral-300 opacity-0 transition-opacity hover:text-neutral-500 group-hover/item:opacity-100 dark:text-neutral-600 dark:hover:text-neutral-400"
+          onClick={(e) => {
+            e.stopPropagation()
+            reviewTask.mutate(task.id)
+          }}
+          aria-label="Mark as reviewed"
+        >
+          <Check size={20} />
+        </button>
+      )}
       </div>
       {isExpanded && !isDragging && (
         <DelayedReveal>
           <TaskDetail taskId={task.id} />
         </DelayedReveal>
       )}
+      {showDivider && <div className="mx-3 border-b border-neutral-100 dark:border-neutral-800" />}
     </motion.div>
   )
 }

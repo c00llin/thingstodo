@@ -29,12 +29,13 @@ func (r *UserSettingsRepository) GetOrCreate(userID string) (*model.UserSettings
 		if err != nil {
 			return nil, fmt.Errorf("create default settings: %w", err)
 		}
+		defaultDays := 7
 		s = model.UserSettings{
 			PlayCompleteSound: true,
 			ShowCountMain:     true,
 			ShowCountProjects: true,
 			ShowCountTags:     true,
-			ReviewAfterDays:   nil,
+			ReviewAfterDays:   &defaultDays,
 		}
 		return &s, nil
 	}
