@@ -15,7 +15,7 @@ export function SidebarDropTarget({ id, children }: SidebarDropTargetProps) {
       ref={setNodeRef}
       className={`rounded-lg transition-colors ${
         showHighlight
-          ? '[&_a]:!bg-red-100 [&_a]:!text-red-700 [&_a]:!ring-2 [&_a]:!ring-red-300 dark:[&_a]:!bg-red-900/40 dark:[&_a]:!text-red-400 dark:[&_a]:!ring-red-700'
+          ? '[&_a]:!bg-red-100 [&_a]:!text-red-700 [&_a]:!ring-2 [&_a]:!ring-inset [&_a]:!ring-red-300 dark:[&_a]:!bg-red-900/40 dark:[&_a]:!text-red-400 dark:[&_a]:!ring-red-700'
           : ''
       }`}
     >
