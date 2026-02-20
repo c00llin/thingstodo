@@ -233,7 +233,7 @@ function EditableSidebarItem({
             />
           )}
           {icon}
-          <span className="relative z-10 truncate">{title}</span>
+          <span className="relative z-10 truncate" title="Double-click to rename">{title}</span>
           {badge}
         </>
       )}
@@ -277,7 +277,7 @@ function SmartListNav() {
             to={to}
             className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors"
             activeClassName="text-red-700 dark:text-red-400"
-            inactiveClassName="text-neutral-700 hover:bg-neutral-100 dark:text-neutral-300 dark:hover:bg-neutral-800"
+            inactiveClassName="text-neutral-700 hover:bg-neutral-200 dark:text-neutral-300 dark:hover:bg-neutral-700"
             layoutId="sidebar-active-indicator"
           >
             <Icon size={18} className="relative z-10" />
@@ -419,7 +419,7 @@ function AreaList() {
                         to={`/area/${area.id}`}
                         className="flex items-center gap-2 rounded-lg px-3 py-1.5 text-sm"
                         activeClassName="text-red-700 dark:text-red-400"
-                        inactiveClassName="text-neutral-600 hover:bg-neutral-100 dark:text-neutral-400 dark:hover:bg-neutral-800"
+                        inactiveClassName="text-neutral-600 hover:bg-neutral-200 dark:text-neutral-400 dark:hover:bg-neutral-700"
                         layoutId="sidebar-active-indicator"
                         icon={<Blocks size={16} className="relative z-10" />}
                         title={area.title}
@@ -458,7 +458,7 @@ function AreaList() {
                                   to={`/project/${project.id}`}
                                   className="flex items-center gap-2 rounded-lg py-1.5 pl-8 pr-3 text-sm"
                                   activeClassName="text-red-700 dark:text-red-400"
-                                  inactiveClassName="text-neutral-500 hover:bg-neutral-100 dark:text-neutral-400 dark:hover:bg-neutral-800"
+                                  inactiveClassName="text-neutral-500 hover:bg-neutral-200 dark:text-neutral-400 dark:hover:bg-neutral-700"
                                   layoutId="sidebar-active-indicator"
                                   icon={<Package size={14} className="relative z-10 text-neutral-400 dark:text-neutral-500" />}
                                   title={project.title}
@@ -494,7 +494,7 @@ function AreaList() {
                         to={`/project/${project.id}`}
                         className="flex items-center gap-2 rounded-lg px-3 py-1.5 text-sm"
                         activeClassName="text-red-700 dark:text-red-400"
-                        inactiveClassName="text-neutral-500 hover:bg-neutral-100 dark:text-neutral-400 dark:hover:bg-neutral-800"
+                        inactiveClassName="text-neutral-500 hover:bg-neutral-200 dark:text-neutral-400 dark:hover:bg-neutral-700"
                         layoutId="sidebar-active-indicator"
                         icon={<Package size={14} className={`relative z-10 ${
                             project.task_count > 0 &&
@@ -633,7 +633,7 @@ function TagSidebarItem({
   if (isEditing) {
     return (
       <div>
-        <div className={`relative ${className} ${isActive ? 'text-red-700 dark:text-red-400' : 'text-neutral-600 hover:bg-neutral-100 dark:text-neutral-400 dark:hover:bg-neutral-800'}`}>
+        <div className={`relative ${className} ${isActive ? 'text-red-700 dark:text-red-400' : 'text-neutral-600 hover:bg-neutral-200 dark:text-neutral-400 dark:hover:bg-neutral-700'}`}>
           {isActive && (
             <motion.div
               layoutId="sidebar-active-indicator"
@@ -682,7 +682,7 @@ function TagSidebarItem({
         to={to}
         onClick={(e) => e.preventDefault()}
         className={({ isActive: active }) =>
-          `relative ${className} ${active ? 'text-red-700 dark:text-red-400' : indent ? 'text-neutral-500 hover:bg-neutral-100 dark:text-neutral-400 dark:hover:bg-neutral-800' : 'text-neutral-600 hover:bg-neutral-100 dark:text-neutral-400 dark:hover:bg-neutral-800'}`
+          `relative ${className} ${active ? 'text-red-700 dark:text-red-400' : indent ? 'text-neutral-500 hover:bg-neutral-200 dark:text-neutral-400 dark:hover:bg-neutral-700' : 'text-neutral-600 hover:bg-neutral-200 dark:text-neutral-400 dark:hover:bg-neutral-700'}`
         }
       >
         {({ isActive: active }) => (
