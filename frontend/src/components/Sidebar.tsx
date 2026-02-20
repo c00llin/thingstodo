@@ -288,7 +288,7 @@ function SmartListNav() {
                   </span>
                 )}
                 {showCounts && count > 0 && (
-                  <span className="text-xs text-neutral-400">
+                  <span className="flex h-5 w-5 items-center justify-center text-xs text-neutral-400">
                     {count}
                   </span>
                 )}
