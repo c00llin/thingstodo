@@ -87,6 +87,7 @@ export function useSSE() {
 
           case 'tag_updated':
             queryClient.invalidateQueries({ queryKey: queryKeys.tags.all, ...refetch })
+            queryClient.invalidateQueries({ queryKey: ['views'], ...refetch })
             break
 
           case 'bulk_change':

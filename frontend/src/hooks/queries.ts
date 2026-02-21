@@ -636,6 +636,7 @@ export function useUpdateTag() {
       tagsApi.updateTag(id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.tags.all })
+      queryClient.invalidateQueries({ queryKey: ['views'] })
     },
   })
 }
