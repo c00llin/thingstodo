@@ -199,6 +199,7 @@ function AppDndContextInner({ children }: AppDndContextProps) {
               queryClient.invalidateQueries({ queryKey: ['views'] })
               queryClient.invalidateQueries({ queryKey: ['projects'] })
               queryClient.invalidateQueries({ queryKey: ['areas'] })
+              queryClient.invalidateQueries({ queryKey: ['tags'] })
             }, 800)
           })
           return
@@ -235,6 +236,7 @@ function AppDndContextInner({ children }: AppDndContextProps) {
               queryClient.invalidateQueries({ queryKey: ['views'] })
               queryClient.invalidateQueries({ queryKey: ['projects'] })
               queryClient.invalidateQueries({ queryKey: ['areas'] })
+              queryClient.invalidateQueries({ queryKey: ['tags'] })
             }, 800)
           }
           doComplete()
@@ -331,6 +333,7 @@ function AppDndContextInner({ children }: AppDndContextProps) {
           }
           // Invalidate after all API calls complete
           queryClient.invalidateQueries({ queryKey: ['views'] })
+          queryClient.invalidateQueries({ queryKey: ['tags'] })
           if (overId.startsWith('sidebar-project-') || overId.startsWith('sidebar-area-')) {
             queryClient.invalidateQueries({ queryKey: ['projects'] })
             queryClient.invalidateQueries({ queryKey: ['areas'] })
