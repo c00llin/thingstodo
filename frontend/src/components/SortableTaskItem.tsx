@@ -11,7 +11,9 @@ import { useAppStore } from '../stores/app'
 import { TaskDetail } from './TaskDetail'
 import { useResolveTags } from '../hooks/useResolveTags'
 import { formatRelativeDate } from '../lib/format-date'
-import { getTagPillClasses } from '../lib/tag-colors'
+import { getTagPillClasses, getTagIconClass } from '../lib/tag-colors'
+import { isSiYuanTag } from '../lib/siyuan'
+import { SiYuanIcon } from './SiYuanIcon'
 import { TagAutocomplete } from './TagAutocomplete'
 import { ProjectAutocomplete } from './ProjectAutocomplete'
 import { PriorityAutocomplete } from './PriorityAutocomplete'
@@ -78,13 +80,15 @@ export function SortableTaskItem({
 
   const [editing, setEditing] = useState(false)
   const [title, setTitle] = useState(task.title)
+  const [siyuanError, setSiyuanError] = useState<string | null>(null)
   const inputRef = useRef<HTMLInputElement>(null)
   const clickTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const skipBlurRef = useRef(false)
   const triggerCursorRef = useRef<number | null>(null)
+  const siyuanErrorTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   function getEditTitle() {
-    const tagSuffix = task.tags.map((t) => `#${t.title}`).join(' ')
+    const tagSuffix = task.tags.filter((t) => !isSiYuanTag(t.title)).map((t) => `#${t.title}`).join(' ')
     return task.title + (tagSuffix ? ' ' + tagSuffix : '')
   }
 
@@ -219,6 +223,14 @@ export function SortableTaskItem({
       return
     }
 
+    // Detect #siyuan token
+    const tagMatches = [...value.matchAll(/#([\w-]+)/g)]
+    if (tagMatches.some((m) => m[1].toLowerCase() === 'siyuan')) {
+      if (siyuanErrorTimerRef.current) clearTimeout(siyuanErrorTimerRef.current)
+      setSiyuanError('"siyuan" is a reserved tag')
+      siyuanErrorTimerRef.current = setTimeout(() => setSiyuanError(null), 2000)
+    }
+
     setTitle(value)
   }
 
@@ -332,7 +344,10 @@ export function SortableTaskItem({
                 {task.title}
               </span>
             )}
-            {!editing && task.tags.map((tag) => (
+            {!editing && task.tags.filter((t) => isSiYuanTag(t.title)).map((tag) => (
+              <SiYuanIcon key={tag.id} size={14} className={getTagIconClass(tag.color) || 'text-neutral-400'} />
+            ))}
+            {!editing && task.tags.filter((t) => !isSiYuanTag(t.title)).map((tag) => (
               <span
                 key={tag.id}
                 className={`group/tag inline-flex items-center gap-0.5 rounded-full py-0.5 pl-2 pr-1.5 text-xs ${getTagPillClasses(tag.color)}`}
@@ -385,6 +400,9 @@ export function SortableTaskItem({
           </div>
           {showProject && taskContext && !editing && (
             <p className="mt-0.5 text-[10px] leading-tight text-neutral-400">{taskContext}</p>
+          )}
+          {siyuanError && (
+            <p className="mt-0.5 text-xs text-red-500">{siyuanError}</p>
           )}
         </div>
       </div>

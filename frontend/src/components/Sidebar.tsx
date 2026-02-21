@@ -30,6 +30,8 @@ import { useAppStore } from '../stores/app'
 import { ThemeToggle } from './ThemeToggle'
 import { SidebarDropTarget } from './SidebarDropTarget'
 import { TAG_COLORS, getTagIconClass, getTagDropClasses } from '../lib/tag-colors'
+import { isSiYuanTag } from '../lib/siyuan'
+import { SiYuanIcon } from './SiYuanIcon'
 
 const indicatorTransition = { type: 'spring' as const, stiffness: 400, damping: 35 }
 
@@ -650,7 +652,11 @@ function TagSidebarItem({
               transition={indicatorTransition}
             />
           )}
-          <Tag size={iconSize} className={`relative z-10 ${iconColorClass}`} />
+          {isSiYuanTag(tag.title) ? (
+            <SiYuanIcon size={iconSize} className={`relative z-10 ${iconColorClass || 'text-neutral-400'}`} />
+          ) : (
+            <Tag size={iconSize} className={`relative z-10 ${iconColorClass}`} />
+          )}
           <input
             ref={inputRef}
             type="text"
@@ -707,10 +713,10 @@ function TagSidebarItem({
               <button
                 ref={iconRef}
                 onClick={handleIconClick}
-                className={`relative z-10 ${iconColorClass}`}
+                className={`relative z-10 ${iconColorClass || (isSiYuanTag(tag.title) ? 'text-neutral-400' : '')}`}
                 title="Double-click to set color"
               >
-                <Tag size={iconSize} />
+                {isSiYuanTag(tag.title) ? <SiYuanIcon size={iconSize} /> : <Tag size={iconSize} />}
               </button>
             </Popover.Anchor>
             <span
@@ -806,20 +812,29 @@ function TagList() {
                 .filter((t) => !t.parent_tag_id)
                 .map((tag) => {
                   const children = tags.filter((t) => t.parent_tag_id === tag.id)
+                  const isSiyuan = isSiYuanTag(tag.title)
+                  const tagItem = (
+                    <TagSidebarItem
+                      tag={tag}
+                      editingId={editingItemId}
+                      onEditStart={setEditingItemId}
+                      onEditEnd={clearEditing}
+                      onSave={async (t) => { await updateTag.mutateAsync({ id: tag.id, data: { title: t } }) }}
+                      showCounts={showCounts}
+                    />
+                  )
                   return (
                     <div key={tag.id}>
-                      <SidebarDropTarget id={`sidebar-tag-${tag.id}`} dropClasses={getTagDropClasses(tag.color)}>
-                        <TagSidebarItem
-                          tag={tag}
-                          editingId={editingItemId}
-                          onEditStart={setEditingItemId}
-                          onEditEnd={clearEditing}
-                          onSave={async (t) => { await updateTag.mutateAsync({ id: tag.id, data: { title: t } }) }}
-                          showCounts={showCounts}
-                        />
-                      </SidebarDropTarget>
-                      {children.map((child) => (
-                        <SidebarDropTarget key={child.id} id={`sidebar-tag-${child.id}`} dropClasses={getTagDropClasses(child.color)}>
+                      {isSiyuan ? (
+                        <div>{tagItem}</div>
+                      ) : (
+                        <SidebarDropTarget id={`sidebar-tag-${tag.id}`} dropClasses={getTagDropClasses(tag.color)}>
+                          {tagItem}
+                        </SidebarDropTarget>
+                      )}
+                      {children.map((child) => {
+                        const isChildSiyuan = isSiYuanTag(child.title)
+                        const childItem = (
                           <TagSidebarItem
                             tag={child}
                             editingId={editingItemId}
@@ -829,8 +844,15 @@ function TagList() {
                             indent
                             showCounts={showCounts}
                           />
-                        </SidebarDropTarget>
-                      ))}
+                        )
+                        return isChildSiyuan ? (
+                          <div key={child.id}>{childItem}</div>
+                        ) : (
+                          <SidebarDropTarget key={child.id} id={`sidebar-tag-${child.id}`} dropClasses={getTagDropClasses(child.color)}>
+                            {childItem}
+                          </SidebarDropTarget>
+                        )
+                      })}
                     </div>
                   )
                 })}

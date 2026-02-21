@@ -1,6 +1,8 @@
 import { Check, Calendar, Flag, StickyNote, Link, Paperclip, RefreshCw } from 'lucide-react'
 import type { Task } from '../api/types'
-import { getTagPillClasses } from '../lib/tag-colors'
+import { getTagPillClasses, getTagIconClass } from '../lib/tag-colors'
+import { isSiYuanTag } from '../lib/siyuan'
+import { SiYuanIcon } from './SiYuanIcon'
 import { TaskStatusIcon } from './TaskStatusIcon'
 
 interface TaskItemDragOverlayProps {
@@ -40,7 +42,10 @@ export function TaskItemDragOverlay({ task }: TaskItemDragOverlayProps) {
             >
               {task.title}
             </span>
-            {task.tags.map((tag) => (
+            {task.tags.filter((t) => isSiYuanTag(t.title)).map((tag) => (
+              <SiYuanIcon key={tag.id} size={14} className={getTagIconClass(tag.color) || 'text-neutral-400'} />
+            ))}
+            {task.tags.filter((t) => !isSiYuanTag(t.title)).map((tag) => (
               <span
                 key={tag.id}
                 className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs ${getTagPillClasses(tag.color)}`}

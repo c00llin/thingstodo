@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { createPortal } from 'react-dom'
 import { useTags } from '../hooks/queries'
+import { isSiYuanTag } from '../lib/siyuan'
 
 interface TagAutocompleteProps {
   inputRef: React.RefObject<HTMLInputElement | null>
@@ -28,9 +29,9 @@ export function TagAutocomplete({ inputRef, value, onChange }: TagAutocompletePr
 
   const allTags = tags?.tags ?? []
   const hasTags = allTags.length > 0
-  const filtered = allTags.filter((t) =>
-    t.title.toLowerCase().includes(token?.partial.toLowerCase() ?? '')
-  )
+  const filtered = allTags
+    .filter((t) => !isSiYuanTag(t.title))
+    .filter((t) => t.title.toLowerCase().includes(token?.partial.toLowerCase() ?? ''))
 
   const prevPartialRef = useRef<string | null>(null)
 

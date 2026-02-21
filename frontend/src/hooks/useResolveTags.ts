@@ -1,6 +1,7 @@
 import { useCallback } from 'react'
 import { useTags, useCreateTag, useProjects, useAreas } from './queries'
 import { parseTitleTokens } from '../lib/parse-tags'
+import { isSiYuanTag } from '../lib/siyuan'
 
 /**
  * Returns a function that parses #tags and $project/area from input text,
@@ -33,6 +34,7 @@ export function useResolveTags() {
       const existingTags = tagsData?.tags ?? []
       const ids: string[] = []
       for (const name of tagNames) {
+        if (isSiYuanTag(name)) continue
         const existing = existingTags.find(
           (t) => t.title.toLowerCase() === name.toLowerCase(),
         )

@@ -40,6 +40,10 @@ func (h *TagHandler) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	input.Title = strings.ToLower(input.Title)
+	if input.Title == "siyuan" {
+		writeError(w, http.StatusForbidden, `"siyuan" is a reserved tag name`, "RESERVED")
+		return
+	}
 	tag, err := h.repo.Create(input)
 	if err != nil {
 		if errors.Is(err, repository.ErrDuplicateTagName) {
@@ -65,6 +69,10 @@ func (h *TagHandler) Update(w http.ResponseWriter, r *http.Request) {
 	if input.Title != nil {
 		lower := strings.ToLower(*input.Title)
 		input.Title = &lower
+		if lower == "siyuan" {
+			writeError(w, http.StatusForbidden, `"siyuan" is a reserved tag name`, "RESERVED")
+			return
+		}
 	}
 
 	tag, err := h.repo.Update(id, input)
