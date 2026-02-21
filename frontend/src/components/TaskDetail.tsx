@@ -20,6 +20,7 @@ import { getFileUrl } from '../api/attachments'
 import { RepeatRulePicker } from './RepeatRulePicker'
 import { formatRepeatRule } from '../lib/format-repeat'
 import type { ChecklistItem, Attachment } from '../api/types'
+import { isSiYuanLink, hasSiYuanLink, isReservedAnchor } from '../lib/siyuan'
 
 interface TaskDetailProps {
   taskId: string
@@ -204,6 +205,7 @@ export function TaskDetail({ taskId }: TaskDetailProps) {
   const hasDeadline = !!task.deadline
   const hasChecklist = task.checklist.length > 0
   const hasRepeatRule = !!task.repeat_rule
+  const hasSiYuan = hasSiYuanLink(task.attachments)
 
   return (
     <div
@@ -406,7 +408,16 @@ export function TaskDetail({ taskId }: TaskDetailProps) {
             <CircleAlert size={16} />
           </button>
         )}
-        {hasRepeatRule && !showRepeat && task.repeat_rule ? (
+        {hasSiYuan ? (
+          <button
+            disabled
+            className="rounded-md p-1 text-neutral-300 cursor-not-allowed dark:text-neutral-600"
+            aria-label={hasRepeatRule ? 'Recurring disabled — remove SiYuan link to edit' : 'Recurring not available for SiYuan-linked tasks'}
+            title={hasRepeatRule ? 'Has a repeat rule — remove SiYuan link to edit' : 'Recurring not available for SiYuan-linked tasks'}
+          >
+            <RefreshCw size={16} />
+          </button>
+        ) : hasRepeatRule && !showRepeat && task.repeat_rule ? (
           <button
             onClick={() => setShowRepeat(true)}
             className="ml-1 flex items-center gap-1 rounded-md border border-neutral-200 px-1.5 py-0.5 text-neutral-400 hover:bg-neutral-100 hover:text-neutral-600 dark:border-neutral-600 dark:hover:bg-neutral-800 dark:hover:text-neutral-300"
@@ -506,13 +517,15 @@ function AttachmentList({
               ({(att.file_size / 1024 / 1024).toFixed(1)} MB)
             </span>
           )}
-          <button
-            onClick={() => deleteAttachment.mutate(att.id)}
-            className="ml-auto shrink-0 text-neutral-400 opacity-0 hover:text-red-500 group-hover/att:opacity-100"
-            aria-label={`Remove ${att.title}`}
-          >
-            <X size={14} />
-          </button>
+          {!isSiYuanLink(att) && (
+            <button
+              onClick={() => deleteAttachment.mutate(att.id)}
+              className="ml-auto shrink-0 text-neutral-400 opacity-0 hover:text-red-500 group-hover/att:opacity-100"
+              aria-label={`Remove ${att.title}`}
+            >
+              <X size={14} />
+            </button>
+          )}
         </div>
       ))}
     </div>
@@ -556,6 +569,7 @@ function LinkAddButton({ taskId }: { taskId: string }) {
   const [adding, setAdding] = useState(false)
   const [linkUrl, setLinkUrl] = useState('')
   const [linkTitle, setLinkTitle] = useState('')
+  const [linkError, setLinkError] = useState<string | null>(null)
   const linkUrlRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
@@ -568,9 +582,14 @@ function LinkAddButton({ taskId }: { taskId: string }) {
     const url = linkUrl.trim()
     if (!url) return
     const title = linkTitle.trim() || url
+    if (isReservedAnchor(title)) {
+      setLinkError('"SiYuan" is a reserved link name')
+      return
+    }
     addLink.mutate({ type: 'link', title, url })
     setLinkUrl('')
     setLinkTitle('')
+    setLinkError(null)
     setAdding(false)
   }
 
@@ -578,40 +597,50 @@ function LinkAddButton({ taskId }: { taskId: string }) {
     setAdding(false)
     setLinkUrl('')
     setLinkTitle('')
+    setLinkError(null)
   }
 
   if (adding) {
     return (
-      <div className="flex items-center gap-1.5">
-        <input
-          ref={linkUrlRef}
-          type="url"
-          value={linkUrl}
-          onChange={(e) => setLinkUrl(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter') { e.preventDefault(); handleAdd() }
-            if (e.key === 'Escape') handleCancel()
-          }}
-          placeholder="URL..."
-          className="w-40 rounded-md border border-neutral-200 bg-white px-2 py-1 text-xs focus:border-red-400 focus:outline-none dark:border-neutral-600 dark:bg-neutral-800 dark:text-neutral-100"
-        />
-        <input
-          type="text"
-          value={linkTitle}
-          onChange={(e) => setLinkTitle(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter') { e.preventDefault(); handleAdd() }
-            if (e.key === 'Escape') handleCancel()
-          }}
-          placeholder="Title..."
-          className="w-28 rounded-md border border-neutral-200 bg-white px-2 py-1 text-xs focus:border-red-400 focus:outline-none dark:border-neutral-600 dark:bg-neutral-800 dark:text-neutral-100"
-        />
-        <button
-          onClick={handleCancel}
-          className="text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-300"
-        >
-          <X size={14} />
-        </button>
+      <div className="flex flex-col gap-1">
+        <div className="flex items-center gap-1.5">
+          <input
+            ref={linkUrlRef}
+            type="url"
+            value={linkUrl}
+            onChange={(e) => { setLinkUrl(e.target.value); setLinkError(null) }}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') { e.preventDefault(); handleAdd() }
+              if (e.key === 'Escape') handleCancel()
+            }}
+            placeholder="URL..."
+            className="w-40 rounded-md border border-neutral-200 bg-white px-2 py-1 text-xs focus:border-red-400 focus:outline-none dark:border-neutral-600 dark:bg-neutral-800 dark:text-neutral-100"
+          />
+          <input
+            type="text"
+            value={linkTitle}
+            onChange={(e) => { setLinkTitle(e.target.value); setLinkError(null) }}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') { e.preventDefault(); handleAdd() }
+              if (e.key === 'Escape') handleCancel()
+            }}
+            placeholder="Title..."
+            className={`w-28 rounded-md border bg-white px-2 py-1 text-xs focus:outline-none dark:bg-neutral-800 dark:text-neutral-100 ${
+              linkError
+                ? 'border-red-400 focus:border-red-400 dark:border-red-500'
+                : 'border-neutral-200 focus:border-red-400 dark:border-neutral-600'
+            }`}
+          />
+          <button
+            onClick={handleCancel}
+            className="text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-300"
+          >
+            <X size={14} />
+          </button>
+        </div>
+        {linkError && (
+          <span className="text-xs text-red-500">{linkError}</span>
+        )}
       </div>
     )
   }
