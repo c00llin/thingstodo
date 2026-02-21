@@ -3,6 +3,7 @@ package handler
 import (
 	"errors"
 	"net/http"
+	"strings"
 
 	"github.com/collinjanssen/thingstodo/internal/model"
 	"github.com/collinjanssen/thingstodo/internal/repository"
@@ -38,6 +39,7 @@ func (h *TagHandler) Create(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, "title is required", "VALIDATION")
 		return
 	}
+	input.Title = strings.ToLower(input.Title)
 	tag, err := h.repo.Create(input)
 	if err != nil {
 		if errors.Is(err, repository.ErrDuplicateTagName) {
@@ -60,6 +62,10 @@ func (h *TagHandler) Update(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	input.Raw = raw
+	if input.Title != nil {
+		lower := strings.ToLower(*input.Title)
+		input.Title = &lower
+	}
 
 	tag, err := h.repo.Update(id, input)
 	if err != nil {
