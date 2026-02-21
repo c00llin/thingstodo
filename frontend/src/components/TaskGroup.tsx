@@ -1,3 +1,4 @@
+import { AnimatePresence } from 'framer-motion'
 import type { Task, SortField } from '../api/types'
 import { TaskItem } from './TaskItem'
 import { SortableTaskList } from './SortableTaskList'
@@ -33,11 +34,11 @@ export function TaskGroup({
           showProject={showProject}
         />
       ) : (
-        <div>
+        <AnimatePresence initial={false}>
           {tasks.map((task) => (
             <TaskItem key={task.id} task={task} showProject={showProject} hideWhenDate={hideWhenDate} showDivider />
           ))}
-        </div>
+        </AnimatePresence>
       )}
     </div>
   )

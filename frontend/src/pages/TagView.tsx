@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useParams, useNavigate } from 'react-router'
+import { AnimatePresence } from 'framer-motion'
 import { Trash2 } from 'lucide-react'
 import { useTagTasks, useTags, useDeleteTag } from '../hooks/queries'
 import { TaskItem } from '../components/TaskItem'
@@ -43,11 +44,11 @@ export function TagView() {
           No tasks with this tag.
         </p>
       ) : (
-        <div>
+        <AnimatePresence initial={false}>
           {data.tasks.map((task) => (
             <TaskItem key={task.id} task={task} showDivider />
           ))}
-        </div>
+        </AnimatePresence>
       )}
 
       {tag && (

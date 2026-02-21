@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
-import { queryKeys } from './queries'
+import { queryKeys, invalidateViewQueries } from './queries'
 
 type SSEEventType =
   | 'task_created'
@@ -38,8 +38,7 @@ export function useSSE() {
 
         switch (type) {
           case 'task_created':
-            queryClient.invalidateQueries({ queryKey: ['views'], ...refetch })
-            queryClient.invalidateQueries({ queryKey: queryKeys.tasks.all, ...refetch })
+            invalidateViewQueries(queryClient, refetch)
             break
 
           case 'task_updated':
@@ -49,8 +48,7 @@ export function useSSE() {
                 ...refetch,
               })
             }
-            queryClient.invalidateQueries({ queryKey: ['views'], ...refetch })
-            queryClient.invalidateQueries({ queryKey: queryKeys.tasks.all, ...refetch })
+            invalidateViewQueries(queryClient, refetch)
             break
 
           case 'task_deleted':
@@ -59,8 +57,7 @@ export function useSSE() {
                 queryKey: queryKeys.tasks.detail(payload.id),
               })
             }
-            queryClient.invalidateQueries({ queryKey: ['views'], ...refetch })
-            queryClient.invalidateQueries({ queryKey: queryKeys.tasks.all, ...refetch })
+            invalidateViewQueries(queryClient, refetch)
             break
 
           case 'project_updated':
@@ -71,7 +68,7 @@ export function useSSE() {
               })
             }
             queryClient.invalidateQueries({ queryKey: queryKeys.projects.all, ...refetch })
-            queryClient.invalidateQueries({ queryKey: ['views'], ...refetch })
+            invalidateViewQueries(queryClient, refetch)
             break
 
           case 'area_updated':
@@ -82,20 +79,17 @@ export function useSSE() {
               })
             }
             queryClient.invalidateQueries({ queryKey: queryKeys.areas.all, ...refetch })
-            queryClient.invalidateQueries({ queryKey: ['views'], ...refetch })
+            invalidateViewQueries(queryClient, refetch)
             break
 
           case 'tag_updated':
-            queryClient.invalidateQueries({ queryKey: queryKeys.tags.all, ...refetch })
-            queryClient.invalidateQueries({ queryKey: ['views'], ...refetch })
+            invalidateViewQueries(queryClient, refetch)
             break
 
           case 'bulk_change':
-            queryClient.invalidateQueries({ queryKey: ['views'], ...refetch })
-            queryClient.invalidateQueries({ queryKey: queryKeys.tasks.all, ...refetch })
             queryClient.invalidateQueries({ queryKey: queryKeys.projects.all, ...refetch })
             queryClient.invalidateQueries({ queryKey: queryKeys.areas.all, ...refetch })
-            queryClient.invalidateQueries({ queryKey: queryKeys.tags.all, ...refetch })
+            invalidateViewQueries(queryClient, refetch)
             break
         }
       }

@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useEffect, useRef } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useAppStore } from '../stores/app'
 import * as tasksApi from '../api/tasks'
@@ -151,6 +151,22 @@ export function useTask(id: string) {
   })
 }
 
+/** Invalidate view/task/tag queries, deferring if the detail panel is open.
+ *  Exported so SSE can reuse the same deferral logic. */
+export function invalidateViewQueries(
+  queryClient: ReturnType<typeof useQueryClient>,
+  opts?: { refetchType?: 'all' },
+) {
+  const { expandedTaskId, setPendingInvalidation } = useAppStore.getState()
+  if (expandedTaskId) {
+    setPendingInvalidation(true)
+    return
+  }
+  queryClient.invalidateQueries({ queryKey: ['views'], ...opts })
+  queryClient.invalidateQueries({ queryKey: queryKeys.tasks.all, ...opts })
+  queryClient.invalidateQueries({ queryKey: queryKeys.tags.all, ...opts })
+}
+
 function useInvalidateViews() {
   const queryClient = useQueryClient()
   return () => {
@@ -158,32 +174,39 @@ function useInvalidateViews() {
     queryClient.invalidateQueries({ queryKey: queryKeys.projects.all })
     queryClient.invalidateQueries({ queryKey: queryKeys.areas.all })
 
-    const { expandedTaskId, setPendingInvalidation } = useAppStore.getState()
-    if (expandedTaskId) {
-      // Defer view invalidation until the detail panel closes (for departing animation)
-      setPendingInvalidation(true)
-      return
-    }
-    queryClient.invalidateQueries({ queryKey: ['views'] })
-    queryClient.invalidateQueries({ queryKey: queryKeys.tasks.all })
-    queryClient.invalidateQueries({ queryKey: queryKeys.tags.all })
+    invalidateViewQueries(queryClient)
   }
 }
 
 /** Flush deferred view invalidation when the task detail panel closes.
- *  The departing animation is handled by the individual mutations (complete, delete, etc.),
- *  so the flush just invalidates immediately. */
+ *  Sets departingTaskId so the task gets a smooth exit animation before
+ *  the view query refreshes and removes it from the list. */
 export function useFlushPendingInvalidation() {
   const queryClient = useQueryClient()
   const expandedTaskId = useAppStore((s) => s.expandedTaskId)
   const hasPending = useAppStore((s) => s.hasPendingInvalidation)
+  const prevExpandedRef = useRef<string | null>(null)
+
+  useEffect(() => {
+    if (expandedTaskId) {
+      prevExpandedRef.current = expandedTaskId
+    }
+  }, [expandedTaskId])
 
   useEffect(() => {
     if (!expandedTaskId && hasPending) {
       useAppStore.getState().setPendingInvalidation(false)
-      queryClient.invalidateQueries({ queryKey: ['views'] })
-      queryClient.invalidateQueries({ queryKey: queryKeys.tasks.all })
-      queryClient.invalidateQueries({ queryKey: queryKeys.tags.all })
+      const taskId = prevExpandedRef.current
+      if (taskId) {
+        useAppStore.getState().setDepartingTaskId(taskId)
+      }
+      setTimeout(() => {
+        // Use refetchType: 'all' to bypass staleTime (deferred SSE events need this)
+        invalidateViewQueries(queryClient, { refetchType: 'all' })
+        setTimeout(() => {
+          useAppStore.getState().setDepartingTaskId(null)
+        }, 200)
+      }, 400)
     }
   }, [expandedTaskId, hasPending, queryClient])
 }

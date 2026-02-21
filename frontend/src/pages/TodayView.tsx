@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react'
 import { format } from 'date-fns'
+import { AnimatePresence } from 'framer-motion'
 import { ChevronRight } from 'lucide-react'
 import { useToday } from '../hooks/queries'
 import { SortableTaskList } from '../components/SortableTaskList'
@@ -44,11 +45,11 @@ export function TodayView() {
             Overdue
           </button>
           {overdueOpen && (
-            <div>
+            <AnimatePresence initial={false}>
               {data.overdue.map((task) => (
                 <TaskItem key={task.id} task={task} showDivider />
               ))}
-            </div>
+            </AnimatePresence>
           )}
         </div>
       )}
@@ -64,11 +65,11 @@ export function TodayView() {
             Earlier
           </button>
           {earlierOpen && (
-            <div>
+            <AnimatePresence initial={false}>
               {data.earlier.map((task) => (
                 <TaskItem key={task.id} task={task} showDivider />
               ))}
-            </div>
+            </AnimatePresence>
           )}
         </div>
       )}

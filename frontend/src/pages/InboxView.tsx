@@ -1,3 +1,4 @@
+import { AnimatePresence } from 'framer-motion'
 import { useInbox } from '../hooks/queries'
 import { SortableTaskList } from '../components/SortableTaskList'
 import { TaskItem } from '../components/TaskItem'
@@ -32,11 +33,11 @@ export function InboxView() {
               <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-neutral-500 dark:text-neutral-400">
                 Review
               </h3>
-              <div>
+              <AnimatePresence initial={false}>
                 {data!.review.map((task) => (
                   <TaskItem key={task.id} task={task} showProject showReviewCheckbox showDivider />
                 ))}
-              </div>
+              </AnimatePresence>
             </div>
           )}
         </>

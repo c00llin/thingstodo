@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { AnimatePresence } from 'framer-motion'
 import { ChevronRight } from 'lucide-react'
 import { useUpcoming } from '../hooks/queries'
 import { TaskGroup } from '../components/TaskGroup'
@@ -31,11 +32,11 @@ export function UpcomingView() {
             Overdue
           </button>
           {overdueOpen && (
-            <div>
+            <AnimatePresence initial={false}>
               {data.overdue.map((task) => (
                 <TaskItem key={task.id} task={task} showDivider />
               ))}
-            </div>
+            </AnimatePresence>
           )}
         </div>
       )}
@@ -49,11 +50,11 @@ export function UpcomingView() {
             Earlier
           </button>
           {earlierOpen && (
-            <div>
+            <AnimatePresence initial={false}>
               {data.earlier.map((task) => (
                 <TaskItem key={task.id} task={task} showDivider />
               ))}
-            </div>
+            </AnimatePresence>
           )}
         </div>
       )}

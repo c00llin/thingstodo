@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { AnimatePresence } from 'framer-motion'
 import type { Task } from '../api/types'
 import { TaskItem } from './TaskItem'
 
@@ -22,9 +23,11 @@ export function CompletedTasksSection({ tasks, showProject }: CompletedTasksSect
       </button>
       {expanded && (
         <div className="mt-2">
-          {tasks.map((task) => (
-            <TaskItem key={task.id} task={task} showProject={showProject} showDivider />
-          ))}
+          <AnimatePresence initial={false}>
+            {tasks.map((task) => (
+              <TaskItem key={task.id} task={task} showProject={showProject} showDivider />
+            ))}
+          </AnimatePresence>
         </div>
       )}
     </div>

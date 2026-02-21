@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
 import { useDraggable } from '@dnd-kit/core'
+import { motion } from 'framer-motion'
 import * as Checkbox from '@radix-ui/react-checkbox'
 import { Check, Calendar, Flag, GripVertical, X, ListChecks, StickyNote, Link, Paperclip, RefreshCw } from 'lucide-react'
 import type { Task } from '../api/types'
@@ -53,6 +54,7 @@ export function TaskItem({ task, showProject = true, hideWhenDate = false, showR
   const setDetailFocusField = useAppStore((s) => s.setDetailFocusField)
   const detailFieldCompleted = useAppStore((s) => s.detailFieldCompleted)
   const setDetailFieldCompleted = useAppStore((s) => s.setDetailFieldCompleted)
+  const isDeparting = useAppStore((s) => s.departingTaskId) === task.id
   const completeTask = useCompleteTask()
   const reopenTask = useReopenTask()
   const updateTask = useUpdateTask()
@@ -218,7 +220,24 @@ export function TaskItem({ task, showProject = true, hideWhenDate = false, showR
 
 
   return (
-    <div ref={setNodeRef} className="group/item" style={{ opacity: isDragging ? 0.4 : 1 }}>
+    <motion.div
+      ref={setNodeRef}
+      className="group/item"
+      style={{ opacity: isDragging ? 0.4 : 1 }}
+      layout="position"
+      initial={{ opacity: 0, height: 0 }}
+      animate={
+        isDeparting
+          ? { opacity: 0, height: 0, transition: { duration: 0.7, ease: 'easeInOut' } }
+          : { opacity: 1, height: 'auto' }
+      }
+      exit={
+        isDone
+          ? { opacity: 0, height: 0, transition: { duration: 0.3, delay: 0.8 } }
+          : { opacity: 0, height: 0, transition: { duration: 0.2 } }
+      }
+      transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+    >
       <div className="flex items-start gap-2">
       <div className="min-w-0 flex-1">
       <div
@@ -391,6 +410,6 @@ export function TaskItem({ task, showProject = true, hideWhenDate = false, showR
           <TaskDetail taskId={task.id} />
         </DelayedReveal>
       )}
-    </div>
+    </motion.div>
   )
 }
