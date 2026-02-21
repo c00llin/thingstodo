@@ -24,6 +24,7 @@ func Auth(cfg config.Config, apiKeyUserLookup UserLookupFunc) func(http.Handler)
 			if cfg.APIKey != "" && cfg.AuthMode != "none" {
 				if authHeader := r.Header.Get("Authorization"); authHeader != "" {
 					if token, ok := strings.CutPrefix(authHeader, "Bearer "); ok {
+						token = strings.TrimSpace(token)
 						if subtle.ConstantTimeCompare([]byte(token), []byte(cfg.APIKey)) == 1 {
 							userID, err := apiKeyUserLookup()
 							if err != nil || userID == "" {
