@@ -69,7 +69,16 @@ func New(db *sql.DB, cfg config.Config, broker *sse.Broker, sched *scheduler.Sch
 
 		// Protected routes
 		r.Group(func(r chi.Router) {
-			r.Use(mw.Auth(cfg))
+			r.Use(mw.Auth(cfg, func() (string, error) {
+				u, err := userRepo.GetFirst()
+				if err != nil {
+					return "", err
+				}
+				if u == nil {
+					return "", nil
+				}
+				return u.ID, nil
+			}))
 
 			// Auth
 			r.Get("/auth/me", authH.Me)

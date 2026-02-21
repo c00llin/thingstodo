@@ -39,6 +39,20 @@ func (r *UserRepository) GetByUsername(username string) (*model.User, error) {
 	return &u, nil
 }
 
+func (r *UserRepository) GetFirst() (*model.User, error) {
+	var u model.User
+	err := r.db.QueryRow(
+		"SELECT id, username, password_hash, created_at FROM users ORDER BY created_at ASC LIMIT 1",
+	).Scan(&u.ID, &u.Username, &u.PasswordHash, &u.CreatedAt)
+	if err == sql.ErrNoRows {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	return &u, nil
+}
+
 func (r *UserRepository) GetByID(id string) (*model.User, error) {
 	var u model.User
 	err := r.db.QueryRow(

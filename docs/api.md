@@ -2,7 +2,7 @@
 
 Base URL: `/api`
 
-All endpoints return JSON. All mutations broadcast SSE events. Authentication via httpOnly JWT cookie (builtin mode) or proxy header (proxy mode).
+All endpoints return JSON. All mutations broadcast SSE events. Authentication via httpOnly JWT cookie (builtin mode), proxy header (proxy mode), or API key via `Authorization: Bearer <key>` header (builtin mode).
 
 ---
 
@@ -31,6 +31,18 @@ All entity IDs are nanoid strings (8-10 chars). Task IDs double as permalink slu
 ---
 
 ## Authentication
+
+### API Key (builtin mode)
+
+Set the `API_KEY` environment variable to a secret string. Then pass it via the `Authorization` header:
+
+```
+Authorization: Bearer <your-api-key>
+```
+
+The API key authenticates as the first (admin) user in the database. This is useful for programmatic access (e.g., iOS Shortcuts, scripts) where cookie-based auth isn't practical.
+
+If the header is present but the key is wrong, the request is rejected with 401 immediately (no fallback to cookie auth).
 
 ### POST /api/auth/login
 **Mode: builtin only** (returns 404 in proxy mode)

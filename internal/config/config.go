@@ -16,6 +16,7 @@ type Config struct {
 	AuthProxyHeader string
 	JWTSecret       string
 	LoginPassword   string
+	APIKey          string
 }
 
 func Load() Config {
@@ -31,6 +32,7 @@ func Load() Config {
 		AuthProxyHeader: envStr("AUTH_PROXY_HEADER", "Remote-User"),
 		JWTSecret:       envStr("JWT_SECRET", ""),
 		LoginPassword:   envStr("LOGIN_PASSWORD", ""),
+		APIKey:          envStr("API_KEY", ""),
 	}
 }
 
