@@ -20,6 +20,27 @@ type UserLookupFunc func() (string, error)
 func Auth(cfg config.Config, apiKeyUserLookup UserLookupFunc) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			// API key check runs in all auth modes (except "none")
+			if cfg.APIKey != "" && cfg.AuthMode != "none" {
+				if authHeader := r.Header.Get("Authorization"); authHeader != "" {
+					if token, ok := strings.CutPrefix(authHeader, "Bearer "); ok {
+						if subtle.ConstantTimeCompare([]byte(token), []byte(cfg.APIKey)) == 1 {
+							userID, err := apiKeyUserLookup()
+							if err != nil || userID == "" {
+								http.Error(w, `{"error":"api key user not found","code":"UNAUTHORIZED"}`, http.StatusUnauthorized)
+								return
+							}
+							ctx := context.WithValue(r.Context(), UserIDKey, userID)
+							next.ServeHTTP(w, r.WithContext(ctx))
+							return
+						}
+						// Header present but key doesn't match — reject immediately
+						http.Error(w, `{"error":"invalid api key","code":"UNAUTHORIZED"}`, http.StatusUnauthorized)
+						return
+					}
+				}
+			}
+
 			switch cfg.AuthMode {
 			case "none":
 				// No authentication — for development use only
@@ -38,28 +59,7 @@ func Auth(cfg config.Config, apiKeyUserLookup UserLookupFunc) func(http.Handler)
 				next.ServeHTTP(w, r.WithContext(ctx))
 
 			default: // "builtin"
-				// Check for API key in Authorization header first
-				if cfg.APIKey != "" {
-					if authHeader := r.Header.Get("Authorization"); authHeader != "" {
-						if token, ok := strings.CutPrefix(authHeader, "Bearer "); ok {
-							if subtle.ConstantTimeCompare([]byte(token), []byte(cfg.APIKey)) == 1 {
-								userID, err := apiKeyUserLookup()
-								if err != nil || userID == "" {
-									http.Error(w, `{"error":"api key user not found","code":"UNAUTHORIZED"}`, http.StatusUnauthorized)
-									return
-								}
-								ctx := context.WithValue(r.Context(), UserIDKey, userID)
-								next.ServeHTTP(w, r.WithContext(ctx))
-								return
-							}
-							// Header present but key doesn't match — reject immediately
-							http.Error(w, `{"error":"invalid api key","code":"UNAUTHORIZED"}`, http.StatusUnauthorized)
-							return
-						}
-					}
-				}
-
-				// Fall through to JWT cookie auth
+				// JWT cookie auth
 				cookie, err := r.Cookie("token")
 				if err != nil {
 					http.Error(w, `{"error":"unauthorized","code":"UNAUTHORIZED"}`, http.StatusUnauthorized)
