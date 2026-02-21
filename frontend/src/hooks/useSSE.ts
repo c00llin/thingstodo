@@ -25,6 +25,9 @@ export function useSSE() {
       const source = new EventSource('/api/events')
       sourceRef.current = source
 
+      // Force immediate refetch even if data isn't stale yet (staleTime is 30s)
+      const refetch = { refetchType: 'all' as const }
+
       function handleEvent(type: SSEEventType, e: MessageEvent) {
         let payload: SSEPayload = {}
         try {
@@ -35,18 +38,19 @@ export function useSSE() {
 
         switch (type) {
           case 'task_created':
-            queryClient.invalidateQueries({ queryKey: ['views'] })
-            queryClient.invalidateQueries({ queryKey: queryKeys.tasks.all })
+            queryClient.invalidateQueries({ queryKey: ['views'], ...refetch })
+            queryClient.invalidateQueries({ queryKey: queryKeys.tasks.all, ...refetch })
             break
 
           case 'task_updated':
             if (payload.id) {
               queryClient.invalidateQueries({
                 queryKey: queryKeys.tasks.detail(payload.id),
+                ...refetch,
               })
             }
-            queryClient.invalidateQueries({ queryKey: ['views'] })
-            queryClient.invalidateQueries({ queryKey: queryKeys.tasks.all })
+            queryClient.invalidateQueries({ queryKey: ['views'], ...refetch })
+            queryClient.invalidateQueries({ queryKey: queryKeys.tasks.all, ...refetch })
             break
 
           case 'task_deleted':
@@ -55,40 +59,42 @@ export function useSSE() {
                 queryKey: queryKeys.tasks.detail(payload.id),
               })
             }
-            queryClient.invalidateQueries({ queryKey: ['views'] })
-            queryClient.invalidateQueries({ queryKey: queryKeys.tasks.all })
+            queryClient.invalidateQueries({ queryKey: ['views'], ...refetch })
+            queryClient.invalidateQueries({ queryKey: queryKeys.tasks.all, ...refetch })
             break
 
           case 'project_updated':
             if (payload.id) {
               queryClient.invalidateQueries({
                 queryKey: queryKeys.projects.detail(payload.id),
+                ...refetch,
               })
             }
-            queryClient.invalidateQueries({ queryKey: queryKeys.projects.all })
-            queryClient.invalidateQueries({ queryKey: ['views'] })
+            queryClient.invalidateQueries({ queryKey: queryKeys.projects.all, ...refetch })
+            queryClient.invalidateQueries({ queryKey: ['views'], ...refetch })
             break
 
           case 'area_updated':
             if (payload.id) {
               queryClient.invalidateQueries({
                 queryKey: queryKeys.areas.detail(payload.id),
+                ...refetch,
               })
             }
-            queryClient.invalidateQueries({ queryKey: queryKeys.areas.all })
-            queryClient.invalidateQueries({ queryKey: ['views'] })
+            queryClient.invalidateQueries({ queryKey: queryKeys.areas.all, ...refetch })
+            queryClient.invalidateQueries({ queryKey: ['views'], ...refetch })
             break
 
           case 'tag_updated':
-            queryClient.invalidateQueries({ queryKey: queryKeys.tags.all })
+            queryClient.invalidateQueries({ queryKey: queryKeys.tags.all, ...refetch })
             break
 
           case 'bulk_change':
-            queryClient.invalidateQueries({ queryKey: ['views'] })
-            queryClient.invalidateQueries({ queryKey: queryKeys.tasks.all })
-            queryClient.invalidateQueries({ queryKey: queryKeys.projects.all })
-            queryClient.invalidateQueries({ queryKey: queryKeys.areas.all })
-            queryClient.invalidateQueries({ queryKey: queryKeys.tags.all })
+            queryClient.invalidateQueries({ queryKey: ['views'], ...refetch })
+            queryClient.invalidateQueries({ queryKey: queryKeys.tasks.all, ...refetch })
+            queryClient.invalidateQueries({ queryKey: queryKeys.projects.all, ...refetch })
+            queryClient.invalidateQueries({ queryKey: queryKeys.areas.all, ...refetch })
+            queryClient.invalidateQueries({ queryKey: queryKeys.tags.all, ...refetch })
             break
         }
       }
