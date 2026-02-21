@@ -61,6 +61,14 @@ function reorderTaskInCache(
     { queryKey: ['views'] },
     (old: unknown) => old ? reorderArrays(old) : old,
   )
+  queryClient.setQueriesData<unknown>(
+    { queryKey: ['projects'] },
+    (old: unknown) => old ? reorderArrays(old) : old,
+  )
+  queryClient.setQueriesData<unknown>(
+    { queryKey: ['areas'] },
+    (old: unknown) => old ? reorderArrays(old) : old,
+  )
 }
 import { TaskItemDragOverlay } from './TaskItemDragOverlay'
 import { useAppStore } from '../stores/app'
@@ -354,6 +362,8 @@ function AppDndContextInner({ children }: AppDndContextProps) {
           { id: activeId, sort_field: sortField, sort_order: newPosition },
         ]).then(() => {
           queryClient.invalidateQueries({ queryKey: ['views'] })
+          queryClient.invalidateQueries({ queryKey: ['projects'] })
+          queryClient.invalidateQueries({ queryKey: ['areas'] })
         })
       }
     },

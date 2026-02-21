@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { useParams, useNavigate, Link } from 'react-router'
 import { Trash2, ChevronRight } from 'lucide-react'
 import { useArea, useDeleteArea } from '../hooks/queries'
-import { TaskItem } from '../components/TaskItem'
+import { SortableTaskList } from '../components/SortableTaskList'
 import { CompletedTasksSection } from '../components/CompletedTasksSection'
 import { ConfirmDialog } from '../components/ConfirmDialog'
 
@@ -92,11 +92,11 @@ export function AreaView() {
           <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-neutral-500">
             Tasks
           </h3>
-          <div>
-            {area.tasks.map((task) => (
-              <TaskItem key={task.id} task={task} showProject={false} showDivider />
-            ))}
-          </div>
+          <SortableTaskList
+            tasks={area.tasks}
+            sortField="sort_order_today"
+            showProject={false}
+          />
         </div>
       )}
 
