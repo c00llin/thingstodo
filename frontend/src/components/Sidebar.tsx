@@ -1100,7 +1100,7 @@ export function Sidebar() {
   }
 
   return (
-    <aside className="flex w-64 flex-col border-r border-neutral-200 bg-neutral-50 dark:border-neutral-700 dark:bg-neutral-800">
+    <aside className="flex w-72 flex-col border-r border-neutral-200 bg-neutral-50 dark:border-neutral-700 dark:bg-neutral-800">
       <div className="flex items-center justify-between border-b border-neutral-200 px-3 py-3 dark:border-neutral-700">
         <div className="flex items-center gap-3 px-3">
           <div className="flex w-[18px] items-center justify-center">

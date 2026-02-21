@@ -154,10 +154,9 @@ export function useTask(id: string) {
 function useInvalidateViews() {
   const queryClient = useQueryClient()
   return () => {
-    // Always invalidate project/area/tag task caches immediately
+    // Always invalidate project/area caches immediately
     queryClient.invalidateQueries({ queryKey: queryKeys.projects.all })
     queryClient.invalidateQueries({ queryKey: queryKeys.areas.all })
-    queryClient.invalidateQueries({ queryKey: queryKeys.tags.all })
 
     const { expandedTaskId, setPendingInvalidation } = useAppStore.getState()
     if (expandedTaskId) {
@@ -167,6 +166,7 @@ function useInvalidateViews() {
     }
     queryClient.invalidateQueries({ queryKey: ['views'] })
     queryClient.invalidateQueries({ queryKey: queryKeys.tasks.all })
+    queryClient.invalidateQueries({ queryKey: queryKeys.tags.all })
   }
 }
 
@@ -183,6 +183,7 @@ export function useFlushPendingInvalidation() {
       useAppStore.getState().setPendingInvalidation(false)
       queryClient.invalidateQueries({ queryKey: ['views'] })
       queryClient.invalidateQueries({ queryKey: queryKeys.tasks.all })
+      queryClient.invalidateQueries({ queryKey: queryKeys.tags.all })
     }
   }, [expandedTaskId, hasPending, queryClient])
 }
@@ -253,13 +254,11 @@ function rollbackViews(
 }
 
 export function useCreateTask() {
-  const queryClient = useQueryClient()
   const invalidate = useInvalidateViews()
   return useMutation({
     mutationFn: (data: CreateTaskRequest) => tasksApi.createTask(data),
     onSuccess: () => {
       invalidate()
-      queryClient.invalidateQueries({ queryKey: queryKeys.tags.all })
     },
   })
 }
@@ -294,7 +293,6 @@ export function useUpdateTask() {
     },
     onSettled: () => {
       invalidate()
-      queryClient.invalidateQueries({ queryKey: queryKeys.tags.all })
     },
   })
 }
