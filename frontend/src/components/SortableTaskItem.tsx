@@ -191,11 +191,12 @@ export function SortableTaskItem({
       setTitle(task.title)
       return
     }
+    const siyuanTagIds = task.tags.filter((t) => isSiYuanTag(t.title)).map((t) => t.id)
     updateTask.mutate({
       id: task.id,
       data: {
         title: cleanTitle,
-        tag_ids: tagIds,
+        tag_ids: [...tagIds, ...siyuanTagIds],
         project_id: hasDollarToken ? projectId : task.project_id,
         area_id: hasDollarToken ? areaId : task.area_id,
       },
