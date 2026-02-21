@@ -151,14 +151,15 @@ export function useTask(id: string) {
   })
 }
 
-/** Invalidate view/task/tag queries, deferring if the detail panel is open.
+/** Invalidate view/task/tag queries, deferring if the detail panel is open
+ *  or a departing animation is in progress.
  *  Exported so SSE can reuse the same deferral logic. */
 export function invalidateViewQueries(
   queryClient: ReturnType<typeof useQueryClient>,
   opts?: { refetchType?: 'all' },
 ) {
-  const { expandedTaskId, setPendingInvalidation } = useAppStore.getState()
-  if (expandedTaskId) {
+  const { expandedTaskId, departingTaskId, setPendingInvalidation } = useAppStore.getState()
+  if (expandedTaskId || departingTaskId) {
     setPendingInvalidation(true)
     return
   }
@@ -167,23 +168,40 @@ export function invalidateViewQueries(
   queryClient.invalidateQueries({ queryKey: queryKeys.tags.all, ...opts })
 }
 
+/** Fire view/task/tag invalidation unconditionally (bypasses deferral guards). */
+function forceInvalidateViewQueries(
+  queryClient: ReturnType<typeof useQueryClient>,
+  opts?: { refetchType?: 'all' },
+) {
+  queryClient.invalidateQueries({ queryKey: ['views'], ...opts })
+  queryClient.invalidateQueries({ queryKey: queryKeys.tasks.all, ...opts })
+  queryClient.invalidateQueries({ queryKey: queryKeys.tags.all, ...opts })
+}
+
 function useInvalidateViews() {
   const queryClient = useQueryClient()
-  return () => {
+  return (opts?: { force?: boolean }) => {
     // Always invalidate project/area caches immediately
     queryClient.invalidateQueries({ queryKey: queryKeys.projects.all })
     queryClient.invalidateQueries({ queryKey: queryKeys.areas.all })
 
-    invalidateViewQueries(queryClient)
+    if (opts?.force) {
+      forceInvalidateViewQueries(queryClient)
+    } else {
+      invalidateViewQueries(queryClient)
+    }
   }
 }
 
-/** Flush deferred view invalidation when the task detail panel closes.
- *  Sets departingTaskId so the task gets a smooth exit animation before
- *  the view query refreshes and removes it from the list. */
+/** Flush deferred view invalidation when deferral conditions clear:
+ *  - Detail panel closes (expandedTaskId becomes null)
+ *  - Departing animation finishes (departingTaskId becomes null)
+ *  Sets departingTaskId for panel-close case so the task gets a smooth
+ *  exit animation before the view query refreshes. */
 export function useFlushPendingInvalidation() {
   const queryClient = useQueryClient()
   const expandedTaskId = useAppStore((s) => s.expandedTaskId)
+  const departingTaskId = useAppStore((s) => s.departingTaskId)
   const hasPending = useAppStore((s) => s.hasPendingInvalidation)
   const prevExpandedRef = useRef<string | null>(null)
 
@@ -194,21 +212,28 @@ export function useFlushPendingInvalidation() {
   }, [expandedTaskId])
 
   useEffect(() => {
-    if (!expandedTaskId && hasPending) {
-      useAppStore.getState().setPendingInvalidation(false)
-      const taskId = prevExpandedRef.current
-      if (taskId) {
-        useAppStore.getState().setDepartingTaskId(taskId)
-      }
+    // Nothing to flush if no pending invalidation or still deferred
+    if (!hasPending || expandedTaskId || departingTaskId) return
+
+    useAppStore.getState().setPendingInvalidation(false)
+
+    // If panel just closed (prevExpandedRef has a value), animate the task out
+    const taskId = prevExpandedRef.current
+    if (taskId) {
+      prevExpandedRef.current = null
+      useAppStore.getState().setDepartingTaskId(taskId)
       setTimeout(() => {
-        // Use refetchType: 'all' to bypass staleTime (deferred SSE events need this)
-        invalidateViewQueries(queryClient, { refetchType: 'all' })
+        forceInvalidateViewQueries(queryClient, { refetchType: 'all' })
         setTimeout(() => {
           useAppStore.getState().setDepartingTaskId(null)
         }, 200)
       }, 400)
+    } else {
+      // departingTaskId just cleared (e.g. after complete/delete animation)
+      // — flush any SSE invalidations that were deferred during the animation
+      forceInvalidateViewQueries(queryClient, { refetchType: 'all' })
     }
-  }, [expandedTaskId, hasPending, queryClient])
+  }, [expandedTaskId, departingTaskId, hasPending, queryClient])
 }
 
 // Optimistic update helper: updates a task's fields in all cached view queries
@@ -343,7 +368,7 @@ export function useDeleteTask() {
         if (store.expandedTaskId === id) {
           store.expandTask(null)
         }
-        invalidate()
+        invalidate({ force: true })
         // Clear departingTaskId after invalidation starts so the task
         // doesn't briefly reappear between animation end and fresh data
         setTimeout(() => {
@@ -358,7 +383,7 @@ export function useRestoreTask() {
   const invalidate = useInvalidateViews()
   return useMutation({
     mutationFn: (id: string) => tasksApi.restoreTask(id),
-    onSettled: invalidate,
+    onSettled: () => invalidate(),
   })
 }
 
@@ -390,7 +415,7 @@ export function useCompleteTask() {
         if (store.expandedTaskId === id) {
           store.expandTask(null)
         }
-        invalidate()
+        invalidate({ force: true })
         // Clear departingTaskId after invalidation starts so the task
         // doesn't briefly reappear between animation end and fresh data
         setTimeout(() => {
@@ -425,7 +450,7 @@ export function useCancelTask() {
         if (store.expandedTaskId === id) {
           store.expandTask(null)
         }
-        invalidate()
+        invalidate({ force: true })
         // Clear departingTaskId after invalidation starts so the task
         // doesn't briefly reappear between animation end and fresh data
         setTimeout(() => {
@@ -460,7 +485,7 @@ export function useWontDoTask() {
         if (store.expandedTaskId === id) {
           store.expandTask(null)
         }
-        invalidate()
+        invalidate({ force: true })
         // Clear departingTaskId after invalidation starts so the task
         // doesn't briefly reappear between animation end and fresh data
         setTimeout(() => {
@@ -489,7 +514,7 @@ export function useReopenTask() {
     onError: (_err, _id, context) => {
       if (context?.snapshot) rollbackViews(queryClient, context.snapshot)
     },
-    onSettled: invalidate,
+    onSettled: () => invalidate(),
   })
 }
 
@@ -516,7 +541,7 @@ export function useReviewTask() {
     },
     onSettled: () => {
       setTimeout(() => {
-        invalidate()
+        invalidate({ force: true })
         setTimeout(() => {
           useAppStore.getState().setDepartingTaskId(null)
         }, 200)
