@@ -333,7 +333,7 @@ export function TaskItem({ task, showProject = true, hideWhenDate = false, showR
               <span className="flex items-center gap-1.5 text-neutral-400">
                 {task.has_repeat_rule && <RefreshCw size={12} className="text-red-500" />}
                 {task.has_notes && <StickyNote size={12} />}
-                {task.has_links && <Link size={12} />}
+                {task.has_links && !task.tags.some((t) => isSiYuanTag(t.title)) && <Link size={12} />}
                 {task.has_files && <Paperclip size={12} />}
               </span>
             )}
