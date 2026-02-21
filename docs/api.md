@@ -16,6 +16,9 @@ All endpoints return JSON. All mutations broadcast SSE events. Authentication vi
 }
 ```
 
+### Duplicate Name Errors
+`POST` and `PATCH` for projects, areas, and tags return **409 Conflict** with code `DUPLICATE_NAME` if the title already exists.
+
 ### Pagination (where applicable)
 Query params: `?limit=50&offset=0`
 
@@ -80,20 +83,24 @@ Response (200):
       "high_priority": false,
       "deadline": "string|null",
       "project_id": "string|null",
+      "project_name": "string|null",
       "area_id": "string|null",
+      "area_name": "string|null",
       "heading_id": "string|null",
       "sort_order_today": 0.0,
       "sort_order_project": 0.0,
       "sort_order_heading": 0.0,
       "completed_at": "string|null",
       "canceled_at": "string|null",
+      "deleted_at": "string|null",
       "created_at": "string",
       "updated_at": "string",
-      "tags": [{ "id": "string", "title": "string" }],
+      "tags": [{ "id": "string", "title": "string", "color": "string|null" }],
       "checklist_count": 0,
       "checklist_done": 0,
       "has_notes": false,
-      "has_attachments": false,
+      "has_links": false,
+      "has_files": false,
       "has_repeat_rule": false
     }
   ]
@@ -142,9 +149,10 @@ Response (200): Full task object with nested checklist, attachments, tags, repea
   "sort_order_heading": 0.0,
   "completed_at": "string|null",
   "canceled_at": "string|null",
+  "deleted_at": "string|null",
   "created_at": "string",
   "updated_at": "string",
-  "tags": [{ "id": "string", "title": "string" }],
+  "tags": [{ "id": "string", "title": "string", "color": "string|null" }],
   "checklist": [
     {
       "id": "string",
@@ -220,6 +228,11 @@ Response (200): Updated task with status=open
 Restores a soft-deleted task from trash.
 
 Response (200): Updated task with deleted_at cleared
+
+### PATCH /api/tasks/:id/review
+Marks a task as reviewed by bumping its `updated_at` timestamp. Used by the review feature to dismiss tasks from the review queue.
+
+Response (200): Updated task
 
 ### PATCH /api/tasks/:id/move
 Move task to a different project, area, or heading.
@@ -354,7 +367,7 @@ Response (200):
       "sort_order": 0.0,
       "task_count": 0,
       "completed_task_count": 0,
-      "tags": [{ "id": "string", "title": "string" }],
+      "tags": [{ "id": "string", "title": "string", "color": "string|null" }],
       "created_at": "string",
       "updated_at": "string"
     }
@@ -392,7 +405,7 @@ Response (200): Project with nested headings and tasks
   "sort_order": 0.0,
   "task_count": 0,
   "completed_task_count": 0,
-  "tags": [{ "id": "string", "title": "string" }],
+  "tags": [{ "id": "string", "title": "string", "color": "string|null" }],
   "created_at": "string",
   "updated_at": "string",
   "headings": [
@@ -403,7 +416,8 @@ Response (200): Project with nested headings and tasks
       "tasks": [/* task objects */]
     }
   ],
-  "tasks_without_heading": [/* task objects */]
+  "tasks_without_heading": [/* task objects */],
+  "completed_tasks": [/* completed/canceled/wont_do task objects */]
 }
 ```
 
@@ -495,6 +509,7 @@ Response (200):
       "sort_order": 0.0,
       "project_count": 0,
       "task_count": 0,
+      "standalone_task_count": 0,
       "created_at": "string",
       "updated_at": "string"
     }
@@ -511,7 +526,7 @@ Request:
 Response (201): Area object
 
 ### GET /api/areas/:id
-Response (200): Area with nested projects
+Response (200): Area with nested projects and tasks
 ```json
 {
   "id": "string",
@@ -520,7 +535,8 @@ Response (200): Area with nested projects
   "created_at": "string",
   "updated_at": "string",
   "projects": [/* project objects */],
-  "tasks": [/* standalone tasks in this area (no project) */]
+  "tasks": [/* standalone tasks in this area (no project) */],
+  "completed_tasks": [/* completed standalone tasks */]
 }
 ```
 
@@ -535,6 +551,11 @@ Response (200): Updated area
 ### DELETE /api/areas/:id
 Response (204): No content
 
+Response (409): Area still has projects
+```json
+{ "error": "area still has projects", "code": "HAS_PROJECTS" }
+```
+
 ---
 
 ## Tags
@@ -547,6 +568,7 @@ Response (200):
     {
       "id": "string",
       "title": "string",
+      "color": "string|null",
       "parent_tag_id": "string|null",
       "sort_order": 0.0,
       "task_count": 0
@@ -566,7 +588,7 @@ Response (201): Tag object
 ### PATCH /api/tags/:id
 Request:
 ```json
-{ "title": "string", "parent_tag_id": "string|null", "sort_order": 0.0 }
+{ "title": "string", "color": "string|null", "parent_tag_id": "string|null", "sort_order": 0.0 }
 ```
 
 Response (200): Updated tag
@@ -626,7 +648,8 @@ Response (200):
   "play_complete_sound": true,
   "show_count_main": true,
   "show_count_projects": true,
-  "show_count_tags": true
+  "show_count_tags": true,
+  "review_after_days": 7
 }
 ```
 
@@ -637,7 +660,8 @@ Request: Partial update (any subset of fields)
   "play_complete_sound": true,
   "show_count_main": true,
   "show_count_projects": true,
-  "show_count_tags": true
+  "show_count_tags": true,
+  "review_after_days": 7
 }
 ```
 
@@ -653,7 +677,8 @@ Pre-structured data for each smart list. Complex grouping/filtering happens serv
 Tasks with no project, no area, no when_date, status=open.
 ```json
 {
-  "tasks": [/* task objects ordered by sort_order_today */]
+  "tasks": [/* task objects ordered by sort_order_today */],
+  "review": [/* tasks not updated in review_after_days, excluding inbox tasks */]
 }
 ```
 
@@ -680,7 +705,9 @@ Tasks with no project, no area, no when_date, status=open.
       ]
     }
   ],
-  "overdue": [/* tasks with deadline < today */]
+  "overdue": [/* tasks with deadline < today */],
+  "earlier": [/* past-dated open tasks without overdue deadlines */],
+  "completed": [/* tasks completed today */]
 }
 ```
 
@@ -688,12 +715,14 @@ Tasks with no project, no area, no when_date, status=open.
 Query params: `from` (ISO date, default today), `days` (default 30)
 ```json
 {
+  "overdue": [/* tasks with deadline < today */],
   "dates": [
     {
       "date": "2024-03-15",
       "tasks": [/* task objects */]
     }
-  ]
+  ],
+  "earlier": [/* past-dated open tasks */]
 }
 ```
 
@@ -763,6 +792,7 @@ Response (200):
   "inbox": 5,
   "today": 3,
   "overdue": 1,
+  "review": 2,
   "anytime": 12,
   "someday": 4,
   "logbook": 50,

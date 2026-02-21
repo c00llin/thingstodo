@@ -20,7 +20,8 @@ Self-hosted Things 3-inspired task manager.
 - Go: Chi router, repository pattern, handler -> repository -> SQLite
 - React: TanStack Query for server state, Zustand for client state
 - Styling: Tailwind CSS 4, Radix UI primitives
-- API: REST + JSON, view endpoints at /api/views/*
+- API: REST + JSON, view endpoints at /api/views/*, contract documented in /docs/api.md
+- **When adding or changing API endpoints, always update /docs/api.md to match**
 - Auth: JWT middleware, check AUTH_MODE env var
 - Task IDs are nanoid strings (8-10 chars), also used as permalink slugs
 - Sort order uses REAL (float) columns for fractional positioning
