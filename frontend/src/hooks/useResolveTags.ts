@@ -56,6 +56,7 @@ export function useResolveTags() {
         )
         if (matchedProject) {
           projectId = matchedProject.id
+          areaId = matchedProject.area_id ?? null
         } else {
           const matchedArea = areas.find(
             (a) => a.title.toLowerCase() === projectRef.toLowerCase(),

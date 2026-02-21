@@ -154,9 +154,10 @@ export function useTask(id: string) {
 function useInvalidateViews() {
   const queryClient = useQueryClient()
   return () => {
-    // Always invalidate project/area/task detail caches immediately
+    // Always invalidate project/area/tag task caches immediately
     queryClient.invalidateQueries({ queryKey: queryKeys.projects.all })
     queryClient.invalidateQueries({ queryKey: queryKeys.areas.all })
+    queryClient.invalidateQueries({ queryKey: queryKeys.tags.all })
 
     const { expandedTaskId, setPendingInvalidation } = useAppStore.getState()
     if (expandedTaskId) {
