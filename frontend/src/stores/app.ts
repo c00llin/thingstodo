@@ -45,10 +45,6 @@ interface AppStore {
   theme: Theme
   setTheme: (theme: Theme) => void
 
-  // Visible task list for keyboard navigation
-  visibleTaskIds: string[]
-  setVisibleTaskIds: (ids: string[]) => void
-
   // Multi-select for DnD
   selectedTaskIds: Set<string>
   toggleTaskSelection: (id: string, multi: boolean) => void
@@ -140,9 +136,6 @@ export const useAppStore = create<AppStore>((set) => ({
     localStorage.setItem('theme', theme)
     set({ theme })
   },
-
-  visibleTaskIds: [],
-  setVisibleTaskIds: (ids) => set({ visibleTaskIds: ids }),
 
   hasPendingInvalidation: false,
   setPendingInvalidation: (v) => set({ hasPendingInvalidation: v }),

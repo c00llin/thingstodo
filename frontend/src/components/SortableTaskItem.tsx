@@ -239,6 +239,8 @@ export function SortableTaskItem({
   return (
     <motion.div
       ref={setNodeRef}
+      data-task-id={isDragOverlay ? undefined : task.id}
+      data-departing={isDeparting ? 'true' : undefined}
       style={style}
       layout={isDragOverlay ? false : 'position'}
       initial={isDragOverlay ? false : { opacity: 0, height: 0 }}

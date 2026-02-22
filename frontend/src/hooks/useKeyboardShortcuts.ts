@@ -120,13 +120,24 @@ export function useGlobalShortcuts() {
   }, [toggleShortcutsHelp])
 }
 
+function getVisibleTaskIds(): string[] {
+  const nodes = document.querySelectorAll<HTMLElement>('[data-task-id]:not([data-departing="true"])')
+  return Array.from(nodes).map((el) => el.dataset.taskId!)
+}
+
+function scrollToTask(taskId: string) {
+  requestAnimationFrame(() => {
+    document.querySelector<HTMLElement>(`[data-task-id="${taskId}"]`)
+      ?.scrollIntoView({ block: 'nearest', behavior: 'smooth' })
+  })
+}
+
 export function useTaskShortcuts() {
   const selectedTaskId = useAppStore((s) => s.selectedTaskId)
   const selectTask = useAppStore((s) => s.selectTask)
   const expandedTaskId = useAppStore((s) => s.expandedTaskId)
   const expandTask = useAppStore((s) => s.expandTask)
   const startEditingTask = useAppStore((s) => s.startEditingTask)
-  const visibleTaskIds = useAppStore((s) => s.visibleTaskIds)
   const completeTask = useCompleteTask()
   const deleteTask = useDeleteTask()
   const updateTask = useUpdateTask()
@@ -171,33 +182,37 @@ export function useTaskShortcuts() {
     }
   }, { enabled: !!expandedTaskId || !!selectedTaskId })
 
-  // Arrow down — select next task
+  // Arrow down — select next task (wraps around)
   useHotkeys('down', (e) => {
     e.preventDefault()
-    if (visibleTaskIds.length === 0) return
+    const ids = getVisibleTaskIds()
+    if (ids.length === 0) return
     if (!selectedTaskId) {
-      selectTask(visibleTaskIds[0])
+      selectTask(ids[0])
+      scrollToTask(ids[0])
       return
     }
-    const idx = visibleTaskIds.indexOf(selectedTaskId)
-    if (idx < visibleTaskIds.length - 1) {
-      selectTask(visibleTaskIds[idx + 1])
-    }
-  }, { enabled: visibleTaskIds.length > 0 })
+    const idx = ids.indexOf(selectedTaskId)
+    const nextId = ids[(idx + 1) % ids.length]
+    selectTask(nextId)
+    scrollToTask(nextId)
+  }, { enabled: true })
 
-  // Arrow up — select previous task
+  // Arrow up — select previous task (wraps around)
   useHotkeys('up', (e) => {
     e.preventDefault()
-    if (visibleTaskIds.length === 0) return
+    const ids = getVisibleTaskIds()
+    if (ids.length === 0) return
     if (!selectedTaskId) {
-      selectTask(visibleTaskIds[visibleTaskIds.length - 1])
+      selectTask(ids[ids.length - 1])
+      scrollToTask(ids[ids.length - 1])
       return
     }
-    const idx = visibleTaskIds.indexOf(selectedTaskId)
-    if (idx > 0) {
-      selectTask(visibleTaskIds[idx - 1])
-    }
-  }, { enabled: visibleTaskIds.length > 0 })
+    const idx = ids.indexOf(selectedTaskId)
+    const prevId = ids[(idx - 1 + ids.length) % ids.length]
+    selectTask(prevId)
+    scrollToTask(prevId)
+  }, { enabled: true })
 
   // Complete task
   useHotkeys('alt+k', (e) => {

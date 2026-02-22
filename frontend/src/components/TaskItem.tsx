@@ -222,6 +222,8 @@ export function TaskItem({ task, showProject = true, hideWhenDate = false, showR
   return (
     <motion.div
       ref={setNodeRef}
+      data-task-id={task.id}
+      data-departing={isDeparting ? 'true' : undefined}
       className="group/item"
       style={{ opacity: isDragging ? 0.4 : 1 }}
       layout="position"

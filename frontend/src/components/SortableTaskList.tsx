@@ -27,13 +27,8 @@ export function SortableTaskList({ tasks, sortField, showProject, hideWhenDate }
   })
 
   const taskIds = tasks.map((t) => t.id)
-  const setVisibleTaskIds = useAppStore((s) => s.setVisibleTaskIds)
   const expandedTaskId = useAppStore((s) => s.expandedTaskId)
   const expandTask = useAppStore((s) => s.expandTask)
-
-  useEffect(() => {
-    setVisibleTaskIds(taskIds)
-  }, [taskIds.join(','), setVisibleTaskIds])
 
   // Track which task IDs this list previously contained
   const prevTaskIdsRef = useRef<Set<string>>(new Set(taskIds))
