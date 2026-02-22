@@ -63,15 +63,17 @@ func (h *RepeatRuleHandler) Upsert(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Always set when_date to the first occurrence of the recurrence pattern
-	today := time.Now().Format("2006-01-02")
-	if nextDate, err := h.engine.FirstOnOrAfter(today, rule.Pattern); err == nil {
-		if _, err := h.taskRepo.Update(taskID, model.UpdateTaskInput{
-			WhenDate: &nextDate,
-			Raw:      map[string]json.RawMessage{"when_date": json.RawMessage(`"` + nextDate + `"`)},
-		}); err != nil {
-			writeError(w, http.StatusInternalServerError, err.Error(), "INTERNAL")
-			return
+	// If task has no when_date, set it to the first occurrence
+	if task, taskErr := h.taskRepo.GetByID(taskID); taskErr == nil && task != nil && task.WhenDate == nil {
+		today := time.Now().Format("2006-01-02")
+		if nextDate, calcErr := h.engine.FirstOnOrAfter(today, rule.Pattern); calcErr == nil {
+			if _, updateErr := h.taskRepo.Update(taskID, model.UpdateTaskInput{
+				WhenDate: &nextDate,
+				Raw:      map[string]json.RawMessage{"when_date": json.RawMessage(`"` + nextDate + `"`)},
+			}); updateErr != nil {
+				writeError(w, http.StatusInternalServerError, updateErr.Error(), "INTERNAL")
+				return
+			}
 		}
 	}
 
