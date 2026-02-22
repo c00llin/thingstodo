@@ -133,6 +133,18 @@ export function useTaskShortcuts() {
 
   const enabled = !!selectedTaskId
 
+  // Space toggles detail panel (keep task selected when closing)
+  useHotkeys('space', (e) => {
+    e.preventDefault()
+    if (selectedTaskId) {
+      if (expandedTaskId === selectedTaskId) {
+        useAppStore.setState({ expandedTaskId: null })
+      } else {
+        expandTask(selectedTaskId)
+      }
+    }
+  }, { enabled })
+
   // Enter edits title
   useHotkeys('enter', (e) => {
     e.preventDefault()
