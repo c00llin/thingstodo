@@ -62,17 +62,99 @@ export interface Attachment {
   created_at: string
 }
 
-// Repeat Rules
+// Repeat Rules — Recurrence Pattern (discriminated union)
+export type RecurrenceMode = 'fixed' | 'after_completion'
+export type DayOfWeek = 'mon' | 'tue' | 'wed' | 'thu' | 'fri' | 'sat' | 'sun'
+export type DayOfWeekFull = 'monday' | 'tuesday' | 'wednesday' | 'thursday' | 'friday' | 'saturday' | 'sunday'
+export type OrdinalPosition = 'first' | 'second' | 'third' | 'fourth' | 'last'
+export type WorkdayPosition = 'first' | 'last'
+
+export type RecurrencePatternType =
+  | 'daily'
+  | 'daily_weekday'
+  | 'daily_weekend'
+  | 'weekly'
+  | 'monthly_dom'
+  | 'monthly_dow'
+  | 'monthly_workday'
+  | 'yearly_date'
+  | 'yearly_dow'
+
+interface PatternBase {
+  every: number
+  mode: RecurrenceMode
+}
+
+export interface DailyPattern extends PatternBase {
+  type: 'daily'
+}
+
+export interface DailyWeekdayPattern extends PatternBase {
+  type: 'daily_weekday'
+}
+
+export interface DailyWeekendPattern extends PatternBase {
+  type: 'daily_weekend'
+}
+
+export interface WeeklyPattern extends PatternBase {
+  type: 'weekly'
+  on: DayOfWeek[]
+}
+
+export interface MonthlyDOMPattern extends PatternBase {
+  type: 'monthly_dom'
+  day?: number | null // 1-31, 0=last, negative=last-N, null=use when_date
+}
+
+export interface MonthlyDOWPattern extends PatternBase {
+  type: 'monthly_dow'
+  ordinal: OrdinalPosition
+  weekday: DayOfWeekFull
+}
+
+export interface MonthlyWorkdayPattern extends PatternBase {
+  type: 'monthly_workday'
+  workday_position: WorkdayPosition
+}
+
+export interface YearlyDatePattern extends PatternBase {
+  type: 'yearly_date'
+  month: number // 1-12
+  day?: number | null // 1-31
+}
+
+export interface YearlyDOWPattern extends PatternBase {
+  type: 'yearly_dow'
+  month: number // 1-12
+  ordinal: OrdinalPosition
+  weekday: DayOfWeekFull
+}
+
+export type RecurrencePattern =
+  | DailyPattern
+  | DailyWeekdayPattern
+  | DailyWeekendPattern
+  | WeeklyPattern
+  | MonthlyDOMPattern
+  | MonthlyDOWPattern
+  | MonthlyWorkdayPattern
+  | YearlyDatePattern
+  | YearlyDOWPattern
+
+// Deprecated aliases for backwards compat
 export type RepeatFrequency = 'daily' | 'weekly' | 'monthly' | 'yearly'
-export type RepeatMode = 'fixed' | 'after_completion'
-export type DayConstraint = 'mon' | 'tue' | 'wed' | 'thu' | 'fri' | 'sat' | 'sun'
+export type RepeatMode = RecurrenceMode
+export type DayConstraint = DayOfWeek
 
 export interface RepeatRule {
   id: string
-  frequency: RepeatFrequency
-  interval_value: number
-  mode: RepeatMode
-  day_constraints: DayConstraint[]
+  pattern: RecurrencePattern
+  // Deprecated flat fields (still present in API responses)
+  frequency?: RepeatFrequency
+  interval_value?: number
+  mode?: RepeatMode
+  day_constraints?: DayConstraint[]
 }
 
 // Tasks
@@ -286,12 +368,12 @@ export interface UpdateTagRequest {
 }
 
 // Repeat Rules
-export interface CreateRepeatRuleRequest {
-  frequency: RepeatFrequency
-  interval_value?: number
-  mode: RepeatMode
-  day_constraints?: DayConstraint[]
+export interface UpsertRepeatRuleRequest {
+  pattern: RecurrencePattern
 }
+
+// Deprecated: use UpsertRepeatRuleRequest
+export type CreateRepeatRuleRequest = UpsertRepeatRuleRequest
 
 // View responses
 export interface InboxView {

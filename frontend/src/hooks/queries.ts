@@ -28,7 +28,7 @@ import type {
   Attachment,
   CreateLinkAttachmentRequest,
   UpdateAttachmentRequest,
-  CreateRepeatRuleRequest,
+  UpsertRepeatRuleRequest,
   TaskQueryParams,
   ProjectStatus,
   LoginRequest,
@@ -843,7 +843,7 @@ export function useDeleteAttachment(taskId: string) {
 export function useUpsertRepeatRule(taskId: string) {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: (data: CreateRepeatRuleRequest) => repeatApi.upsertRepeatRule(taskId, data),
+    mutationFn: (data: UpsertRepeatRuleRequest) => repeatApi.upsertRepeatRule(taskId, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.tasks.detail(taskId) })
       updateTaskInCache(queryClient, taskId, { has_repeat_rule: true })

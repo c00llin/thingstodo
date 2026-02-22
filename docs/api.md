@@ -654,22 +654,37 @@ Response (200):
 {
   "repeat_rule": {
     "id": "string",
-    "frequency": "daily|weekly|monthly|yearly",
+    "pattern": { /* RecurrencePattern, see below */ },
+    "frequency": "daily",
     "interval_value": 1,
-    "mode": "fixed|after_completion",
-    "day_constraints": ["mon", "wed", "fri"]
+    "mode": "fixed",
+    "day_constraints": []
   }
 }
 ```
 Response (200, no rule): `{ "repeat_rule": null }`
 
+The `pattern` field is the canonical recurrence definition. The flat fields (`frequency`, `interval_value`, `mode`, `day_constraints`) are deprecated but still populated for backwards compatibility.
+
 ### PUT /api/tasks/:id/repeat
-Request:
+Request (new pattern format — preferred):
 ```json
 {
-  "frequency": "daily|weekly|monthly|yearly (required)",
+  "pattern": {
+    "type": "weekly",
+    "every": 2,
+    "mode": "fixed",
+    "on": ["mon", "wed", "fri"]
+  }
+}
+```
+
+Request (legacy format — still accepted):
+```json
+{
+  "frequency": "daily|weekly|monthly|yearly",
   "interval_value": 1,
-  "mode": "fixed|after_completion (required)",
+  "mode": "fixed|after_completion",
   "day_constraints": ["mon", "wed", "fri"]
 }
 ```
@@ -678,6 +693,26 @@ Response (200): Repeat rule object
 
 ### DELETE /api/tasks/:id/repeat
 Response (204): No content
+
+### RecurrencePattern Types
+
+All patterns share: `type` (string), `every` (int, interval), `mode` ("fixed" | "after_completion")
+
+| Type | Extra Fields | Example |
+|------|-------------|---------|
+| `daily` | — | `{"type":"daily","every":3,"mode":"fixed"}` |
+| `daily_weekday` | — | `{"type":"daily_weekday","every":1,"mode":"fixed"}` |
+| `daily_weekend` | — | `{"type":"daily_weekend","every":1,"mode":"fixed"}` |
+| `weekly` | `on`: DayOfWeek[] | `{"type":"weekly","every":1,"mode":"fixed","on":["mon","wed"]}` |
+| `monthly_dom` | `day`: int (1-31, 0=last, negative=last-N, null=use when_date) | `{"type":"monthly_dom","every":1,"mode":"fixed","day":15}` |
+| `monthly_dow` | `ordinal`: string, `weekday`: string | `{"type":"monthly_dow","every":1,"mode":"fixed","ordinal":"first","weekday":"monday"}` |
+| `monthly_workday` | `workday_position`: "first"\|"last" | `{"type":"monthly_workday","every":1,"mode":"fixed","workday_position":"first"}` |
+| `yearly_date` | `month`: 1-12, `day`: 1-31 | `{"type":"yearly_date","every":1,"mode":"fixed","month":3,"day":15}` |
+| `yearly_dow` | `month`: 1-12, `ordinal`: string, `weekday`: string | `{"type":"yearly_dow","every":1,"mode":"fixed","month":11,"ordinal":"fourth","weekday":"thursday"}` |
+
+**DayOfWeek values**: mon, tue, wed, thu, fri, sat, sun
+**Ordinal values**: first, second, third, fourth, last
+**Weekday values** (full): monday, tuesday, wednesday, thursday, friday, saturday, sunday
 
 ---
 

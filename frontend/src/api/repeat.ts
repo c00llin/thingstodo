@@ -1,7 +1,7 @@
 import { api } from './client'
-import type { RepeatRule, CreateRepeatRuleRequest } from './types'
+import type { RepeatRule, UpsertRepeatRuleRequest } from './types'
 
-export function upsertRepeatRule(taskId: string, data: CreateRepeatRuleRequest) {
+export function upsertRepeatRule(taskId: string, data: UpsertRepeatRuleRequest) {
   return api.put<RepeatRule>(`/tasks/${taskId}/repeat`, data)
 }
 

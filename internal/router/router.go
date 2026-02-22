@@ -11,6 +11,7 @@ import (
 	"github.com/collinjanssen/thingstodo/internal/frontend"
 	"github.com/collinjanssen/thingstodo/internal/handler"
 	mw "github.com/collinjanssen/thingstodo/internal/middleware"
+	"github.com/collinjanssen/thingstodo/internal/recurrence"
 	"github.com/collinjanssen/thingstodo/internal/repository"
 	"github.com/collinjanssen/thingstodo/internal/scheduler"
 	"github.com/collinjanssen/thingstodo/internal/sse"
@@ -45,7 +46,7 @@ func New(db *sql.DB, cfg config.Config, broker *sse.Broker, sched *scheduler.Sch
 	headingH := handler.NewHeadingHandler(headingRepo, broker)
 	checklistH := handler.NewChecklistHandler(checklistRepo, broker)
 	attachmentH := handler.NewAttachmentHandler(attachmentRepo, broker, cfg.AttachmentsPath, cfg.MaxUploadSize)
-	repeatRuleH := handler.NewRepeatRuleHandler(repeatRuleRepo, broker)
+	repeatRuleH := handler.NewRepeatRuleHandler(repeatRuleRepo, taskRepo, recurrence.NewEngine(), broker)
 	searchH := handler.NewSearchHandler(searchRepo)
 	viewH := handler.NewViewHandler(viewRepo, settingsRepo)
 	authH := handler.NewAuthHandler(userRepo, cfg)

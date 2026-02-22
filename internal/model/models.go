@@ -165,13 +165,15 @@ type Ref struct {
 }
 
 type RepeatRule struct {
-	ID             string   `json:"id"`
-	TaskID         string   `json:"task_id,omitempty"`
-	Frequency      string   `json:"frequency"`
-	IntervalValue  int      `json:"interval_value"`
-	Mode           string   `json:"mode"`
-	DayConstraints []string `json:"day_constraints"`
-	CreatedAt      string   `json:"created_at,omitempty"`
+	ID             string             `json:"id"`
+	TaskID         string             `json:"task_id,omitempty"`
+	Pattern        RecurrencePattern  `json:"pattern"`
+	// Deprecated flat fields (kept for backwards compat in responses)
+	Frequency      string             `json:"frequency,omitempty"`
+	IntervalValue  int                `json:"interval_value,omitempty"`
+	Mode           string             `json:"mode,omitempty"`
+	DayConstraints []string           `json:"day_constraints,omitempty"`
+	CreatedAt      string             `json:"created_at,omitempty"`
 }
 
 type User struct {
@@ -326,10 +328,12 @@ type UpdateAttachmentInput struct {
 }
 
 type CreateRepeatRuleInput struct {
-	Frequency      string   `json:"frequency"`
-	IntervalValue  int      `json:"interval_value"`
-	Mode           string   `json:"mode"`
-	DayConstraints []string `json:"day_constraints"`
+	Pattern        *RecurrencePattern `json:"pattern,omitempty"`
+	// Deprecated flat fields (still accepted for backwards compat)
+	Frequency      string             `json:"frequency,omitempty"`
+	IntervalValue  int                `json:"interval_value,omitempty"`
+	Mode           string             `json:"mode,omitempty"`
+	DayConstraints []string           `json:"day_constraints,omitempty"`
 }
 
 type TaskFilters struct {

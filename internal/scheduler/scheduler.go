@@ -3,10 +3,10 @@ package scheduler
 import (
 	"database/sql"
 	"log"
-	"strings"
 	"time"
 
 	"github.com/collinjanssen/thingstodo/internal/model"
+	"github.com/collinjanssen/thingstodo/internal/recurrence"
 	"github.com/collinjanssen/thingstodo/internal/repository"
 	"github.com/robfig/cron/v3"
 )
@@ -18,6 +18,7 @@ type Scheduler struct {
 	checklistRepo *repository.ChecklistRepository
 	attachRepo    *repository.AttachmentRepository
 	db            *sql.DB
+	engine        *recurrence.Engine
 }
 
 func New(db *sql.DB, taskRepo *repository.TaskRepository, ruleRepo *repository.RepeatRuleRepository, checklistRepo *repository.ChecklistRepository, attachRepo *repository.AttachmentRepository) *Scheduler {
@@ -28,6 +29,7 @@ func New(db *sql.DB, taskRepo *repository.TaskRepository, ruleRepo *repository.R
 		checklistRepo: checklistRepo,
 		attachRepo:    attachRepo,
 		db:            db,
+		engine:        recurrence.NewEngine(),
 	}
 }
 
@@ -46,7 +48,7 @@ func (s *Scheduler) Stop() {
 // HandleAfterCompletion is called when a task with mode=after_completion is completed.
 func (s *Scheduler) HandleAfterCompletion(taskID string) {
 	rule, err := s.ruleRepo.GetByTask(taskID)
-	if err != nil || rule == nil || rule.Mode != "after_completion" {
+	if err != nil || rule == nil || rule.Pattern.Mode != model.RecurrenceModeAfterCompletion {
 		return
 	}
 	s.createNextInstance(taskID, rule)
@@ -72,7 +74,7 @@ func (s *Scheduler) processFixedRules() {
 	today := time.Now().Format("2006-01-02")
 
 	for _, rule := range rules {
-		if rule.Mode != "fixed" {
+		if rule.Pattern.Mode != model.RecurrenceModeFixed {
 			continue
 		}
 		task, err := s.taskRepo.GetByID(rule.TaskID)
@@ -84,7 +86,7 @@ func (s *Scheduler) processFixedRules() {
 			continue
 		}
 
-		nextDate := calculateNextDate(task.WhenDate, rule)
+		nextDate := s.calculateNextDate(task.WhenDate, rule.Pattern)
 		if nextDate == "" || nextDate > today {
 			continue
 		}
@@ -99,7 +101,7 @@ func (s *Scheduler) createNextInstance(originalTaskID string, rule *model.Repeat
 		return
 	}
 
-	nextDate := calculateNextDate(original.WhenDate, *rule)
+	nextDate := s.calculateNextDate(original.WhenDate, rule.Pattern)
 
 	// Collect tag IDs from original
 	tagIDs := make([]string, len(original.Tags))
@@ -147,15 +149,12 @@ func (s *Scheduler) createNextInstance(originalTaskID string, rule *model.Repeat
 		}
 	}
 
-	// Move repeat rule to new task
+	// Move repeat rule to new task (pass through the pattern)
 	if err := s.ruleRepo.DeleteByTask(originalTaskID); err != nil {
 		log.Printf("scheduler: delete rule for task %s: %v", originalTaskID, err)
 	}
 	if _, err := s.ruleRepo.Upsert(newTask.ID, model.CreateRepeatRuleInput{
-		Frequency:      rule.Frequency,
-		IntervalValue:  rule.IntervalValue,
-		Mode:           rule.Mode,
-		DayConstraints: rule.DayConstraints,
+		Pattern: &rule.Pattern,
 	}); err != nil {
 		log.Printf("scheduler: upsert rule for task %s: %v", newTask.ID, err)
 	}
@@ -163,57 +162,21 @@ func (s *Scheduler) createNextInstance(originalTaskID string, rule *model.Repeat
 	log.Printf("scheduler: created repeat instance %s from %s (next: %s)", newTask.ID, originalTaskID, nextDate)
 }
 
-func calculateNextDate(currentDate *string, rule model.RepeatRule) string {
-	var base time.Time
+func (s *Scheduler) calculateNextDate(currentDate *string, pattern model.RecurrencePattern) string {
+	fromDate := ""
 	if currentDate != nil {
-		var err error
-		base, err = time.Parse("2006-01-02", *currentDate)
-		if err != nil {
-			base = time.Now()
+		fromDate = *currentDate
+	}
+
+	result, err := s.engine.Next(fromDate, pattern)
+	if err != nil {
+		log.Printf("scheduler: calculate next date: %v", err)
+		// Fallback to simple daily
+		if currentDate != nil {
+			t, _ := time.Parse("2006-01-02", *currentDate)
+			return t.AddDate(0, 0, 1).Format("2006-01-02")
 		}
-	} else {
-		base = time.Now()
+		return time.Now().AddDate(0, 0, 1).Format("2006-01-02")
 	}
-
-	switch rule.Frequency {
-	case "daily":
-		base = base.AddDate(0, 0, rule.IntervalValue)
-	case "weekly":
-		if len(rule.DayConstraints) > 0 {
-			base = nextMatchingDay(base, rule.DayConstraints, rule.IntervalValue)
-		} else {
-			base = base.AddDate(0, 0, 7*rule.IntervalValue)
-		}
-	case "monthly":
-		base = base.AddDate(0, rule.IntervalValue, 0)
-	case "yearly":
-		base = base.AddDate(rule.IntervalValue, 0, 0)
-	}
-
-	return base.Format("2006-01-02")
-}
-
-func nextMatchingDay(from time.Time, days []string, interval int) time.Time {
-	dayMap := map[string]time.Weekday{
-		"sun": time.Sunday, "mon": time.Monday, "tue": time.Tuesday,
-		"wed": time.Wednesday, "thu": time.Thursday, "fri": time.Friday,
-		"sat": time.Saturday,
-	}
-
-	target := make(map[time.Weekday]bool)
-	for _, d := range days {
-		if wd, ok := dayMap[strings.ToLower(d)]; ok {
-			target[wd] = true
-		}
-	}
-
-	// Move forward one day at a time, counting weeks
-	candidate := from.AddDate(0, 0, 1)
-	for i := 0; i < 365; i++ {
-		if target[candidate.Weekday()] {
-			return candidate
-		}
-		candidate = candidate.AddDate(0, 0, 1)
-	}
-	return from.AddDate(0, 0, 7*interval)
+	return result
 }

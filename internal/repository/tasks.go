@@ -2,6 +2,7 @@ package repository
 
 import (
 	"database/sql"
+	"encoding/json"
 	"fmt"
 	"strings"
 
@@ -440,24 +441,47 @@ func (r *TaskRepository) getAttachments(taskID string) ([]model.Attachment, erro
 
 func (r *TaskRepository) getRepeatRule(taskID string) (*model.RepeatRule, error) {
 	var rr model.RepeatRule
-	var constraints string
+	var patternJSON string
 	err := r.db.QueryRow(
-		"SELECT id, frequency, interval_value, mode, day_constraints FROM repeat_rules WHERE task_id = ?", taskID,
-	).Scan(&rr.ID, &rr.Frequency, &rr.IntervalValue, &rr.Mode, &constraints)
+		"SELECT id, pattern FROM repeat_rules WHERE task_id = ?", taskID,
+	).Scan(&rr.ID, &patternJSON)
 	if err == sql.ErrNoRows {
 		return nil, nil
 	}
 	if err != nil {
 		return nil, err
 	}
-	if constraints != "" {
-		// Parse JSON array
-		rr.DayConstraints = strings.Split(strings.Trim(constraints, "[]\""), "\",\"")
+	if patternJSON != "" {
+		if err := json.Unmarshal([]byte(patternJSON), &rr.Pattern); err != nil {
+			return nil, fmt.Errorf("unmarshal repeat pattern: %w", err)
+		}
+	}
+	// Populate deprecated flat fields for backwards compat
+	rr.Mode = string(rr.Pattern.Mode)
+	rr.IntervalValue = rr.Pattern.Every
+	rr.Frequency = patternToFrequency(rr.Pattern.Type)
+	if rr.Pattern.Type == model.PatternWeekly {
+		rr.DayConstraints = rr.Pattern.On
 	}
 	if rr.DayConstraints == nil {
 		rr.DayConstraints = []string{}
 	}
 	return &rr, nil
+}
+
+func patternToFrequency(pt model.PatternType) string {
+	switch pt {
+	case model.PatternDaily, model.PatternDailyWeekday, model.PatternDailyWeekend:
+		return "daily"
+	case model.PatternWeekly:
+		return "weekly"
+	case model.PatternMonthlyDOM, model.PatternMonthlyDOW, model.PatternMonthlyWorkday:
+		return "monthly"
+	case model.PatternYearlyDate, model.PatternYearlyDOW:
+		return "yearly"
+	default:
+		return "daily"
+	}
 }
 
 func (r *TaskRepository) getRef(table, id string) *model.Ref {

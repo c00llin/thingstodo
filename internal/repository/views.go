@@ -211,13 +211,6 @@ func (r *ViewRepository) Upcoming(from string, days int) (*model.UpcomingView, e
 	if from == "" {
 		from = time.Now().Format("2006-01-02")
 	}
-	if days <= 0 {
-		days = 30
-	}
-
-	startDate, _ := time.Parse("2006-01-02", from)
-	endDate := startDate.AddDate(0, 0, days).Format("2006-01-02")
-
 	rows, err := r.db.Query(`
 		SELECT t.id, t.title, t.notes, t.status, t.when_date, t.when_evening, t.high_priority,
 			t.deadline, t.project_id, t.area_id, t.heading_id,
@@ -230,8 +223,8 @@ func (r *ViewRepository) Upcoming(from string, days int) (*model.UpcomingView, e
 			CASE WHEN EXISTS(SELECT 1 FROM attachments WHERE task_id = t.id AND type = 'file') THEN 1 ELSE 0 END,
 			CASE WHEN EXISTS(SELECT 1 FROM repeat_rules WHERE task_id = t.id) THEN 1 ELSE 0 END
 		FROM tasks t
-		WHERE t.status = 'open' AND t.when_date >= ? AND t.when_date < ? AND t.when_date != 'someday' AND t.deleted_at IS NULL
-		ORDER BY t.when_date ASC, t.sort_order_today ASC`, from, endDate)
+		WHERE t.status = 'open' AND t.when_date >= ? AND t.when_date != 'someday' AND t.deleted_at IS NULL
+		ORDER BY t.when_date ASC, t.sort_order_today ASC`, from)
 	if err != nil {
 		return nil, err
 	}
