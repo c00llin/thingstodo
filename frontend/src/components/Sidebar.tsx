@@ -227,7 +227,7 @@ function EditableSidebarItem({
       to={to}
       onClick={handleClick}
       className={({ isActive: active }) =>
-        `relative ${className} ${active ? activeClassName : inactiveClassName}`
+        `group/item relative ${className} ${active ? activeClassName : inactiveClassName}`
       }
     >
       {({ isActive: active }) => (
@@ -394,14 +394,14 @@ function AreaProjectsBadge({
         e.stopPropagation()
         onToggle()
       }}
-      className="group/badge relative z-10 ml-auto flex h-5 w-5 items-center justify-center text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-300"
+      className="relative z-10 ml-auto flex h-5 w-5 items-center justify-center text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-300"
     >
       {showCount && (
-        <span className="text-xs group-hover/badge:hidden">{area.standalone_task_count}</span>
+        <span className="text-xs group-hover/item:hidden">{area.standalone_task_count}</span>
       )}
       <ChevronRight
         size={14}
-        className={`transition-transform ${showCount ? 'hidden' : 'opacity-0'} group-hover/badge:inline-block group-hover/badge:opacity-100 ${!isCollapsed ? 'rotate-90' : ''}`}
+        className={`transition-transform ${showCount ? 'hidden' : 'opacity-0'} group-hover/item:inline-block group-hover/item:opacity-100 ${!isCollapsed ? 'rotate-90' : ''}`}
       />
     </button>
   )
