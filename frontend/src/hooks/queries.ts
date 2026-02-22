@@ -273,13 +273,17 @@ export function updateTaskInCache(
     deepUpdateTask,
   )
 
-  // Also update project and area detail caches
+  // Also update project, area, and tag detail caches
   queryClient.setQueriesData<Record<string, unknown>>(
     { queryKey: queryKeys.projects.all },
     deepUpdateTask,
   )
   queryClient.setQueriesData<Record<string, unknown>>(
     { queryKey: queryKeys.areas.all },
+    deepUpdateTask,
+  )
+  queryClient.setQueriesData<Record<string, unknown>>(
+    { queryKey: queryKeys.tags.all },
     deepUpdateTask,
   )
 }
@@ -290,6 +294,7 @@ function snapshotViews(queryClient: ReturnType<typeof useQueryClient>) {
     ...queryClient.getQueriesData({ queryKey: ['views'] }),
     ...queryClient.getQueriesData({ queryKey: queryKeys.projects.all }),
     ...queryClient.getQueriesData({ queryKey: queryKeys.areas.all }),
+    ...queryClient.getQueriesData({ queryKey: queryKeys.tags.all }),
   ]
 }
 

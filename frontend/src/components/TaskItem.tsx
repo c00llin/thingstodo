@@ -367,7 +367,7 @@ export function TaskItem({ task, showProject = true, hideWhenDate = false, showR
                     {formatRelativeDate(task.deadline)}
                   </span>
                 )}
-                {!hideWhenDate && task.when_date && task.when_date !== 'someday' && (
+                {!hideWhenDate && task.when_date && (
                   <span className="flex items-center gap-1">
                     <Calendar size={12} />
                     {formatRelativeDate(task.when_date)}

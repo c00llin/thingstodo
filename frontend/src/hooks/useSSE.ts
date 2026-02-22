@@ -38,6 +38,8 @@ export function useSSE() {
 
         switch (type) {
           case 'task_created':
+            queryClient.invalidateQueries({ queryKey: queryKeys.projects.all, ...refetch })
+            queryClient.invalidateQueries({ queryKey: queryKeys.areas.all, ...refetch })
             invalidateViewQueries(queryClient, refetch)
             break
 
@@ -48,6 +50,8 @@ export function useSSE() {
                 ...refetch,
               })
             }
+            queryClient.invalidateQueries({ queryKey: queryKeys.projects.all, ...refetch })
+            queryClient.invalidateQueries({ queryKey: queryKeys.areas.all, ...refetch })
             invalidateViewQueries(queryClient, refetch)
             break
 
@@ -57,6 +61,8 @@ export function useSSE() {
                 queryKey: queryKeys.tasks.detail(payload.id),
               })
             }
+            queryClient.invalidateQueries({ queryKey: queryKeys.projects.all, ...refetch })
+            queryClient.invalidateQueries({ queryKey: queryKeys.areas.all, ...refetch })
             invalidateViewQueries(queryClient, refetch)
             break
 

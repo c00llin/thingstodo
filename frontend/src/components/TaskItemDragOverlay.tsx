@@ -68,7 +68,7 @@ export function TaskItemDragOverlay({ task }: TaskItemDragOverlayProps) {
                   {task.deadline}
                 </span>
               )}
-              {task.when_date && task.when_date !== 'someday' && (
+              {task.when_date && (
                 <span className="flex items-center gap-1">
                   <Calendar size={12} />
                   {task.when_date}
