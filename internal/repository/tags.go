@@ -87,6 +87,22 @@ func (r *TagRepository) Update(id string, input model.UpdateTagInput) (*model.Ta
 	return &t, err
 }
 
+func (r *TagRepository) Reorder(items []model.SimpleReorderItem) error {
+	tx, err := r.db.Begin()
+	if err != nil {
+		return err
+	}
+	defer func() { _ = tx.Rollback() }()
+
+	for _, item := range items {
+		_, err := tx.Exec("UPDATE tags SET sort_order = ? WHERE id = ?", item.SortOrder, item.ID)
+		if err != nil {
+			return err
+		}
+	}
+	return tx.Commit()
+}
+
 func (r *TagRepository) Delete(id string) error {
 	_, err := r.db.Exec("DELETE FROM tags WHERE id = ?", id)
 	return err

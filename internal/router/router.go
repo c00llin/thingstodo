@@ -139,6 +139,7 @@ func New(db *sql.DB, cfg config.Config, broker *sse.Broker, sched *scheduler.Sch
 			r.Get("/areas/{id}", areaH.Get)
 			r.Patch("/areas/{id}", areaH.Update)
 			r.Delete("/areas/{id}", areaH.Delete)
+			r.Patch("/areas/reorder", areaH.Reorder)
 
 			// Tags
 			r.Get("/tags", tagH.List)
@@ -146,6 +147,7 @@ func New(db *sql.DB, cfg config.Config, broker *sse.Broker, sched *scheduler.Sch
 			r.Patch("/tags/{id}", tagH.Update)
 			r.Delete("/tags/{id}", tagH.Delete)
 			r.Get("/tags/{id}/tasks", tagH.GetTasks)
+			r.Patch("/tags/reorder", tagH.Reorder)
 
 			// Views
 			r.Get("/views/inbox", viewH.Inbox)

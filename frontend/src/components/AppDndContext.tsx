@@ -16,10 +16,12 @@ import {
 import { sortableKeyboardCoordinates } from '@dnd-kit/sortable'
 import { Package } from 'lucide-react'
 import { updateTask, reopenTask, restoreTask, deleteTask, completeTask, reorderTasks } from '../api/tasks'
-import { updateProject } from '../api/projects'
+import { updateProject, reorderProjects } from '../api/projects'
+import { reorderAreas } from '../api/areas'
+import { reorderTags } from '../api/tags'
 import { useQueryClient } from '@tanstack/react-query'
-import { useProjects, useAreas, useTags, updateTaskInCache } from '../hooks/queries'
-import type { Task, Tag, SortField } from '../api/types'
+import { useProjects, useAreas, useTags, updateTaskInCache, queryKeys } from '../hooks/queries'
+import type { Task, Tag, Area, Project, SortField } from '../api/types'
 
 /** Optimistically reorder a task in all cached view data.
  *  Updates the sort field value on the task, then re-sorts any Task[] that contains it. */
@@ -70,6 +72,17 @@ function reorderTaskInCache(
     (old: unknown) => old ? reorderArrays(old) : old,
   )
 }
+/** Calculate a new sort_order position for an entity dropped at the given index. */
+function calculateEntityPosition(
+  items: { sort_order: number }[],
+  targetIndex: number,
+): number {
+  if (items.length === 0) return 1024
+  if (targetIndex === 0) return items[0].sort_order / 2
+  if (targetIndex >= items.length) return items[items.length - 1].sort_order + 1024
+  return (items[targetIndex - 1].sort_order + items[targetIndex].sort_order) / 2
+}
+
 import { TaskItemDragOverlay } from './TaskItemDragOverlay'
 import { useAppStore } from '../stores/app'
 import { SortableListRegistryProvider } from '../contexts/SortableListRegistry'
@@ -79,6 +92,33 @@ import { calculatePosition } from '../lib/sort-position'
 // Prefer sidebar droppables when the pointer is over them, fall back to closestCenter for sortable reorder.
 // When multiple sidebar targets match (e.g. project inside area), prefer the most specific one.
 const sidebarFirstCollision: CollisionDetection = (args) => {
+  const activeId = String(args.active.id)
+
+  // Project sort drags: collide with same-prefix (reorder) + sidebar-area targets (reassign)
+  if (activeId.startsWith('sort-project-')) {
+    const sortContainers = args.droppableContainers.filter((c) =>
+      String(c.id).startsWith('sort-project-'),
+    )
+    const areaContainers = args.droppableContainers.filter((c) =>
+      String(c.id).startsWith('sidebar-area-'),
+    )
+    // Check if pointer is over an area target (area reassignment takes priority)
+    if (areaContainers.length > 0) {
+      const areaHits = pointerWithin({ ...args, droppableContainers: areaContainers })
+      if (areaHits.length > 0) return [areaHits[0]]
+    }
+    return closestCenter({ ...args, droppableContainers: sortContainers })
+  }
+
+  // Other sort drags (areas, tags): only collide with same-prefix sort containers
+  if (activeId.startsWith('sort-')) {
+    const prefix = activeId.replace(/-[^-]+$/, '-') // e.g. "sort-area-"
+    const sortContainers = args.droppableContainers.filter((c) =>
+      String(c.id).startsWith(prefix),
+    )
+    return closestCenter({ ...args, droppableContainers: sortContainers })
+  }
+
   const sidebarContainers = args.droppableContainers.filter((c) =>
     String(c.id).startsWith('sidebar-'),
   )
@@ -101,7 +141,7 @@ const sidebarFirstCollision: CollisionDetection = (args) => {
 
   // Fall back to closestCenter for sortable reorder among non-sidebar items
   const sortableContainers = args.droppableContainers.filter(
-    (c) => !String(c.id).startsWith('sidebar-'),
+    (c) => !String(c.id).startsWith('sidebar-') && !String(c.id).startsWith('sort-'),
   )
   return closestCenter({ ...args, droppableContainers: sortableContainers })
 }
@@ -134,12 +174,13 @@ function AppDndContextInner({ children }: AppDndContextProps) {
   const handleDragStart = useCallback(
     (event: DragStartEvent) => {
       const activeId = String(event.active.id)
-      if (activeId.startsWith('drag-project-')) {
-        const projectId = activeId.replace('drag-project-', '')
+      if (activeId.startsWith('sort-project-')) {
+        const projectId = activeId.replace('sort-project-', '')
         const project = projects.find((p) => p.id === projectId)
         setActiveProjectName(project?.title ?? null)
         return
       }
+      if (activeId.startsWith('sort-')) return // areas/tags: no overlay needed
       const task = event.active.data.current?.task as Task | undefined
       setActiveTask(task ?? null)
     },
@@ -156,26 +197,96 @@ function AppDndContextInner({ children }: AppDndContextProps) {
       const activeId = String(active.id)
       const overId = String(over.id)
 
-      // Project drag-and-drop to areas
-      if (activeId.startsWith('drag-project-')) {
-        const projectId = activeId.replace('drag-project-', '')
-        let newAreaId: string | null = null
-        if (overId.startsWith('sidebar-area-')) {
-          newAreaId = overId.replace('sidebar-area-', '')
-        } else if (overId.startsWith('sidebar-project-')) {
-          const targetProjectId = overId.replace('sidebar-project-', '')
-          const targetProject = projects.find((p) => p.id === targetProjectId)
-          newAreaId = targetProject?.area_id ?? null
-        }
-        // Optimistic update
-        queryClient.setQueriesData<{ projects: typeof projects }>(
-          { queryKey: ['projects'] },
-          (old) => old ? { ...old, projects: old.projects.map((p) => p.id === projectId ? { ...p, area_id: newAreaId } : p) } : old,
+      // Sidebar sort reorder: areas
+      if (activeId.startsWith('sort-area-') && overId.startsWith('sort-area-')) {
+        if (activeId === overId) return
+        const movedId = activeId.replace('sort-area-', '')
+        const overedId = overId.replace('sort-area-', '')
+        const oldIndex = areas.findIndex((a) => a.id === movedId)
+        const newIndex = areas.findIndex((a) => a.id === overedId)
+        if (oldIndex === -1 || newIndex === -1) return
+        const without = areas.filter((a) => a.id !== movedId)
+        const newPos = calculateEntityPosition(without, newIndex)
+        // Optimistic: reorder in cache
+        queryClient.setQueriesData<{ areas: Area[] }>(
+          { queryKey: queryKeys.areas.all },
+          (old) => {
+            if (!old) return old
+            return { ...old, areas: old.areas.map((a) => a.id === movedId ? { ...a, sort_order: newPos } : a).sort((a, b) => a.sort_order - b.sort_order) }
+          },
         )
-        updateProject(projectId, { area_id: newAreaId }).then(() => {
-          queryClient.invalidateQueries({ queryKey: ['projects'] })
-          queryClient.invalidateQueries({ queryKey: ['areas'] })
+        reorderAreas([{ id: movedId, sort_order: newPos }]).then(() => {
+          queryClient.invalidateQueries({ queryKey: queryKeys.areas.all })
         })
+        return
+      }
+
+      // Sidebar sort reorder: tags
+      if (activeId.startsWith('sort-tag-') && overId.startsWith('sort-tag-')) {
+        if (activeId === overId) return
+        const movedId = activeId.replace('sort-tag-', '')
+        const overedId = overId.replace('sort-tag-', '')
+        const rootTags = allTags.filter((t: Tag) => !t.parent_tag_id)
+        const oldIndex = rootTags.findIndex((t: Tag) => t.id === movedId)
+        const newIndex = rootTags.findIndex((t: Tag) => t.id === overedId)
+        if (oldIndex === -1 || newIndex === -1) return
+        const without = rootTags.filter((t: Tag) => t.id !== movedId)
+        const newPos = calculateEntityPosition(without, newIndex)
+        queryClient.setQueriesData<{ tags: Tag[] }>(
+          { queryKey: queryKeys.tags.all },
+          (old) => {
+            if (!old) return old
+            return { ...old, tags: old.tags.map((t) => t.id === movedId ? { ...t, sort_order: newPos } : t).sort((a, b) => a.sort_order - b.sort_order) }
+          },
+        )
+        reorderTags([{ id: movedId, sort_order: newPos }]).then(() => {
+          queryClient.invalidateQueries({ queryKey: queryKeys.tags.all })
+        })
+        return
+      }
+
+      // Sidebar sort: projects
+      if (activeId.startsWith('sort-project-')) {
+        const movedId = activeId.replace('sort-project-', '')
+
+        // Reorder within same group
+        if (overId.startsWith('sort-project-')) {
+          if (activeId === overId) return
+          const overedId = overId.replace('sort-project-', '')
+          const movedProject = projects.find((p) => p.id === movedId)
+          const groupProjects = projects.filter((p) => p.area_id === movedProject?.area_id)
+          const oldIndex = groupProjects.findIndex((p) => p.id === movedId)
+          const newIndex = groupProjects.findIndex((p) => p.id === overedId)
+          if (oldIndex === -1 || newIndex === -1) return
+          const without = groupProjects.filter((p) => p.id !== movedId)
+          const newPos = calculateEntityPosition(without, newIndex)
+          queryClient.setQueriesData<{ projects: Project[] }>(
+            { queryKey: queryKeys.projects.all },
+            (old) => {
+              if (!old) return old
+              return { ...old, projects: old.projects.map((p) => p.id === movedId ? { ...p, sort_order: newPos } : p).sort((a, b) => a.sort_order - b.sort_order) }
+            },
+          )
+          reorderProjects([{ id: movedId, sort_order: newPos }]).then(() => {
+            queryClient.invalidateQueries({ queryKey: queryKeys.projects.all })
+          })
+          return
+        }
+
+        // Reassign to area (dropped on area header)
+        if (overId.startsWith('sidebar-area-')) {
+          const newAreaId = overId.replace('sidebar-area-', '')
+          queryClient.setQueriesData<{ projects: typeof projects }>(
+            { queryKey: ['projects'] },
+            (old) => old ? { ...old, projects: old.projects.map((p) => p.id === movedId ? { ...p, area_id: newAreaId } : p) } : old,
+          )
+          updateProject(movedId, { area_id: newAreaId }).then(() => {
+            queryClient.invalidateQueries({ queryKey: ['projects'] })
+            queryClient.invalidateQueries({ queryKey: ['areas'] })
+          })
+          return
+        }
+
         return
       }
 

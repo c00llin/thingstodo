@@ -182,19 +182,23 @@ type User struct {
 }
 
 type UserSettings struct {
-	PlayCompleteSound bool `json:"play_complete_sound"`
-	ShowCountMain     bool `json:"show_count_main"`
-	ShowCountProjects bool `json:"show_count_projects"`
-	ShowCountTags     bool `json:"show_count_tags"`
-	ReviewAfterDays   *int `json:"review_after_days"`
+	PlayCompleteSound bool   `json:"play_complete_sound"`
+	ShowCountMain     bool   `json:"show_count_main"`
+	ShowCountProjects bool   `json:"show_count_projects"`
+	ShowCountTags     bool   `json:"show_count_tags"`
+	ReviewAfterDays   *int   `json:"review_after_days"`
+	SortAreas         string `json:"sort_areas"`
+	SortTags          string `json:"sort_tags"`
 }
 
 type UpdateUserSettingsInput struct {
-	PlayCompleteSound *bool `json:"play_complete_sound"`
-	ShowCountMain     *bool `json:"show_count_main"`
-	ShowCountProjects *bool `json:"show_count_projects"`
-	ShowCountTags     *bool `json:"show_count_tags"`
-	ReviewAfterDays   *int  `json:"review_after_days"`
+	PlayCompleteSound *bool   `json:"play_complete_sound"`
+	ShowCountMain     *bool   `json:"show_count_main"`
+	ShowCountProjects *bool   `json:"show_count_projects"`
+	ShowCountTags     *bool   `json:"show_count_tags"`
+	ReviewAfterDays   *int    `json:"review_after_days"`
+	SortAreas         *string `json:"sort_areas"`
+	SortTags          *string `json:"sort_tags"`
 	Raw               map[string]json.RawMessage `json:"-"`
 }
 

@@ -560,6 +560,21 @@ Request:
 
 Response (200): Updated area
 
+### PATCH /api/areas/reorder
+Request:
+```json
+{
+  "items": [
+    { "id": "string", "sort_order": 0.0 }
+  ]
+}
+```
+
+Response (200):
+```json
+{ "ok": true }
+```
+
 ### DELETE /api/areas/:id
 Response (204): No content
 
@@ -607,6 +622,21 @@ Response (200): Updated tag
 
 ### DELETE /api/tags/:id
 Response (204): No content
+
+### PATCH /api/tags/reorder
+Request:
+```json
+{
+  "items": [
+    { "id": "string", "sort_order": 0.0 }
+  ]
+}
+```
+
+Response (200):
+```json
+{ "ok": true }
+```
 
 ### GET /api/tags/:id/tasks
 Response (200): Tasks with this tag
@@ -661,7 +691,9 @@ Response (200):
   "show_count_main": true,
   "show_count_projects": true,
   "show_count_tags": true,
-  "review_after_days": 7
+  "review_after_days": 7,
+  "sort_areas": "manual",
+  "sort_tags": "manual"
 }
 ```
 
@@ -673,7 +705,9 @@ Request: Partial update (any subset of fields)
   "show_count_main": true,
   "show_count_projects": true,
   "show_count_tags": true,
-  "review_after_days": 7
+  "review_after_days": 7,
+  "sort_areas": "manual|a-z|z-a",
+  "sort_tags": "manual|a-z|z-a"
 }
 ```
 
@@ -864,7 +898,7 @@ event: tag_updated
 data: {"id": "string", "tag": {/* tag object */}}
 
 event: bulk_change
-data: {"type": "reorder|move|delete", "entity": "task|project|heading", "ids": ["string"]}
+data: {"type": "reorder|move|delete", "entity": "task|project|heading|area|tag", "ids": ["string"]}
 ```
 
 ---

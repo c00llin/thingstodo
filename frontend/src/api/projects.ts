@@ -5,6 +5,7 @@ import type {
   CreateProjectRequest,
   UpdateProjectRequest,
   ProjectStatus,
+  SimpleReorderItem,
 } from './types'
 
 export function listProjects(params?: { area_id?: string; status?: ProjectStatus }) {
@@ -36,4 +37,8 @@ export function deleteProject(id: string) {
 
 export function completeProject(id: string) {
   return api.patch<Project>(`/projects/${id}/complete`, {})
+}
+
+export function reorderProjects(items: SimpleReorderItem[]) {
+  return api.patch<{ ok: boolean }>('/projects/reorder', { items })
 }

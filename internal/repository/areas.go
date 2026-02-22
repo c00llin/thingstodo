@@ -179,6 +179,22 @@ func (r *AreaRepository) Delete(id string) error {
 	return err
 }
 
+func (r *AreaRepository) Reorder(items []model.SimpleReorderItem) error {
+	tx, err := r.db.Begin()
+	if err != nil {
+		return err
+	}
+	defer func() { _ = tx.Rollback() }()
+
+	for _, item := range items {
+		_, err := tx.Exec("UPDATE areas SET sort_order = ? WHERE id = ?", item.SortOrder, item.ID)
+		if err != nil {
+			return err
+		}
+	}
+	return tx.Commit()
+}
+
 func (r *AreaRepository) DeleteWithTasks(id string) error {
 	var count int
 	if err := r.db.QueryRow("SELECT COUNT(*) FROM projects WHERE area_id = ?", id).Scan(&count); err != nil {

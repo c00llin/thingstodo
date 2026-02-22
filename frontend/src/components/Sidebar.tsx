@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useCallback } from 'react'
+import { useState, useRef, useEffect, useCallback, useMemo } from 'react'
 import { NavLink, useLocation, useNavigate } from 'react-router'
 import {
   Inbox,
@@ -18,14 +18,19 @@ import {
   Settings,
   LogOut,
   RotateCcw,
+  ArrowDownAZ,
+  ArrowDownZA,
+
 } from 'lucide-react'
 import * as Collapsible from '@radix-ui/react-collapsible'
 import * as Popover from '@radix-ui/react-popover'
-import { useDraggable } from '@dnd-kit/core'
+
+import { useSortable, SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable'
+import { CSS } from '@dnd-kit/utilities'
 
 import { motion, AnimatePresence, LayoutGroup } from 'framer-motion'
 import { ApiError } from '../api/client'
-import { useAreas, useProjects, useTags, useCreateProject, useCreateArea, useViewCounts, useUpdateProject, useUpdateArea, useUpdateTag, useSettings, useMe, useLogout } from '../hooks/queries'
+import { useAreas, useProjects, useTags, useCreateProject, useCreateArea, useViewCounts, useUpdateProject, useUpdateArea, useUpdateTag, useSettings, useReorderAreas, useReorderProjects, useReorderTags, useMe, useLogout } from '../hooks/queries'
 import { useAppStore } from '../stores/app'
 import { ThemeToggle } from './ThemeToggle'
 import { SidebarDropTarget } from './SidebarDropTarget'
@@ -322,13 +327,37 @@ function SmartListNav() {
   )
 }
 
-function DraggableProject({ projectId, children }: { projectId: string; children: React.ReactNode }) {
-  const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
-    id: `drag-project-${projectId}`,
-  })
 
+function SortButtons({ onSort }: { onSort: (direction: 'a-z' | 'z-a') => void }) {
   return (
-    <div ref={setNodeRef} {...listeners} {...attributes} style={{ opacity: isDragging ? 0.5 : 1 }}>
+    <span className="flex items-center gap-0.5 opacity-0 transition-opacity group-hover/section:opacity-100">
+      <button
+        onClick={(e) => { e.stopPropagation(); onSort('a-z') }}
+        className="flex h-5 w-5 items-center justify-center text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-300"
+        title="Sort A-Z"
+      >
+        <ArrowDownAZ size={12} />
+      </button>
+      <button
+        onClick={(e) => { e.stopPropagation(); onSort('z-a') }}
+        className="flex h-5 w-5 items-center justify-center text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-300"
+        title="Sort Z-A"
+      >
+        <ArrowDownZA size={12} />
+      </button>
+    </span>
+  )
+}
+
+function SortableSidebarItem({ id, children }: { id: string; children: React.ReactNode }) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id })
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  }
+  return (
+    <div ref={setNodeRef} style={style} {...attributes} {...listeners}>
       {children}
     </div>
   )
@@ -378,10 +407,17 @@ function AreaProjectsBadge({
   )
 }
 
+function sortAlpha<T extends { title: string }>(items: T[], direction: 'a-z' | 'z-a'): T[] {
+  const sorted = [...items].sort((a, b) => a.title.localeCompare(b.title))
+  return direction === 'z-a' ? sorted.reverse() : sorted
+}
+
 function AreaList() {
   const { data: areasData } = useAreas()
   const { data: projectsData } = useProjects()
   const { data: settings } = useSettings()
+  const reorderAreasMut = useReorderAreas()
+  const reorderProjectsMut = useReorderProjects()
   const open = useAppStore((s) => s.sidebarAreasOpen)
   const setOpen = useAppStore((s) => s.setSidebarAreasOpen)
   const collapsedAreaIds = useAppStore((s) => s.collapsedAreaIds)
@@ -391,23 +427,52 @@ function AreaList() {
   const updateArea = useUpdateArea()
   const showCounts = settings?.show_count_projects !== false
 
-  const areas = areasData?.areas ?? []
-  const projects = projectsData?.projects ?? []
+  const areasArr = areasData?.areas
+  const projectsArr = projectsData?.projects
+
+  const areas = useMemo(() => areasArr ?? [], [areasArr])
+  const projects = useMemo(() => projectsArr ?? [], [projectsArr])
 
   const clearEditing = useCallback(() => setEditingItemId(null), [])
+
+  const areaIds = useMemo(() => areas.map((a) => `sort-area-${a.id}`), [areas])
+  const standaloneProjectIds = useMemo(
+    () => projects.filter((p) => !p.area_id).map((p) => `sort-project-${p.id}`),
+    [projects],
+  )
+
+  const handleSort = useCallback((direction: 'a-z' | 'z-a') => {
+    const rawA = areasArr ?? []
+    const rawP = projectsArr ?? []
+    const sortedAreas = sortAlpha(rawA, direction)
+    const areaItems = sortedAreas.map((a, i) => ({ id: a.id, sort_order: (i + 1) * 1024 }))
+    reorderAreasMut.mutate(areaItems)
+    const allProjectItems: { id: string; sort_order: number }[] = []
+    let counter = 1
+    for (const area of sortedAreas) {
+      const ap = sortAlpha(rawP.filter((p) => p.area_id === area.id), direction)
+      ap.forEach((p) => allProjectItems.push({ id: p.id, sort_order: counter++ * 1024 }))
+    }
+    const standalone = sortAlpha(rawP.filter((p) => !p.area_id), direction)
+    standalone.forEach((p) => allProjectItems.push({ id: p.id, sort_order: counter++ * 1024 }))
+    if (allProjectItems.length > 0) reorderProjectsMut.mutate(allProjectItems)
+  }, [areasArr, projectsArr, reorderAreasMut, reorderProjectsMut])
 
   if (areas.length === 0 && projects.length === 0) return null
 
   return (
-    <div className="border-t border-neutral-200 pt-3 dark:border-neutral-700">
+    <div className="group/section border-t border-neutral-200 pt-3 dark:border-neutral-700">
     <Collapsible.Root open={open} onOpenChange={setOpen}>
       <Collapsible.Trigger className="flex w-full items-center px-3 py-2 text-xs font-semibold uppercase tracking-wide text-neutral-500 hover:text-neutral-700 dark:text-neutral-400 dark:hover:text-neutral-300">
         Areas &amp; Projects
-        <span className="ml-auto flex h-5 w-5 items-center justify-center">
-          <ChevronRight
-            size={14}
-            className={`transition-transform ${open ? 'rotate-90' : ''}`}
-          />
+        <span className="ml-auto flex items-center gap-1">
+          <SortButtons onSort={handleSort} />
+          <span className="flex h-5 w-5 items-center justify-center">
+            <ChevronRight
+              size={14}
+              className={`transition-transform ${open ? 'rotate-90' : ''}`}
+            />
+          </span>
         </span>
       </Collapsible.Trigger>
       <AnimatePresence initial={false}>
@@ -420,11 +485,13 @@ function AreaList() {
               transition={{ type: 'spring', stiffness: 400, damping: 35 }}
               className="space-y-1 overflow-hidden"
             >
+              <SortableContext items={areaIds} strategy={verticalListSortingStrategy}>
               {areas.map((area) => {
                 const areaProjects = projects.filter((p) => p.area_id === area.id)
+                const areaProjectIds = areaProjects.map((p) => `sort-project-${p.id}`)
                 const isCollapsed = collapsedAreaIds.has(area.id)
                 return (
-                  <div key={area.id}>
+                  <SortableSidebarItem key={area.id} id={`sort-area-${area.id}`}>
                     <SidebarDropTarget id={`sidebar-area-${area.id}`}>
                       <EditableSidebarItem
                         to={`/area/${area.id}`}
@@ -460,75 +527,80 @@ function AreaList() {
                           transition={{ type: 'spring', stiffness: 400, damping: 35 }}
                           className="overflow-hidden"
                         >
+                          <SortableContext items={areaProjectIds} strategy={verticalListSortingStrategy}>
                           {areaProjects.map((project) => {
                             const openCount = project.task_count - project.completed_task_count
                             return (
-                            <SidebarDropTarget key={project.id} id={`sidebar-project-${project.id}`}>
-                              <DraggableProject projectId={project.id}>
-                                <EditableSidebarItem
-                                  to={`/project/${project.id}`}
-                                  className="flex items-center gap-2 rounded-lg py-1.5 pl-8 pr-3 text-sm"
-                                  activeClassName="text-red-700 dark:text-red-400"
-                                  inactiveClassName="text-neutral-500 hover:bg-neutral-200 dark:text-neutral-400 dark:hover:bg-neutral-700"
-                                  layoutId="sidebar-active-indicator"
-                                  icon={<Package size={14} className="relative z-10 text-neutral-400 dark:text-neutral-500" />}
-                                  title={project.title}
-                                  badge={showCounts && openCount > 0 ? (
-                                    <span className="relative z-10 ml-auto flex h-5 w-5 items-center justify-center text-xs text-neutral-400">
-                                      {openCount}
-                                    </span>
-                                  ) : undefined}
-                                  onSave={async (t) => { await updateProject.mutateAsync({ id: project.id, data: { title: t } }) }}
-                                  editingId={editingItemId}
-                                  itemId={project.id}
-                                  onEditStart={setEditingItemId}
-                                  onEditEnd={clearEditing}
-                                />
-                              </DraggableProject>
-                            </SidebarDropTarget>
+                            <SortableSidebarItem key={project.id} id={`sort-project-${project.id}`}>
+                              <SidebarDropTarget id={`sidebar-project-${project.id}`}>
+                                  <EditableSidebarItem
+                                    to={`/project/${project.id}`}
+                                    className="flex items-center gap-2 rounded-lg py-1.5 pl-8 pr-3 text-sm"
+                                    activeClassName="text-red-700 dark:text-red-400"
+                                    inactiveClassName="text-neutral-500 hover:bg-neutral-200 dark:text-neutral-400 dark:hover:bg-neutral-700"
+                                    layoutId="sidebar-active-indicator"
+                                    icon={<Package size={14} className="relative z-10 text-neutral-400 dark:text-neutral-500" />}
+                                    title={project.title}
+                                    badge={showCounts && openCount > 0 ? (
+                                      <span className="relative z-10 ml-auto flex h-5 w-5 items-center justify-center text-xs text-neutral-400">
+                                        {openCount}
+                                      </span>
+                                    ) : undefined}
+                                    onSave={async (t) => { await updateProject.mutateAsync({ id: project.id, data: { title: t } }) }}
+                                    editingId={editingItemId}
+                                    itemId={project.id}
+                                    onEditStart={setEditingItemId}
+                                    onEditEnd={clearEditing}
+                                  />
+                              </SidebarDropTarget>
+                            </SortableSidebarItem>
                             )
                           })}
+                          </SortableContext>
                         </motion.div>
                       )}
                     </AnimatePresence>
-                  </div>
+                  </SortableSidebarItem>
                 )
               })}
+              </SortableContext>
+              <SortableContext items={standaloneProjectIds} strategy={verticalListSortingStrategy}>
               {projects
                 .filter((p) => !p.area_id)
                 .map((project) => {
                   const openCount = project.task_count - project.completed_task_count
                   return (
-                  <SidebarDropTarget key={project.id} id={`sidebar-project-${project.id}`}>
-                    <DraggableProject projectId={project.id}>
-                      <EditableSidebarItem
-                        to={`/project/${project.id}`}
-                        className="flex items-center gap-2 rounded-lg px-3 py-1.5 text-sm"
-                        activeClassName="text-red-700 dark:text-red-400"
-                        inactiveClassName="text-neutral-500 hover:bg-neutral-200 dark:text-neutral-400 dark:hover:bg-neutral-700"
-                        layoutId="sidebar-active-indicator"
-                        icon={<Package size={14} className={`relative z-10 ${
-                            project.task_count > 0 &&
-                            project.completed_task_count === project.task_count
-                              ? 'text-green-500'
-                              : 'text-neutral-400 dark:text-neutral-500'
-                        }`} />}
-                        title={project.title}
-                        badge={showCounts && openCount > 0 ? (
-                          <span className="relative z-10 ml-auto flex h-5 w-5 items-center justify-center text-xs text-neutral-400">
-                            {openCount}
-                          </span>
-                        ) : undefined}
-                        onSave={async (t) => { await updateProject.mutateAsync({ id: project.id, data: { title: t } }) }}
-                        editingId={editingItemId}
-                        itemId={project.id}
-                        onEditStart={setEditingItemId}
-                        onEditEnd={clearEditing}
-                      />
-                    </DraggableProject>
-                  </SidebarDropTarget>
+                  <SortableSidebarItem key={project.id} id={`sort-project-${project.id}`}>
+                    <SidebarDropTarget id={`sidebar-project-${project.id}`}>
+                        <EditableSidebarItem
+                          to={`/project/${project.id}`}
+                          className="flex items-center gap-2 rounded-lg px-3 py-1.5 text-sm"
+                          activeClassName="text-red-700 dark:text-red-400"
+                          inactiveClassName="text-neutral-500 hover:bg-neutral-200 dark:text-neutral-400 dark:hover:bg-neutral-700"
+                          layoutId="sidebar-active-indicator"
+                          icon={<Package size={14} className={`relative z-10 ${
+                              project.task_count > 0 &&
+                              project.completed_task_count === project.task_count
+                                ? 'text-green-500'
+                                : 'text-neutral-400 dark:text-neutral-500'
+                          }`} />}
+                          title={project.title}
+                          badge={showCounts && openCount > 0 ? (
+                            <span className="relative z-10 ml-auto flex h-5 w-5 items-center justify-center text-xs text-neutral-400">
+                              {openCount}
+                            </span>
+                          ) : undefined}
+                          onSave={async (t) => { await updateProject.mutateAsync({ id: project.id, data: { title: t } }) }}
+                          editingId={editingItemId}
+                          itemId={project.id}
+                          onEditStart={setEditingItemId}
+                          onEditEnd={clearEditing}
+                        />
+                    </SidebarDropTarget>
+                  </SortableSidebarItem>
                   )
                 })}
+              </SortableContext>
             </motion.div>
           </Collapsible.Content>
         )}
@@ -775,27 +847,43 @@ function TagSidebarItem({
 function TagList() {
   const { data } = useTags()
   const { data: settings } = useSettings()
+  const reorderTagsMut = useReorderTags()
   const open = useAppStore((s) => s.sidebarTagsOpen)
   const setOpen = useAppStore((s) => s.setSidebarTagsOpen)
   const [editingItemId, setEditingItemId] = useState<string | null>(null)
   const updateTag = useUpdateTag()
   const showCounts = settings?.show_count_tags !== false
-  const tags = data?.tags ?? []
+  const tagsArr = data?.tags
+
+  const tags = useMemo(() => tagsArr ?? [], [tagsArr])
 
   const clearEditing = useCallback(() => setEditingItemId(null), [])
+
+  const rootTags = useMemo(() => tags.filter((t) => !t.parent_tag_id), [tags])
+  const tagIds = useMemo(() => rootTags.map((t) => `sort-tag-${t.id}`), [rootTags])
+
+  const handleSort = useCallback((direction: 'a-z' | 'z-a') => {
+    const raw = (tagsArr ?? []).filter((t) => !t.parent_tag_id)
+    const sorted = sortAlpha(raw, direction)
+    const items = sorted.map((t, i) => ({ id: t.id, sort_order: (i + 1) * 1024 }))
+    reorderTagsMut.mutate(items)
+  }, [tagsArr, reorderTagsMut])
 
   if (tags.length === 0) return null
 
   return (
-    <div className="border-t border-neutral-200 pt-3 dark:border-neutral-700">
+    <div className="group/section border-t border-neutral-200 pt-3 dark:border-neutral-700">
     <Collapsible.Root open={open} onOpenChange={setOpen}>
       <Collapsible.Trigger className="flex w-full items-center px-3 py-2 text-xs font-semibold uppercase tracking-wide text-neutral-500 hover:text-neutral-700 dark:text-neutral-400 dark:hover:text-neutral-300">
         Tags
-        <span className="ml-auto flex h-5 w-5 items-center justify-center">
-          <ChevronRight
-            size={14}
-            className={`transition-transform ${open ? 'rotate-90' : ''}`}
-          />
+        <span className="ml-auto flex items-center gap-1">
+          <SortButtons onSort={handleSort} />
+          <span className="flex h-5 w-5 items-center justify-center">
+            <ChevronRight
+              size={14}
+              className={`transition-transform ${open ? 'rotate-90' : ''}`}
+            />
+          </span>
         </span>
       </Collapsible.Trigger>
       <AnimatePresence initial={false}>
@@ -808,9 +896,8 @@ function TagList() {
               transition={{ type: 'spring', stiffness: 400, damping: 35 }}
               className="space-y-0.5 overflow-hidden"
             >
-              {tags
-                .filter((t) => !t.parent_tag_id)
-                .map((tag) => {
+              <SortableContext items={tagIds} strategy={verticalListSortingStrategy}>
+              {rootTags.map((tag) => {
                   const children = tags.filter((t) => t.parent_tag_id === tag.id)
                   const isSiyuan = isSiYuanTag(tag.title)
                   const tagItem = (
@@ -824,7 +911,7 @@ function TagList() {
                     />
                   )
                   return (
-                    <div key={tag.id}>
+                    <SortableSidebarItem key={tag.id} id={`sort-tag-${tag.id}`}>
                       {isSiyuan ? (
                         <div>{tagItem}</div>
                       ) : (
@@ -853,9 +940,10 @@ function TagList() {
                           </SidebarDropTarget>
                         )
                       })}
-                    </div>
+                    </SortableSidebarItem>
                   )
                 })}
+              </SortableContext>
             </motion.div>
           </Collapsible.Content>
         )}

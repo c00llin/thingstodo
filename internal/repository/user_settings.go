@@ -19,9 +19,9 @@ func NewUserSettingsRepository(db *sql.DB) *UserSettingsRepository {
 func (r *UserSettingsRepository) GetOrCreate(userID string) (*model.UserSettings, error) {
 	var s model.UserSettings
 	err := r.db.QueryRow(
-		"SELECT play_complete_sound, show_count_main, show_count_projects, show_count_tags, review_after_days FROM user_settings WHERE user_id = ?",
+		"SELECT play_complete_sound, show_count_main, show_count_projects, show_count_tags, review_after_days, sort_areas, sort_tags FROM user_settings WHERE user_id = ?",
 		userID,
-	).Scan(&s.PlayCompleteSound, &s.ShowCountMain, &s.ShowCountProjects, &s.ShowCountTags, &s.ReviewAfterDays)
+	).Scan(&s.PlayCompleteSound, &s.ShowCountMain, &s.ShowCountProjects, &s.ShowCountTags, &s.ReviewAfterDays, &s.SortAreas, &s.SortTags)
 	if err == sql.ErrNoRows {
 		_, err = r.db.Exec(
 			"INSERT INTO user_settings (user_id) VALUES (?)", userID,
@@ -36,6 +36,8 @@ func (r *UserSettingsRepository) GetOrCreate(userID string) (*model.UserSettings
 			ShowCountProjects: true,
 			ShowCountTags:     true,
 			ReviewAfterDays:   &defaultDays,
+			SortAreas:         "manual",
+			SortTags:          "manual",
 		}
 		return &s, nil
 	}
@@ -72,6 +74,14 @@ func (r *UserSettingsRepository) Update(userID string, input model.UpdateUserSet
 		} else {
 			args = append(args, nil)
 		}
+	}
+	if input.SortAreas != nil {
+		setClauses = append(setClauses, "sort_areas = ?")
+		args = append(args, *input.SortAreas)
+	}
+	if input.SortTags != nil {
+		setClauses = append(setClauses, "sort_tags = ?")
+		args = append(args, *input.SortTags)
 	}
 
 	if len(setClauses) > 0 {

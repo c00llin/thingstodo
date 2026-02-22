@@ -1,5 +1,5 @@
 import { api } from './client'
-import type { Tag, Task, CreateTagRequest, UpdateTagRequest } from './types'
+import type { Tag, Task, CreateTagRequest, UpdateTagRequest, SimpleReorderItem } from './types'
 
 export function listTags() {
   return api.get<{ tags: Tag[] }>('/tags')
@@ -19,4 +19,8 @@ export function deleteTag(id: string) {
 
 export function getTagTasks(id: string) {
   return api.get<{ tasks: Task[] }>(`/tags/${id}/tasks`)
+}
+
+export function reorderTags(items: SimpleReorderItem[]) {
+  return api.patch<{ ok: boolean }>('/tags/reorder', { items })
 }

@@ -1,5 +1,5 @@
 import { api } from './client'
-import type { Area, AreaDetail, CreateAreaRequest, UpdateAreaRequest } from './types'
+import type { Area, AreaDetail, CreateAreaRequest, UpdateAreaRequest, SimpleReorderItem } from './types'
 
 export function listAreas() {
   return api.get<{ areas: Area[] }>('/areas')
@@ -19,4 +19,8 @@ export function updateArea(id: string, data: UpdateAreaRequest) {
 
 export function deleteArea(id: string) {
   return api.delete<void>(`/areas/${id}`)
+}
+
+export function reorderAreas(items: SimpleReorderItem[]) {
+  return api.patch<{ ok: boolean }>('/areas/reorder', { items })
 }

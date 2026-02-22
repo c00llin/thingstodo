@@ -33,6 +33,7 @@ import type {
   ProjectStatus,
   LoginRequest,
   UserSettings,
+  SimpleReorderItem,
 } from '../api/types'
 
 // --- Query Keys ---
@@ -600,6 +601,16 @@ export function useDeleteProject() {
   })
 }
 
+export function useReorderProjects() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (items: SimpleReorderItem[]) => projectsApi.reorderProjects(items),
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.projects.all })
+    },
+  })
+}
+
 // --- Area Hooks ---
 
 export function useAreas() {
@@ -645,6 +656,16 @@ export function useDeleteArea() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.areas.all })
       queryClient.invalidateQueries({ queryKey: ['views'] })
+    },
+  })
+}
+
+export function useReorderAreas() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (items: SimpleReorderItem[]) => areasApi.reorderAreas(items),
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.areas.all })
     },
   })
 }
@@ -695,6 +716,16 @@ export function useDeleteTag() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.tags.all })
       queryClient.invalidateQueries({ queryKey: ['views'] })
+    },
+  })
+}
+
+export function useReorderTags() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (items: SimpleReorderItem[]) => tagsApi.reorderTags(items),
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.tags.all })
     },
   })
 }

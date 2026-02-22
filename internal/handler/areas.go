@@ -89,6 +89,28 @@ func (h *AreaHandler) Update(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, area)
 }
 
+func (h *AreaHandler) Reorder(w http.ResponseWriter, r *http.Request) {
+	var body struct {
+		Items []model.SimpleReorderItem `json:"items"`
+	}
+	if err := decodeJSON(r, &body); err != nil {
+		writeError(w, http.StatusBadRequest, "invalid JSON", "BAD_REQUEST")
+		return
+	}
+	if err := h.repo.Reorder(body.Items); err != nil {
+		writeError(w, http.StatusInternalServerError, err.Error(), "INTERNAL")
+		return
+	}
+	ids := make([]string, len(body.Items))
+	for i, item := range body.Items {
+		ids[i] = item.ID
+	}
+	h.broker.BroadcastJSON("bulk_change", map[string]interface{}{
+		"type": "reorder", "entity": "area", "ids": ids,
+	})
+	writeJSON(w, http.StatusOK, map[string]bool{"ok": true})
+}
+
 func (h *AreaHandler) Delete(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")
 	if err := h.repo.DeleteWithTasks(id); err != nil {

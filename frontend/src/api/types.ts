@@ -152,6 +152,11 @@ export interface ReorderItem {
   sort_order: number
 }
 
+export interface SimpleReorderItem {
+  id: string
+  sort_order: number
+}
+
 // Projects
 export type ProjectStatus = 'open' | 'completed' | 'canceled'
 
@@ -384,12 +389,16 @@ export interface SearchResponse {
 }
 
 // User Settings
+export type SortPreference = 'manual' | 'a-z' | 'z-a'
+
 export interface UserSettings {
   play_complete_sound: boolean
   show_count_main: boolean
   show_count_projects: boolean
   show_count_tags: boolean
   review_after_days: number | null
+  sort_areas: SortPreference
+  sort_tags: SortPreference
 }
 
 // Task query params
