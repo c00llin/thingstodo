@@ -874,6 +874,7 @@ export function useSearch(query: string) {
     queryKey: queryKeys.search(query),
     queryFn: () => searchApi.search(query),
     enabled: query.length > 0,
+    staleTime: 0,
   })
 }
 

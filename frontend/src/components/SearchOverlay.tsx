@@ -6,6 +6,18 @@ import { useSearch } from '../hooks/queries'
 import { getTaskContext } from '../hooks/useTaskContext'
 import type { SearchResult } from '../api/types'
 
+/** Wait for a task element to appear in the DOM, then expand and scroll to it.
+ *  Retries briefly to handle page navigation + data loading delays. */
+function expandAndScrollToTask(taskId: string, attempts = 0) {
+  const el = document.querySelector<HTMLElement>(`[data-task-id="${taskId}"]`)
+  if (el) {
+    useAppStore.getState().expandTask(taskId)
+    el.scrollIntoView({ block: 'center', behavior: 'smooth' })
+  } else if (attempts < 20) {
+    setTimeout(() => expandAndScrollToTask(taskId, attempts + 1), 100)
+  }
+}
+
 export function SearchOverlay() {
   const open = useAppStore((s) => s.searchOpen)
   if (!open) return null
@@ -14,7 +26,6 @@ export function SearchOverlay() {
 
 function SearchOverlayInner() {
   const close = useAppStore((s) => s.closeSearch)
-  const expandTask = useAppStore((s) => s.expandTask)
   const navigate = useNavigate()
 
   const [query, setQuery] = useState('')
@@ -45,13 +56,18 @@ function SearchOverlayInner() {
         navigate(`/project/${task.project_id}`)
       } else if (task.area_id) {
         navigate(`/area/${task.area_id}`)
+      } else if (task.when_date === 'someday') {
+        navigate('/someday')
+      } else if (task.when_date) {
+        const today = new Date().toISOString().slice(0, 10)
+        navigate(task.when_date <= today ? '/today' : '/upcoming')
       } else {
         navigate('/inbox')
       }
-      setTimeout(() => expandTask(task.id), 50)
+      expandAndScrollToTask(task.id)
       close()
     },
-    [navigate, expandTask, close],
+    [navigate, close],
   )
 
   const onKeyDown = useCallback(
