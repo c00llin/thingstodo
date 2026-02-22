@@ -1,4 +1,4 @@
-import { type ReactNode, useState, useCallback } from 'react'
+import { type ReactNode, useState, useCallback, useMemo } from 'react'
 import {
   DndContext,
   type DragEndEvent,
@@ -154,11 +154,11 @@ function AppDndContextInner({ children }: AppDndContextProps) {
   const [activeTask, setActiveTask] = useState<Task | null>(null)
   const [activeProjectName, setActiveProjectName] = useState<string | null>(null)
   const { data: projectsData } = useProjects()
-  const projects = projectsData?.projects ?? []
+  const projects = useMemo(() => projectsData?.projects ?? [], [projectsData?.projects])
   const { data: areasData } = useAreas()
-  const areas = areasData?.areas ?? []
+  const areas = useMemo(() => areasData?.areas ?? [], [areasData?.areas])
   const { data: tagsData } = useTags()
-  const allTags = tagsData?.tags ?? []
+  const allTags = useMemo(() => tagsData?.tags ?? [], [tagsData?.tags])
   const queryClient = useQueryClient()
   const registry = useSortableListRegistry()
 

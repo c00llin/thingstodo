@@ -27,6 +27,7 @@ export function SortableTaskList({ tasks, sortField, showProject, hideWhenDate }
   })
 
   const taskIds = tasks.map((t) => t.id)
+  const taskIdsKey = taskIds.join(',')
   const expandedTaskId = useAppStore((s) => s.expandedTaskId)
   const expandTask = useAppStore((s) => s.expandTask)
 
@@ -34,14 +35,14 @@ export function SortableTaskList({ tasks, sortField, showProject, hideWhenDate }
   const prevTaskIdsRef = useRef<Set<string>>(new Set(taskIds))
   useEffect(() => {
     prevTaskIdsRef.current = new Set(taskIds)
-  }, [taskIds.join(',')])
+  }, [taskIds, taskIdsKey])
 
   // Close detail panel only if the expanded task was removed from THIS list
   useEffect(() => {
     if (expandedTaskId && prevTaskIdsRef.current.has(expandedTaskId) && !taskIds.includes(expandedTaskId)) {
       expandTask(null)
     }
-  }, [taskIds.join(','), expandedTaskId, expandTask])
+  }, [taskIds, taskIdsKey, expandedTaskId, expandTask])
 
   return (
     <SortableContext items={taskIds} strategy={verticalListSortingStrategy}>

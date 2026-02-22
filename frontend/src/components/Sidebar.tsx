@@ -976,7 +976,6 @@ function NameInputDialog({
     if (open) {
       // eslint-disable-next-line react-hooks/set-state-in-effect -- reset on open
       setValue('')
-      // eslint-disable-next-line react-hooks/set-state-in-effect -- reset on open
       setErrorMsg(null)
       requestAnimationFrame(() => inputRef.current?.focus())
     }
