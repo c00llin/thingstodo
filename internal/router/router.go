@@ -8,6 +8,7 @@ import (
 	"log"
 	"mime"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/collinjanssen/thingstodo/internal/config"
@@ -201,6 +202,15 @@ func New(db *sql.DB, cfg config.Config, broker *sse.Broker, sched *scheduler.Sch
 		if path == "" {
 			path = "index.html"
 		}
+
+		// Set Cache-Control headers based on file type
+		// Hashed assets are immutable; everything else must revalidate
+		if strings.HasPrefix(path, "assets/") {
+			w.Header().Set("Cache-Control", "public, max-age=31536000, immutable")
+		} else {
+			w.Header().Set("Cache-Control", "no-cache")
+		}
+
 		if f, err := staticFS.Open(path); err == nil {
 			f.Close()
 			http.FileServer(http.FS(staticFS)).ServeHTTP(w, req)
