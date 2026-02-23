@@ -20,7 +20,7 @@ import {
   RotateCcw,
   ArrowDownAZ,
   ArrowDownZA,
-
+  X,
 } from 'lucide-react'
 import * as Collapsible from '@radix-ui/react-collapsible'
 import * as Popover from '@radix-ui/react-popover'
@@ -1001,7 +1001,7 @@ function NameInputDialog({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-start justify-center bg-black/50 pt-[15vh]"
+      className="fixed inset-0 z-50 flex items-start justify-center bg-black/50 pt-[8vh] md:pt-[15vh]"
       onClick={(e) => {
         if (e.target === e.currentTarget) onClose()
       }}
@@ -1013,7 +1013,7 @@ function NameInputDialog({
         }
       }}
     >
-      <div className="w-full max-w-lg rounded-xl bg-white shadow-2xl dark:bg-neutral-800">
+      <div className="mx-4 w-full max-w-lg rounded-xl bg-white shadow-2xl md:mx-0 dark:bg-neutral-800">
         <div className="p-4">
           <div className="flex items-center gap-3">
             <span className="shrink-0 text-neutral-400">{icon}</span>
@@ -1039,7 +1039,7 @@ function NameInputDialog({
             <p className="mt-2 text-sm text-red-500">{errorMsg}</p>
           )}
         </div>
-        <div className="flex items-center justify-between border-t border-neutral-200 px-4 py-2 text-xs text-neutral-400 dark:border-neutral-700 dark:text-neutral-500">
+        <div className="hidden items-center justify-between border-t border-neutral-200 px-4 py-2 text-xs text-neutral-400 md:flex dark:border-neutral-700 dark:text-neutral-500">
           <span>Enter to create {label}</span>
           <span>Esc to close</span>
         </div>
@@ -1135,74 +1135,15 @@ function LogoutButton({ size = 16 }: { size?: number }) {
 export function Sidebar() {
   const collapsed = useAppStore((s) => s.sidebarCollapsed)
   const toggleSidebar = useAppStore((s) => s.toggleSidebar)
+  const mobileSidebarOpen = useAppStore((s) => s.mobileSidebarOpen)
+  const closeMobileSidebar = useAppStore((s) => s.closeMobileSidebar)
   const navigate = useNavigate()
   const { data: counts } = useViewCounts()
   const overdueCount = counts?.overdue ?? 0
   const reviewCount = counts?.review ?? 0
 
-  if (collapsed) {
-    return (
-      <aside className="flex w-12 flex-col items-center border-r border-neutral-200 bg-neutral-50 py-3 dark:border-neutral-700 dark:bg-neutral-800">
-        <button
-          onClick={toggleSidebar}
-          className="rounded-lg p-1.5 text-neutral-500 hover:bg-neutral-200 dark:text-neutral-400 dark:hover:bg-neutral-700"
-          aria-label="Expand sidebar"
-        >
-          <img src="/thingstodo.svg" alt="ThingsToDo" className="h-[18px] w-[18px]" />
-        </button>
-        <LayoutGroup id="sidebar-collapsed">
-        <nav className="mt-4 flex flex-col items-center gap-1">
-          {smartLists.map(({ to, label, icon: Icon }) => (
-            <SidebarNavLink
-              key={to}
-              to={to}
-              className="group rounded-lg p-1.5 transition-colors"
-              activeClassName="text-red-700 dark:text-red-400"
-              inactiveClassName="text-neutral-500 hover:bg-neutral-200 dark:text-neutral-400 dark:hover:bg-neutral-700"
-              layoutId="sidebar-active-indicator-collapsed"
-            >
-              <Icon size={18} className="relative z-10" />
-              {label === 'Today' && overdueCount > 0 && (
-                <span className="absolute -right-0.5 -top-0.5 z-20 flex h-3.5 min-w-3.5 items-center justify-center rounded-full bg-red-500 px-0.5 text-[8px] font-bold text-white">
-                  {overdueCount}
-                </span>
-              )}
-              {label === 'Inbox' && reviewCount > 0 && (
-                <span className="absolute -right-0.5 -top-0.5 z-20 flex h-3.5 min-w-3.5 items-center justify-center rounded-full bg-red-500 px-0.5 text-[8px] font-bold text-white">
-                  {reviewCount}
-                </span>
-              )}
-              <span className="pointer-events-none absolute left-full top-1/2 z-50 ml-2 -translate-y-1/2 whitespace-nowrap rounded-md bg-neutral-900 px-2 py-1 text-xs text-white opacity-0 transition-opacity group-hover:opacity-100 dark:bg-neutral-700">
-                {label}
-              </span>
-            </SidebarNavLink>
-          ))}
-        </nav>
-        </LayoutGroup>
-        <div className="mt-auto flex flex-col items-center gap-1">
-          <PlusMenu side="right" />
-        </div>
-      </aside>
-    )
-  }
-
-  return (
-    <aside className="flex w-72 flex-col border-r border-neutral-200 bg-neutral-50 dark:border-neutral-700 dark:bg-neutral-800">
-      <div className="flex items-center justify-between border-b border-neutral-200 px-3 py-3 dark:border-neutral-700">
-        <div className="flex items-center gap-3 px-3">
-          <div className="flex w-[18px] items-center justify-center">
-            <img src="/thingstodo.svg" alt="" className="h-6 w-6" />
-          </div>
-          <h1 className="text-sm font-semibold text-neutral-900 dark:text-neutral-100">ThingsToDo</h1>
-        </div>
-        <button
-          onClick={toggleSidebar}
-          className="rounded-lg p-1.5 text-neutral-500 hover:bg-neutral-200 dark:text-neutral-400 dark:hover:bg-neutral-700"
-          aria-label="Collapse sidebar"
-        >
-          <PanelLeftClose size={16} />
-        </button>
-      </div>
+  const expandedContent = (
+    <>
       <div className="flex-1 space-y-4 overflow-y-auto p-3">
         <LayoutGroup id="sidebar-expanded">
           <SmartListNav />
@@ -1224,6 +1165,107 @@ export function Sidebar() {
           </button>
         </div>
       </div>
-    </aside>
+    </>
+  )
+
+  return (
+    <>
+      {/* Desktop sidebar */}
+      {collapsed ? (
+        <aside className="hidden w-12 flex-col items-center border-r border-neutral-200 bg-neutral-50 py-3 md:flex dark:border-neutral-700 dark:bg-neutral-800">
+          <button
+            onClick={toggleSidebar}
+            className="rounded-lg p-1.5 text-neutral-500 hover:bg-neutral-200 dark:text-neutral-400 dark:hover:bg-neutral-700"
+            aria-label="Expand sidebar"
+          >
+            <img src="/thingstodo.svg" alt="ThingsToDo" className="h-[18px] w-[18px]" />
+          </button>
+          <LayoutGroup id="sidebar-collapsed">
+          <nav className="mt-4 flex flex-col items-center gap-1">
+            {smartLists.map(({ to, label, icon: Icon }) => (
+              <SidebarNavLink
+                key={to}
+                to={to}
+                className="group rounded-lg p-1.5 transition-colors"
+                activeClassName="text-red-700 dark:text-red-400"
+                inactiveClassName="text-neutral-500 hover:bg-neutral-200 dark:text-neutral-400 dark:hover:bg-neutral-700"
+                layoutId="sidebar-active-indicator-collapsed"
+              >
+                <Icon size={18} className="relative z-10" />
+                {label === 'Today' && overdueCount > 0 && (
+                  <span className="absolute -right-0.5 -top-0.5 z-20 flex h-3.5 min-w-3.5 items-center justify-center rounded-full bg-red-500 px-0.5 text-[8px] font-bold text-white">
+                    {overdueCount}
+                  </span>
+                )}
+                {label === 'Inbox' && reviewCount > 0 && (
+                  <span className="absolute -right-0.5 -top-0.5 z-20 flex h-3.5 min-w-3.5 items-center justify-center rounded-full bg-red-500 px-0.5 text-[8px] font-bold text-white">
+                    {reviewCount}
+                  </span>
+                )}
+                <span className="pointer-events-none absolute left-full top-1/2 z-50 ml-2 -translate-y-1/2 whitespace-nowrap rounded-md bg-neutral-900 px-2 py-1 text-xs text-white opacity-0 transition-opacity group-hover:opacity-100 dark:bg-neutral-700">
+                  {label}
+                </span>
+              </SidebarNavLink>
+            ))}
+          </nav>
+          </LayoutGroup>
+          <div className="mt-auto flex flex-col items-center gap-1">
+            <PlusMenu side="right" />
+          </div>
+        </aside>
+      ) : (
+        <aside className="hidden w-72 flex-col border-r border-neutral-200 bg-neutral-50 md:flex dark:border-neutral-700 dark:bg-neutral-800">
+          <div className="flex items-center justify-between border-b border-neutral-200 px-3 py-3 dark:border-neutral-700">
+            <div className="flex items-center gap-3 px-3">
+              <div className="flex w-[18px] items-center justify-center">
+                <img src="/thingstodo.svg" alt="" className="h-6 w-6" />
+              </div>
+              <h1 className="text-sm font-semibold text-neutral-900 dark:text-neutral-100">ThingsToDo</h1>
+            </div>
+            <button
+              onClick={toggleSidebar}
+              className="rounded-lg p-1.5 text-neutral-500 hover:bg-neutral-200 dark:text-neutral-400 dark:hover:bg-neutral-700"
+              aria-label="Collapse sidebar"
+            >
+              <PanelLeftClose size={16} />
+            </button>
+          </div>
+          {expandedContent}
+        </aside>
+      )}
+
+      {/* Mobile drawer */}
+      {mobileSidebarOpen && (
+        <div
+          className="fixed inset-0 z-40 md:hidden"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) closeMobileSidebar()
+          }}
+        >
+          <div className="absolute inset-0 bg-black/50" onClick={closeMobileSidebar} />
+          <aside
+            className="relative flex h-full w-72 flex-col bg-neutral-50 dark:bg-neutral-800"
+            style={{ paddingTop: 'env(safe-area-inset-top, 0px)', paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
+          >
+            <div className="flex items-center justify-between border-b border-neutral-200 px-3 py-3 dark:border-neutral-700">
+              <div className="flex items-center gap-3 px-3">
+                <div className="flex w-[18px] items-center justify-center">
+                  <img src="/thingstodo.svg" alt="" className="h-6 w-6" />
+                </div>
+                <h1 className="text-sm font-semibold text-neutral-900 dark:text-neutral-100">ThingsToDo</h1>
+              </div>
+              <button
+                onClick={closeMobileSidebar}
+                className="rounded-lg p-1.5 text-neutral-500 hover:bg-neutral-200 dark:text-neutral-400 dark:hover:bg-neutral-700"
+                aria-label="Close sidebar"
+              >
+                <X size={16} />
+              </button>
+            </div>
+            {expandedContent}
+          </aside>
+        </div>
+      )}
+    </>
   )
 }

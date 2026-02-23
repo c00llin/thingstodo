@@ -65,6 +65,11 @@ interface AppStore {
   // Signal that a detail field interaction completed — title editing should resume
   detailFieldCompleted: boolean
   setDetailFieldCompleted: (v: boolean) => void
+
+  // Mobile sidebar drawer
+  mobileSidebarOpen: boolean
+  openMobileSidebar: () => void
+  closeMobileSidebar: () => void
 }
 
 function getInitialCollapsedAreas(): Set<string> {
@@ -148,6 +153,10 @@ export const useAppStore = create<AppStore>((set) => ({
 
   detailFieldCompleted: false,
   setDetailFieldCompleted: (v) => set({ detailFieldCompleted: v }),
+
+  mobileSidebarOpen: false,
+  openMobileSidebar: () => set({ mobileSidebarOpen: true }),
+  closeMobileSidebar: () => set({ mobileSidebarOpen: false }),
 
   selectedTaskIds: new Set(),
   toggleTaskSelection: (id, multi) =>

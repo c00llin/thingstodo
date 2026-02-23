@@ -47,7 +47,7 @@ export function CommandPalette() {
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-start justify-center bg-black/50 pt-[15vh]"
+      className="fixed inset-0 z-50 flex items-start justify-center bg-black/50 pt-[8vh] md:pt-[15vh]"
       onClick={(e) => {
         if (e.target === e.currentTarget) close()
       }}
@@ -59,7 +59,7 @@ export function CommandPalette() {
         }
       }}
     >
-      <Command className="w-full max-w-lg rounded-xl bg-white shadow-2xl dark:bg-neutral-800">
+      <Command className="mx-4 w-full max-w-lg rounded-xl bg-white shadow-2xl md:mx-0 dark:bg-neutral-800">
         <Command.Input
           autoFocus
           placeholder="Go to..."
@@ -132,7 +132,7 @@ export function CommandPalette() {
             </Command.Group>
           )}
         </Command.List>
-        <div className="flex items-center justify-between border-t border-neutral-200 px-4 py-2 text-xs text-neutral-400 dark:border-neutral-700 dark:text-neutral-500">
+        <div className="hidden items-center justify-between border-t border-neutral-200 px-4 py-2 text-xs text-neutral-400 md:flex dark:border-neutral-700 dark:text-neutral-500">
           <span>↑↓ Navigate · Enter Select</span>
           <span>Esc Close</span>
         </div>

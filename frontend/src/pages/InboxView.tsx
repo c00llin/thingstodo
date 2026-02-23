@@ -9,7 +9,7 @@ export function InboxView() {
   const hasReview = (data?.review.length ?? 0) > 0
 
   return (
-    <div className="mx-auto max-w-3xl p-6">
+    <div className="mx-auto max-w-3xl px-4 pt-14 pb-4 md:p-6">
       <h2 className="mb-3 text-2xl font-bold text-neutral-900 dark:text-neutral-100">Inbox</h2>
       {isLoading ? (
         <p className="py-8 text-center text-sm text-neutral-400">Loading...</p>

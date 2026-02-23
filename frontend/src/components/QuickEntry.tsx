@@ -106,7 +106,7 @@ export function QuickEntry() {
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-start justify-center bg-black/50 pt-[15vh]"
+      className="fixed inset-0 z-50 flex items-start justify-center bg-black/50 pt-[8vh] md:pt-[15vh]"
       onClick={(e) => {
         if (e.target === e.currentTarget) close()
       }}
@@ -135,7 +135,7 @@ export function QuickEntry() {
         }
       }}
     >
-      <div className="quick-entry-modal w-full max-w-lg rounded-xl bg-white shadow-2xl dark:bg-neutral-800">
+      <div className="quick-entry-modal mx-4 w-full max-w-lg rounded-xl bg-white shadow-2xl md:mx-0 dark:bg-neutral-800">
         <CreateMode
           title={title}
           onTitleChange={setTitle}
@@ -166,7 +166,7 @@ export function QuickEntry() {
           showDeadline={showDeadline}
           onToggleDeadline={setShowDeadline}
         />
-        <div className="flex items-center justify-between border-t border-neutral-200 px-4 py-2 text-xs text-neutral-400 dark:border-neutral-700 dark:text-neutral-500">
+        <div className="hidden items-center justify-between border-t border-neutral-200 px-4 py-2 text-xs text-neutral-400 md:flex dark:border-neutral-700 dark:text-neutral-500">
           <span>Enter to create · #tag $project *notes @when ^deadline !high</span>
           <span>Esc to close</span>
         </div>

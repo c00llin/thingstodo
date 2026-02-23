@@ -51,7 +51,7 @@ export function ShortcutsHelp() {
     <Dialog.Root open={open} onOpenChange={toggleShortcutsHelp}>
       <Dialog.Portal>
         <Dialog.Overlay className="fixed inset-0 bg-black/40" />
-        <Dialog.Content className="fixed left-1/2 top-1/2 w-full max-w-2xl -translate-x-1/2 -translate-y-1/2 rounded-xl bg-white p-6 shadow-xl dark:bg-neutral-800">
+        <Dialog.Content className="fixed left-1/2 top-1/2 mx-4 w-full max-w-2xl -translate-x-1/2 -translate-y-1/2 rounded-xl bg-white p-4 shadow-xl md:mx-0 md:p-6 dark:bg-neutral-800">
           <div className="mb-4 flex items-center justify-between">
             <Dialog.Title className="text-lg font-semibold text-neutral-900 dark:text-neutral-100">
               Keyboard Shortcuts
@@ -61,7 +61,7 @@ export function ShortcutsHelp() {
             </Dialog.Close>
           </div>
 
-          <div className="grid grid-cols-2 gap-8">
+          <div className="grid grid-cols-1 gap-6 md:grid-cols-2 md:gap-8">
             <div className="space-y-4">
               <div>
                 <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-neutral-500">
