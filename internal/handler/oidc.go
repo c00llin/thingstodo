@@ -18,6 +18,7 @@ import (
 type OIDCHandler struct {
 	repo         *repository.UserRepository
 	cfg          config.Config
+	provider     *oidc.Provider
 	oauth2Config oauth2.Config
 	verifier     *oidc.IDTokenVerifier
 }
@@ -41,6 +42,7 @@ func NewOIDCHandler(ctx context.Context, repo *repository.UserRepository, cfg co
 	return &OIDCHandler{
 		repo:         repo,
 		cfg:          cfg,
+		provider:     provider,
 		oauth2Config: oauth2Cfg,
 		verifier:     verifier,
 	}, nil
@@ -117,10 +119,20 @@ func (h *OIDCHandler) Callback(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Extract email: try ID token claims first, then userinfo endpoint as fallback
 	var claims struct {
 		Email string `json:"email"`
 	}
-	if err := idToken.Claims(&claims); err != nil || claims.Email == "" {
+	_ = idToken.Claims(&claims)
+
+	if claims.Email == "" {
+		userInfo, err := h.provider.UserInfo(r.Context(), oauth2.StaticTokenSource(token))
+		if err == nil {
+			_ = userInfo.Claims(&claims)
+		}
+	}
+
+	if claims.Email == "" {
 		writeError(w, http.StatusUnauthorized, "missing email claim", "UNAUTHORIZED")
 		return
 	}
