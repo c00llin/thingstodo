@@ -1151,9 +1151,8 @@ export function Sidebar() {
           <TagList />
         </LayoutGroup>
       </div>
-      <div className="flex items-center border-t border-neutral-200 px-3 py-2 dark:border-neutral-700">
+      <div className="flex items-center justify-between border-t border-neutral-200 px-3 py-2 dark:border-neutral-700">
         <PlusMenu side="top" />
-        <span className="flex-1 text-center text-[10px] text-neutral-400 dark:text-neutral-500">v{__APP_VERSION__}</span>
         <div className="flex items-center gap-1">
           <ThemeToggle />
           <LogoutButton />
