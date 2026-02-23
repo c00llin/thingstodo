@@ -1,6 +1,6 @@
-import { lazy, Suspense, useEffect } from 'react'
+import { lazy, Suspense, useEffect, useRef } from 'react'
 import { Outlet, Navigate, useLocation } from 'react-router'
-import { Menu } from 'lucide-react'
+import { Menu, RefreshCw } from 'lucide-react'
 import { Sidebar } from './Sidebar'
 import { ShortcutsHelp } from './ShortcutsHelp'
 import { AppDndContext } from './AppDndContext'
@@ -8,6 +8,7 @@ import { useGlobalShortcuts, useTaskShortcuts } from '../hooks/useKeyboardShortc
 import { useTheme } from '../hooks/useTheme'
 import { useSSE } from '../hooks/useSSE'
 import { useMe, useFlushPendingInvalidation } from '../hooks/queries'
+import { usePullToRefresh } from '../hooks/usePullToRefresh'
 import { useAppStore } from '../stores/app'
 
 const QuickEntry = lazy(() => import('./QuickEntry').then(m => ({ default: m.QuickEntry })))
@@ -20,6 +21,8 @@ export function AppLayout() {
   const expandTask = useAppStore((s) => s.expandTask)
   const openMobileSidebar = useAppStore((s) => s.openMobileSidebar)
   const closeMobileSidebar = useAppStore((s) => s.closeMobileSidebar)
+  const mainRef = useRef<HTMLElement>(null)
+  const { pullDistance, isRefreshing } = usePullToRefresh(mainRef)
   useGlobalShortcuts()
   useTaskShortcuts()
   useTheme()
@@ -52,7 +55,20 @@ export function AppLayout() {
     <AppDndContext>
       <div className="flex h-screen bg-white text-neutral-900 dark:bg-neutral-900 dark:text-neutral-100">
         <Sidebar />
-        <main className="relative flex-1 overflow-y-auto">
+        <main ref={mainRef} className="relative flex-1 overflow-y-auto overscroll-contain">
+          {/* Pull-to-refresh indicator (mobile only) */}
+          {(pullDistance > 0 || isRefreshing) && (
+            <div
+              className="pointer-events-none flex items-center justify-center md:hidden"
+              style={{ height: isRefreshing ? 48 : pullDistance }}
+            >
+              <RefreshCw
+                size={20}
+                className={`text-neutral-400 ${isRefreshing ? 'animate-spin' : ''}`}
+                style={{ transform: isRefreshing ? undefined : `rotate(${pullDistance * 3}deg)`, opacity: Math.min(1, pullDistance / 60) }}
+              />
+            </div>
+          )}
           <button
             onClick={openMobileSidebar}
             className="fixed left-4 z-30 rounded-lg bg-white/80 p-2 shadow-md backdrop-blur-sm md:hidden dark:bg-neutral-800/80"

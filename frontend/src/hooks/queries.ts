@@ -170,7 +170,7 @@ export function invalidateViewQueries(
 }
 
 /** Fire view/task/tag invalidation unconditionally (bypasses deferral guards). */
-function forceInvalidateViewQueries(
+export function forceInvalidateViewQueries(
   queryClient: ReturnType<typeof useQueryClient>,
   opts?: { refetchType?: 'all' },
 ) {
