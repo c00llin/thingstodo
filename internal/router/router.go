@@ -1,11 +1,14 @@
 package router
 
 import (
+	"context"
 	"database/sql"
 	"encoding/json"
 	"io/fs"
+	"log"
 	"mime"
 	"net/http"
+	"time"
 
 	"github.com/collinjanssen/thingstodo/internal/config"
 	"github.com/collinjanssen/thingstodo/internal/frontend"
@@ -53,6 +56,17 @@ func New(db *sql.DB, cfg config.Config, broker *sse.Broker, sched *scheduler.Sch
 	settingsH := handler.NewUserSettingsHandler(settingsRepo)
 	eventH := handler.NewEventHandler(broker)
 
+	var oidcH *handler.OIDCHandler
+	if cfg.AuthMode == "oidc" {
+		ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+		defer cancel()
+		var err error
+		oidcH, err = handler.NewOIDCHandler(ctx, userRepo, cfg)
+		if err != nil {
+			log.Fatalf("OIDC initialization failed: %v", err)
+		}
+	}
+
 	// Health check
 	r.Get("/health", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
@@ -64,6 +78,11 @@ func New(db *sql.DB, cfg config.Config, broker *sse.Broker, sched *scheduler.Sch
 		// Auth endpoints (no middleware)
 		r.Post("/auth/login", authH.Login)
 		r.Delete("/auth/logout", authH.Logout)
+		r.Get("/auth/config", authH.AuthConfig)
+		if oidcH != nil {
+			r.Get("/auth/oidc/login", oidcH.Login)
+			r.Get("/auth/oidc/callback", oidcH.Callback)
+		}
 
 		// SSE events (before auth middleware so it can connect)
 		r.Get("/events", eventH.Stream)

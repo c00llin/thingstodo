@@ -2,7 +2,7 @@
 
 Base URL: `/api`
 
-All endpoints return JSON. All mutations broadcast SSE events. Authentication via httpOnly JWT cookie (builtin mode), proxy header (proxy mode), or API key via `Authorization: Bearer <key>` header (builtin mode).
+All endpoints return JSON. All mutations broadcast SSE events. Authentication via httpOnly JWT cookie (builtin/oidc mode), proxy header (proxy mode), or API key via `Authorization: Bearer <key>` header.
 
 ---
 
@@ -44,8 +44,18 @@ The API key authenticates as the first (admin) user in the database. This is use
 
 If the header is present but the key is wrong, the request is rejected with 401 immediately (no fallback to cookie auth).
 
+### GET /api/auth/config
+**Mode: all** (public, no authentication required)
+
+Returns the current auth mode so the login page can render the appropriate UI.
+
+Response (200):
+```json
+{ "auth_mode": "builtin|proxy|oidc|none" }
+```
+
 ### POST /api/auth/login
-**Mode: builtin only** (returns 404 in proxy mode)
+**Mode: builtin only** (returns 404 in proxy/oidc modes)
 
 Request:
 ```json
@@ -58,9 +68,9 @@ Response (200): Sets httpOnly JWT cookie
 ```
 
 ### DELETE /api/auth/logout
-**Mode: builtin only**
+**Mode: builtin, oidc**
 
-Response (200): Clears JWT cookie
+Response (200): Clears JWT cookie (local logout only, no IdP redirect)
 ```json
 { "ok": true }
 ```
@@ -70,8 +80,21 @@ Response (200):
 ```json
 {
   "user": { "id": "string", "username": "string" },
-  "auth_mode": "builtin|proxy|none"
+  "auth_mode": "builtin|proxy|oidc|none"
 }
+```
+
+### GET /api/auth/oidc/login
+**Mode: oidc only**
+
+Redirects the browser to the configured OIDC provider's authorization endpoint. Sets a signed `oidc_state` cookie for CSRF protection. Not a JSON API — browser navigation only.
+
+### GET /api/auth/oidc/callback
+**Mode: oidc only**
+
+OIDC redirect URI. Verifies state, exchanges authorization code for tokens, extracts the `email` claim, provisions/links the user on first login, and issues the app JWT cookie. Redirects to `/inbox` on success. Returns 403 if the OIDC email doesn't match the linked user (single-user enforcement).
+
+Required env vars: `OIDC_ISSUER`, `OIDC_CLIENT_ID`, `OIDC_CLIENT_SECRET`, `OIDC_REDIRECT_URI`
 ```
 
 ---

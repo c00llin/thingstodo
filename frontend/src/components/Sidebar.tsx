@@ -1118,7 +1118,7 @@ function LogoutButton({ size = 16 }: { size?: number }) {
   const { data } = useMe()
   const logout = useLogout()
 
-  if (data?.auth_mode !== 'builtin') return null
+  if (data?.auth_mode !== 'builtin' && data?.auth_mode !== 'oidc') return null
 
   return (
     <button

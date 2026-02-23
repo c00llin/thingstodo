@@ -17,6 +17,12 @@ type Config struct {
 	JWTSecret       string
 	LoginPassword   string
 	APIKey          string
+
+	// OIDC (AUTH_MODE=oidc)
+	OIDCIssuer       string
+	OIDCClientID     string
+	OIDCClientSecret string
+	OIDCRedirectURI  string
 }
 
 func Load() Config {
@@ -33,6 +39,11 @@ func Load() Config {
 		JWTSecret:       envStr("JWT_SECRET", ""),
 		LoginPassword:   envStr("LOGIN_PASSWORD", ""),
 		APIKey:          envStr("API_KEY", ""),
+
+		OIDCIssuer:       envStr("OIDC_ISSUER", ""),
+		OIDCClientID:     envStr("OIDC_CLIENT_ID", ""),
+		OIDCClientSecret: envStr("OIDC_CLIENT_SECRET", ""),
+		OIDCRedirectURI:  envStr("OIDC_REDIRECT_URI", ""),
 	}
 }
 

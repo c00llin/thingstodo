@@ -22,7 +22,7 @@ func NewAuthHandler(repo *repository.UserRepository, cfg config.Config) *AuthHan
 
 func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 	if h.cfg.AuthMode != "builtin" {
-		writeError(w, http.StatusNotFound, "login not available in proxy mode", "NOT_FOUND")
+		writeError(w, http.StatusNotFound, "login not available in this auth mode", "NOT_FOUND")
 		return
 	}
 
@@ -108,5 +108,9 @@ func (h *AuthHandler) Me(w http.ResponseWriter, r *http.Request) {
 		"user":      map[string]string{"id": user.ID, "username": user.Username},
 		"auth_mode": h.cfg.AuthMode,
 	})
+}
+
+func (h *AuthHandler) AuthConfig(w http.ResponseWriter, r *http.Request) {
+	writeJSON(w, http.StatusOK, map[string]string{"auth_mode": h.cfg.AuthMode})
 }
 

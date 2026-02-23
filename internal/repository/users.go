@@ -53,6 +53,11 @@ func (r *UserRepository) GetFirst() (*model.User, error) {
 	return &u, nil
 }
 
+func (r *UserRepository) UpdateUsername(id, username string) error {
+	_, err := r.db.Exec("UPDATE users SET username = ? WHERE id = ?", username, id)
+	return err
+}
+
 func (r *UserRepository) GetByID(id string) (*model.User, error) {
 	var u model.User
 	err := r.db.QueryRow(
