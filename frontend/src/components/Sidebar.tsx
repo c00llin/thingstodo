@@ -1151,22 +1151,20 @@ export function Sidebar() {
           <TagList />
         </LayoutGroup>
       </div>
-      <div className="border-t border-neutral-200 px-3 py-2 dark:border-neutral-700">
-        <div className="flex items-center justify-between">
-          <PlusMenu side="top" />
-          <div className="flex items-center gap-1">
-            <ThemeToggle />
-            <LogoutButton />
-            <button
-              onClick={() => navigate('/settings')}
-              className="rounded-lg p-1.5 text-neutral-500 hover:bg-neutral-200 dark:text-neutral-400 dark:hover:bg-neutral-700"
-              aria-label="Settings"
-            >
-              <Settings size={16} />
-            </button>
-          </div>
+      <div className="flex items-center border-t border-neutral-200 px-3 py-2 dark:border-neutral-700">
+        <PlusMenu side="top" />
+        <span className="flex-1 text-center text-[10px] text-neutral-400 dark:text-neutral-500">v{__APP_VERSION__}</span>
+        <div className="flex items-center gap-1">
+          <ThemeToggle />
+          <LogoutButton />
+          <button
+            onClick={() => navigate('/settings')}
+            className="rounded-lg p-1.5 text-neutral-500 hover:bg-neutral-200 dark:text-neutral-400 dark:hover:bg-neutral-700"
+            aria-label="Settings"
+          >
+            <Settings size={16} />
+          </button>
         </div>
-        <p className="mt-1 text-center text-[10px] text-neutral-400 dark:text-neutral-500">v{__APP_VERSION__}</p>
       </div>
     </>
   )
