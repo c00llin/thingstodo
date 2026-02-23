@@ -134,6 +134,10 @@ export function SettingsView() {
           />
         </div>
       </section>
+
+      <p className="mt-12 text-center text-xs text-neutral-400 dark:text-neutral-500">
+        ThingsToDo v{__APP_VERSION__}
+      </p>
     </div>
   )
 }
