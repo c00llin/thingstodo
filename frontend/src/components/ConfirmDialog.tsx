@@ -31,7 +31,7 @@ export function ConfirmDialog({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-start justify-center bg-black/50 pt-[15vh]"
+      className="fixed inset-0 z-50 flex items-start justify-center bg-black/50 pt-[8vh] md:pt-[15vh]"
       onClick={(e) => {
         if (e.target === e.currentTarget) onCancel()
       }}
@@ -43,7 +43,7 @@ export function ConfirmDialog({
         }
       }}
     >
-      <div className="w-full max-w-lg rounded-xl bg-white shadow-2xl dark:bg-neutral-800">
+      <div className="mx-4 w-full max-w-lg rounded-xl bg-white shadow-2xl md:mx-0 dark:bg-neutral-800">
         <div className="p-4">
           <h3 className="text-base font-medium text-neutral-900 dark:text-neutral-100">
             {title}
@@ -53,7 +53,7 @@ export function ConfirmDialog({
           </p>
         </div>
         <div className="flex items-center justify-between border-t border-neutral-200 px-4 py-2 dark:border-neutral-700">
-          <span className="text-xs text-neutral-400 dark:text-neutral-500">
+          <span className="hidden text-xs text-neutral-400 md:block dark:text-neutral-500">
             Enter to confirm · Esc to cancel
           </span>
           <div className="flex gap-2">

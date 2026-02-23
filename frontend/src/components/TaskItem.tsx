@@ -253,14 +253,14 @@ export function TaskItem({ task, showProject = true, hideWhenDate = false, showR
       >
         {/* Drag handle */}
         <button
-          className="absolute -left-5 top-1/2 -translate-y-1/2 cursor-grab touch-none rounded p-0.5 text-neutral-300 opacity-0 transition-opacity hover:text-neutral-500 group-hover/item:opacity-100 active:cursor-grabbing dark:text-neutral-600 dark:hover:text-neutral-400"
+          className="absolute -left-5 top-1/2 hidden -translate-y-1/2 cursor-grab touch-none rounded p-0.5 text-neutral-300 opacity-0 transition-opacity hover:text-neutral-500 group-hover/item:opacity-100 active:cursor-grabbing md:block dark:text-neutral-600 dark:hover:text-neutral-400"
           {...attributes}
           {...listeners}
           onClick={(e) => e.stopPropagation()}
         >
           <GripVertical size={16} />
         </button>
-        <div className="shrink-0" onClick={(e) => e.stopPropagation()}>
+        <div className="shrink-0 flex items-center justify-center min-h-[44px] min-w-[44px] md:min-h-0 md:min-w-0" onClick={(e) => e.stopPropagation()}>
           {task.status === 'canceled' || task.status === 'wont_do' ? (
             <TaskStatusIcon status={task.status} />
           ) : (
@@ -278,7 +278,7 @@ export function TaskItem({ task, showProject = true, hideWhenDate = false, showR
           )}
         </div>
         <div className="min-w-0 flex-1">
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
             {editing ? (
               <>
                 <input
@@ -360,7 +360,7 @@ export function TaskItem({ task, showProject = true, hideWhenDate = false, showR
               </span>
             )}
             {!editing && (
-              <div className="ml-auto flex items-center gap-2 text-xs text-neutral-400">
+              <div className="flex items-center gap-2 text-xs text-neutral-400 md:ml-auto">
                 {task.deadline && (
                   <span className="flex items-center gap-1 text-red-500">
                     <Flag size={12} />

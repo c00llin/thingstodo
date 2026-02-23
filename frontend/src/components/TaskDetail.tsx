@@ -209,7 +209,7 @@ export function TaskDetail({ taskId }: TaskDetailProps) {
 
   return (
     <div
-      className="space-y-3 border-t border-neutral-100 py-4 pl-[64px] pr-6 dark:border-neutral-700"
+      className="space-y-3 border-t border-neutral-100 py-4 pl-6 pr-4 md:pl-[64px] md:pr-6 dark:border-neutral-700"
       onKeyDown={handleKeyDown}
     >
       {/* Notes — shown when has notes or toggled */}
@@ -349,7 +349,7 @@ export function TaskDetail({ taskId }: TaskDetailProps) {
         {!hasNotes && !showNotes && (
           <button
             onClick={() => { setShowNotes(true); setEditingNotes(true) }}
-            className="rounded-md p-1 text-neutral-400 hover:bg-neutral-100 hover:text-neutral-600 dark:hover:bg-neutral-800 dark:hover:text-neutral-300"
+            className="rounded-md p-2 md:p-1 text-neutral-400 hover:bg-neutral-100 hover:text-neutral-600 dark:hover:bg-neutral-800 dark:hover:text-neutral-300"
             aria-label="Add notes"
             title="Notes"
           >
@@ -359,7 +359,7 @@ export function TaskDetail({ taskId }: TaskDetailProps) {
         {!hasWhen && !showWhen && (
           <button
             onClick={() => setShowWhen(true)}
-            className="rounded-md p-1 text-neutral-400 hover:bg-neutral-100 hover:text-neutral-600 dark:hover:bg-neutral-800 dark:hover:text-neutral-300"
+            className="rounded-md p-2 md:p-1 text-neutral-400 hover:bg-neutral-100 hover:text-neutral-600 dark:hover:bg-neutral-800 dark:hover:text-neutral-300"
             aria-label="Set when date"
             title="When"
           >
@@ -369,7 +369,7 @@ export function TaskDetail({ taskId }: TaskDetailProps) {
         {!hasDeadline && !showDeadline && (
           <button
             onClick={() => setShowDeadline(true)}
-            className="rounded-md p-1 text-neutral-400 hover:bg-neutral-100 hover:text-neutral-600 dark:hover:bg-neutral-800 dark:hover:text-neutral-300"
+            className="rounded-md p-2 md:p-1 text-neutral-400 hover:bg-neutral-100 hover:text-neutral-600 dark:hover:bg-neutral-800 dark:hover:text-neutral-300"
             aria-label="Set deadline"
             title="Deadline"
           >
@@ -379,7 +379,7 @@ export function TaskDetail({ taskId }: TaskDetailProps) {
         {!hasChecklist && !showChecklist && (
           <button
             onClick={() => setShowChecklist(true)}
-            className="rounded-md p-1 text-neutral-400 hover:bg-neutral-100 hover:text-neutral-600 dark:hover:bg-neutral-800 dark:hover:text-neutral-300"
+            className="rounded-md p-2 md:p-1 text-neutral-400 hover:bg-neutral-100 hover:text-neutral-600 dark:hover:bg-neutral-800 dark:hover:text-neutral-300"
             aria-label="Add checklist"
             title="Checklist"
           >
@@ -401,7 +401,7 @@ export function TaskDetail({ taskId }: TaskDetailProps) {
         ) : (
           <button
             onClick={() => updateTask.mutate({ id: taskId, data: { high_priority: true } })}
-            className="rounded-md p-1 text-neutral-400 hover:bg-neutral-100 hover:text-neutral-600 dark:hover:bg-neutral-800 dark:hover:text-neutral-300"
+            className="rounded-md p-2 md:p-1 text-neutral-400 hover:bg-neutral-100 hover:text-neutral-600 dark:hover:bg-neutral-800 dark:hover:text-neutral-300"
             aria-label="Set high priority"
             title="High priority"
           >
@@ -411,7 +411,7 @@ export function TaskDetail({ taskId }: TaskDetailProps) {
         {hasSiYuan ? (
           <button
             disabled
-            className="rounded-md p-1 text-neutral-300 cursor-not-allowed dark:text-neutral-600"
+            className="rounded-md p-2 md:p-1 text-neutral-300 cursor-not-allowed dark:text-neutral-600"
             aria-label={hasRepeatRule ? 'Recurring disabled — remove SiYuan link to edit' : 'Recurring not available for SiYuan-linked tasks'}
             title={hasRepeatRule ? 'Has a repeat rule — remove SiYuan link to edit' : 'Recurring not available for SiYuan-linked tasks'}
           >
@@ -430,7 +430,7 @@ export function TaskDetail({ taskId }: TaskDetailProps) {
         ) : !showRepeat && (
           <button
             onClick={() => setShowRepeat(true)}
-            className="rounded-md p-1 text-neutral-400 hover:bg-neutral-100 hover:text-neutral-600 dark:hover:bg-neutral-800 dark:hover:text-neutral-300"
+            className="rounded-md p-2 md:p-1 text-neutral-400 hover:bg-neutral-100 hover:text-neutral-600 dark:hover:bg-neutral-800 dark:hover:text-neutral-300"
             aria-label="Repeat"
             title="Repeat"
           >
@@ -442,7 +442,7 @@ export function TaskDetail({ taskId }: TaskDetailProps) {
             <>
               <button
                 onClick={handleCancel}
-                className="rounded-md p-1 text-neutral-400 hover:bg-neutral-100 hover:text-neutral-600 dark:hover:bg-neutral-800 dark:hover:text-neutral-300"
+                className="rounded-md p-2 md:p-1 text-neutral-400 hover:bg-neutral-100 hover:text-neutral-600 dark:hover:bg-neutral-800 dark:hover:text-neutral-300"
                 aria-label="Cancel task"
                 title="Cancel"
               >
@@ -450,7 +450,7 @@ export function TaskDetail({ taskId }: TaskDetailProps) {
               </button>
               <button
                 onClick={handleWontDo}
-                className="rounded-md p-1 text-neutral-400 hover:bg-neutral-100 hover:text-neutral-600 dark:hover:bg-neutral-800 dark:hover:text-neutral-300"
+                className="rounded-md p-2 md:p-1 text-neutral-400 hover:bg-neutral-100 hover:text-neutral-600 dark:hover:bg-neutral-800 dark:hover:text-neutral-300"
                 aria-label="Won't do task"
                 title="Won't do"
               >
@@ -460,7 +460,7 @@ export function TaskDetail({ taskId }: TaskDetailProps) {
           )}
           <button
             onClick={handleDelete}
-            className="rounded-md p-1 text-neutral-400 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-900/20 dark:hover:text-red-400"
+            className="rounded-md p-2 md:p-1 text-neutral-400 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-900/20 dark:hover:text-red-400"
             aria-label="Delete task"
             title="Delete"
           >
@@ -554,7 +554,7 @@ function FileUploadButton({ taskId }: { taskId: string }) {
       />
       <button
         onClick={() => fileInputRef.current?.click()}
-        className="rounded-md p-1 text-neutral-400 hover:bg-neutral-100 hover:text-neutral-600 dark:hover:bg-neutral-800 dark:hover:text-neutral-300"
+        className="rounded-md p-2 md:p-1 text-neutral-400 hover:bg-neutral-100 hover:text-neutral-600 dark:hover:bg-neutral-800 dark:hover:text-neutral-300"
         aria-label="Attach file"
         title="Attach file"
       >
@@ -648,7 +648,7 @@ function LinkAddButton({ taskId }: { taskId: string }) {
   return (
     <button
       onClick={() => setAdding(true)}
-      className="rounded-md p-1 text-neutral-400 hover:bg-neutral-100 hover:text-neutral-600 dark:hover:bg-neutral-800 dark:hover:text-neutral-300"
+      className="rounded-md p-2 md:p-1 text-neutral-400 hover:bg-neutral-100 hover:text-neutral-600 dark:hover:bg-neutral-800 dark:hover:text-neutral-300"
       aria-label="Add link"
       title="Add link"
     >

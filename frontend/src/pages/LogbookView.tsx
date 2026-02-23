@@ -27,14 +27,14 @@ export function LogbookView() {
 
   if (isLoading) {
     return (
-      <div className="p-6">
+      <div className="px-4 pt-14 pb-4 md:p-6">
         <p className="text-sm text-neutral-400">Loading...</p>
       </div>
     )
   }
 
   return (
-    <div className="mx-auto max-w-3xl p-6">
+    <div className="mx-auto max-w-3xl px-4 pt-14 pb-4 md:p-6">
       <div className="mb-3 flex items-center justify-between">
         <h2 className="text-2xl font-bold text-neutral-900 dark:text-neutral-100">Completed</h2>
         {hasTasks && (

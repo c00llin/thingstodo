@@ -88,7 +88,7 @@ export function SettingsView() {
   if (!settings) return null
 
   return (
-    <div className="mx-auto max-w-3xl p-6">
+    <div className="mx-auto max-w-3xl px-4 pt-14 pb-4 md:p-6">
       <h1 className="mb-6 text-xl font-semibold text-neutral-900 dark:text-neutral-100">Settings</h1>
 
       <section className="mb-8">

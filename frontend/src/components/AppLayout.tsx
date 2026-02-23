@@ -1,5 +1,6 @@
 import { lazy, Suspense, useEffect } from 'react'
 import { Outlet, Navigate, useLocation } from 'react-router'
+import { Menu } from 'lucide-react'
 import { Sidebar } from './Sidebar'
 import { ShortcutsHelp } from './ShortcutsHelp'
 import { AppDndContext } from './AppDndContext'
@@ -17,6 +18,8 @@ export function AppLayout() {
   const { isLoading, error } = useMe()
   const location = useLocation()
   const expandTask = useAppStore((s) => s.expandTask)
+  const openMobileSidebar = useAppStore((s) => s.openMobileSidebar)
+  const closeMobileSidebar = useAppStore((s) => s.closeMobileSidebar)
   useGlobalShortcuts()
   useTaskShortcuts()
   useTheme()
@@ -27,6 +30,11 @@ export function AppLayout() {
   useEffect(() => {
     expandTask(null)
   }, [location.pathname, expandTask])
+
+  // Auto-close mobile sidebar on navigation
+  useEffect(() => {
+    closeMobileSidebar()
+  }, [location.pathname, closeMobileSidebar])
 
   if (isLoading) {
     return (
@@ -44,7 +52,15 @@ export function AppLayout() {
     <AppDndContext>
       <div className="flex h-screen bg-white text-neutral-900 dark:bg-neutral-900 dark:text-neutral-100">
         <Sidebar />
-        <main className="flex-1 overflow-y-auto">
+        <main className="relative flex-1 overflow-y-auto">
+          <button
+            onClick={openMobileSidebar}
+            className="fixed left-4 z-30 rounded-lg bg-white/80 p-2 shadow-md backdrop-blur-sm md:hidden dark:bg-neutral-800/80"
+            style={{ top: 'calc(1rem + env(safe-area-inset-top, 0px))' }}
+            aria-label="Open sidebar"
+          >
+            <Menu size={20} />
+          </button>
           <Outlet />
         </main>
         <ShortcutsHelp />

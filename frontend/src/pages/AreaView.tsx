@@ -20,7 +20,7 @@ export function AreaView() {
 
   if (isLoading || !area) {
     return (
-      <div className="p-6">
+      <div className="px-4 pt-14 pb-4 md:p-6">
         <p className="text-sm text-neutral-400">Loading...</p>
       </div>
     )
@@ -29,7 +29,7 @@ export function AreaView() {
   const hasProjects = area.projects.length > 0
 
   return (
-    <div className="mx-auto max-w-3xl p-6">
+    <div className="mx-auto max-w-3xl px-4 pt-14 pb-4 md:p-6">
       <div className="flex items-center justify-between">
         <h2 className="mb-3 text-2xl font-bold text-neutral-900 dark:text-neutral-100">{area.title}</h2>
         {!hasProjects && (
