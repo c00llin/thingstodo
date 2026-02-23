@@ -51,7 +51,7 @@ Open [http://localhost:2999](http://localhost:2999) and log in with the password
 | `PORT` | `2999` | Server port (must match container port) |
 | `LOG_LEVEL` | `info` | Log level |
 | `MAX_UPLOAD_SIZE` | `26214400` | Max file upload size in bytes (25 MB) |
-| `AUTH_MODE` | `builtin` | Auth mode: `builtin` or `proxy` |
+| `AUTH_MODE` | `builtin` | Auth mode: `builtin`, `proxy`, or `oidc` |
 
 ### Builtin Auth
 
@@ -67,6 +67,18 @@ For use behind an authenticating reverse proxy (Authelia, Authentik, etc.).
 | Variable | Default | Description |
 |---|---|---|
 | `AUTH_PROXY_HEADER` | `Remote-User` | Header containing the authenticated username |
+
+### OIDC Auth
+
+Log in via any OpenID Connect provider (Google, Keycloak, Authelia, etc.). On first login the existing user is automatically linked to your OIDC identity. Only a single user is allowed — other OIDC accounts are rejected.
+
+| Variable | Default | Description |
+|---|---|---|
+| `JWT_SECRET` | — | Secret for signing JWT tokens (required) |
+| `OIDC_ISSUER` | — | OIDC provider URL (e.g. `https://auth.example.com`) |
+| `OIDC_CLIENT_ID` | — | OAuth2 client ID |
+| `OIDC_CLIENT_SECRET` | — | OAuth2 client secret |
+| `OIDC_REDIRECT_URI` | — | Callback URL: `https://your-domain/api/auth/oidc/callback` |
 
 ## Development
 
