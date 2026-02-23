@@ -19,7 +19,7 @@ export function SomedayView() {
 
       {data?.no_area && data.no_area.standalone_tasks.length > 0 && (
         <div className="mb-6">
-          <SortableTaskList tasks={data.no_area.standalone_tasks} sortField="sort_order_today" showProject={false} />
+          <SortableTaskList tasks={data.no_area.standalone_tasks} sortField="sort_order_today" showProject={false} hideWhenDate />
         </div>
       )}
 
@@ -30,7 +30,7 @@ export function SomedayView() {
           </h3>
           {areaGroup.standalone_tasks.length > 0 && (
             <div className={areaGroup.projects.length > 0 ? 'mb-4' : ''}>
-              <SortableTaskList tasks={areaGroup.standalone_tasks} sortField="sort_order_today" showProject={false} />
+              <SortableTaskList tasks={areaGroup.standalone_tasks} sortField="sort_order_today" showProject={false} hideWhenDate />
             </div>
           )}
           {areaGroup.projects.map((pg) => (
@@ -39,6 +39,7 @@ export function SomedayView() {
               title={pg.project.title}
               tasks={pg.tasks}
               showProject={false}
+              hideWhenDate
               sortable
             />
           ))}
@@ -51,6 +52,7 @@ export function SomedayView() {
           title={pg.project.title}
           tasks={pg.tasks}
           showProject={false}
+          hideWhenDate
         />
       ))}
     </div>

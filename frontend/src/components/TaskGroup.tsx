@@ -32,6 +32,7 @@ export function TaskGroup({
           tasks={tasks}
           sortField={sortField}
           showProject={showProject}
+          hideWhenDate={hideWhenDate}
         />
       ) : (
         <AnimatePresence initial={false}>
