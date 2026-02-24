@@ -55,7 +55,7 @@ export function AppLayout() {
     <AppDndContext>
       <div className="flex h-screen bg-white text-neutral-900 dark:bg-neutral-900 dark:text-neutral-100">
         <Sidebar />
-        <main ref={mainRef} className="relative flex-1 overflow-y-auto overscroll-contain">
+        <main ref={mainRef} className="relative flex-1 overflow-y-auto overscroll-none">
           {/* Pull-to-refresh indicator (mobile only) */}
           {(pullDistance > 0 || isRefreshing) && (
             <div

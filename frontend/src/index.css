@@ -2,8 +2,17 @@
 
 @custom-variant dark (&:where(.dark, .dark *));
 
+html, body {
+  overflow: hidden;
+  height: 100%;
+  overscroll-behavior-y: none;
+}
 html { color-scheme: light; }
 html.dark { color-scheme: dark; }
+
+#root {
+  height: 100%;
+}
 
 @supports (padding-top: env(safe-area-inset-top)) {
   #root {
