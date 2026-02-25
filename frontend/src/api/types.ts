@@ -246,8 +246,8 @@ export interface Project {
   id: string
   title: string
   notes: string
-  area_id: string | null
-  area: { id: string; title: string } | null
+  area_id: string
+  area: { id: string; title: string }
   status: ProjectStatus
   when_date: string | null
   deadline: string | null
@@ -279,7 +279,7 @@ export interface ProjectDetail extends Project {
 export interface CreateProjectRequest {
   title: string
   notes?: string
-  area_id?: string | null
+  area_id: string
   when_date?: string | null
   deadline?: string | null
   tag_ids?: string[]
@@ -288,7 +288,7 @@ export interface CreateProjectRequest {
 export interface UpdateProjectRequest {
   title?: string
   notes?: string
-  area_id?: string | null
+  area_id?: string
   when_date?: string | null
   deadline?: string | null
   tag_ids?: string[]

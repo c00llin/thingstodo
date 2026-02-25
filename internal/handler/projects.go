@@ -60,6 +60,10 @@ func (h *ProjectHandler) Create(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, "title is required", "VALIDATION")
 		return
 	}
+	if input.AreaID == nil || *input.AreaID == "" {
+		writeError(w, http.StatusBadRequest, "area_id is required", "VALIDATION")
+		return
+	}
 	project, err := h.repo.Create(input)
 	if err != nil {
 		if errors.Is(err, repository.ErrDuplicateProjectName) {

@@ -13,7 +13,8 @@ func setupProjectForHeadings(t *testing.T) (*repository.HeadingRepository, strin
 	db := testutil.SetupTestDB(t)
 	headingRepo := repository.NewHeadingRepository(db)
 	projRepo := repository.NewProjectRepository(db)
-	proj, err := projRepo.Create(model.CreateProjectInput{Title: "Test Project"})
+	areaID := createArea(t, db)
+	proj, err := projRepo.Create(model.CreateProjectInput{Title: "Test Project", AreaID: &areaID})
 	if err != nil {
 		t.Fatalf("failed to create project: %v", err)
 	}

@@ -113,22 +113,17 @@ func TestAreaDelete(t *testing.T) {
 	}
 }
 
-func TestAreaDeleteSetsNullOnProjects(t *testing.T) {
+func TestAreaDeleteBlockedByProjects(t *testing.T) {
 	db := testutil.SetupTestDB(t)
 	areaRepo := repository.NewAreaRepository(db)
 	projRepo := repository.NewProjectRepository(db)
 
 	area, _ := areaRepo.Create(model.CreateAreaInput{Title: "To delete"})
-	created, _ := projRepo.Create(model.CreateProjectInput{Title: "Project", AreaID: &area.ID})
+	_, _ = projRepo.Create(model.CreateProjectInput{Title: "Project", AreaID: &area.ID})
 
-	_ = areaRepo.Delete(area.ID)
-
-	p, _ := projRepo.GetByID(created.ID)
-	if p == nil {
-		t.Fatal("project should still exist")
-	}
-	if p.AreaID != nil {
-		t.Error("expected area_id to be null after area deletion")
+	err := areaRepo.Delete(area.ID)
+	if err == nil {
+		t.Error("expected error when deleting area with projects")
 	}
 }
 

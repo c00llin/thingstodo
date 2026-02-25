@@ -249,27 +249,52 @@ function AppDndContextInner({ children }: AppDndContextProps) {
       if (activeId.startsWith('sort-project-')) {
         const movedId = activeId.replace('sort-project-', '')
 
-        // Reorder within same group
+        // Reorder (same or cross-area)
         if (overId.startsWith('sort-project-')) {
           if (activeId === overId) return
           const overedId = overId.replace('sort-project-', '')
           const movedProject = projects.find((p) => p.id === movedId)
-          const groupProjects = projects.filter((p) => p.area_id === movedProject?.area_id)
-          const oldIndex = groupProjects.findIndex((p) => p.id === movedId)
-          const newIndex = groupProjects.findIndex((p) => p.id === overedId)
-          if (oldIndex === -1 || newIndex === -1) return
-          const without = groupProjects.filter((p) => p.id !== movedId)
-          const newPos = calculateEntityPosition(without, newIndex)
-          queryClient.setQueriesData<{ projects: Project[] }>(
-            { queryKey: queryKeys.projects.all },
-            (old) => {
-              if (!old) return old
-              return { ...old, projects: old.projects.map((p) => p.id === movedId ? { ...p, sort_order: newPos } : p).sort((a, b) => a.sort_order - b.sort_order) }
-            },
-          )
-          reorderProjects([{ id: movedId, sort_order: newPos }]).then(() => {
-            queryClient.invalidateQueries({ queryKey: queryKeys.projects.all })
-          })
+          const overedProject = projects.find((p) => p.id === overedId)
+          if (!movedProject || !overedProject) return
+          const isCrossArea = movedProject.area_id !== overedProject.area_id
+
+          // Calculate new sort position within the target area's projects
+          const targetAreaId = overedProject.area_id
+          const targetProjects = projects.filter((p) => p.area_id === targetAreaId && p.id !== movedId)
+          const newIndex = targetProjects.findIndex((p) => p.id === overedId)
+          if (newIndex === -1) return
+          const newPos = calculateEntityPosition(targetProjects, newIndex)
+
+          if (isCrossArea) {
+            // Cross-area: update area_id + sort_order
+            queryClient.cancelQueries({ queryKey: queryKeys.projects.all })
+            queryClient.setQueriesData<{ projects: Project[] }>(
+              { queryKey: queryKeys.projects.all },
+              (old) => {
+                if (!old) return old
+                return { ...old, projects: old.projects.map((p) => p.id === movedId ? { ...p, area_id: targetAreaId, sort_order: newPos } : p).sort((a, b) => a.sort_order - b.sort_order) }
+              },
+            )
+            Promise.all([
+              updateProject(movedId, { area_id: targetAreaId }),
+              reorderProjects([{ id: movedId, sort_order: newPos }]),
+            ]).then(() => {
+              queryClient.invalidateQueries({ queryKey: queryKeys.projects.all })
+              queryClient.invalidateQueries({ queryKey: ['areas'] })
+            })
+          } else {
+            // Same area: just update sort_order
+            queryClient.setQueriesData<{ projects: Project[] }>(
+              { queryKey: queryKeys.projects.all },
+              (old) => {
+                if (!old) return old
+                return { ...old, projects: old.projects.map((p) => p.id === movedId ? { ...p, sort_order: newPos } : p).sort((a, b) => a.sort_order - b.sort_order) }
+              },
+            )
+            reorderProjects([{ id: movedId, sort_order: newPos }]).then(() => {
+              queryClient.invalidateQueries({ queryKey: queryKeys.projects.all })
+            })
+          }
           return
         }
 

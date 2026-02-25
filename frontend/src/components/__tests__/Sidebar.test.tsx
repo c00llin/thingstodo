@@ -21,9 +21,9 @@ describe('Sidebar', () => {
     expect(screen.getByText('ThingsToDo')).toBeInTheDocument()
   })
 
-  it('renders New Project button', () => {
+  it('renders plus menu button', () => {
     render(<Sidebar />)
-    expect(screen.getByText('New Project')).toBeInTheDocument()
+    expect(screen.getByLabelText('New item')).toBeInTheDocument()
   })
 
   it('renders Areas & Projects section', async () => {

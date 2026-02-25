@@ -1083,10 +1083,12 @@ function PlusMenu({ side }: { side: 'top' | 'right' }) {
               <CirclePlus size={16} />
               New Task
             </button>
-            <button className={itemClass} onClick={() => setDialogType('project')}>
-              <Package size={16} />
-              New Project
-            </button>
+            {currentAreaId && (
+              <button className={itemClass} onClick={() => setDialogType('project')}>
+                <Package size={16} />
+                New Project
+              </button>
+            )}
             <button className={itemClass} onClick={() => setDialogType('area')}>
               <Blocks size={16} />
               New Area

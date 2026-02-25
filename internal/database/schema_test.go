@@ -101,7 +101,8 @@ func TestSchemaStatusCheckConstraints(t *testing.T) {
 	}
 
 	// Invalid project status should be rejected.
-	_, err = db.Exec(`INSERT INTO projects (id, title, status) VALUES ('p1', 'Test', 'invalid')`)
+	_, _ = db.Exec(`INSERT INTO areas (id, title) VALUES ('a_chk', 'Check Area')`)
+	_, err = db.Exec(`INSERT INTO projects (id, title, area_id, status) VALUES ('p1', 'Test', 'a_chk', 'invalid')`)
 	if err == nil {
 		t.Error("expected check constraint violation for invalid project status")
 	}
@@ -110,8 +111,12 @@ func TestSchemaStatusCheckConstraints(t *testing.T) {
 func TestSchemaCascadeDelete(t *testing.T) {
 	db := testutil.SetupTestDB(t)
 
-	// Create a project and a heading within it.
-	_, err := db.Exec(`INSERT INTO projects (id, title) VALUES ('p1', 'Project 1')`)
+	// Create an area, then a project and a heading within it.
+	_, err := db.Exec(`INSERT INTO areas (id, title) VALUES ('a1', 'Area 1')`)
+	if err != nil {
+		t.Fatalf("failed to insert area: %v", err)
+	}
+	_, err = db.Exec(`INSERT INTO projects (id, title, area_id) VALUES ('p1', 'Project 1', 'a1')`)
 	if err != nil {
 		t.Fatalf("failed to insert project: %v", err)
 	}

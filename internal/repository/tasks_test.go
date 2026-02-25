@@ -40,8 +40,9 @@ func TestTaskCreateWithProject(t *testing.T) {
 	db := testutil.SetupTestDB(t)
 	repo := repository.NewTaskRepository(db)
 
-	// Create a project first.
-	_, _ = db.Exec("INSERT INTO projects (id, title) VALUES ('p1', 'My Project')")
+	// Create an area and project first.
+	_, _ = db.Exec("INSERT INTO areas (id, title) VALUES ('a1', 'Test Area')")
+	_, _ = db.Exec("INSERT INTO projects (id, title, area_id) VALUES ('p1', 'My Project', 'a1')")
 
 	task, err := repo.Create(model.CreateTaskInput{
 		Title:     "Project task",
@@ -311,7 +312,8 @@ func TestTaskListFilterByProject(t *testing.T) {
 	db := testutil.SetupTestDB(t)
 	repo := repository.NewTaskRepository(db)
 
-	_, _ = db.Exec("INSERT INTO projects (id, title) VALUES ('p1', 'Project 1')")
+	_, _ = db.Exec("INSERT INTO areas (id, title) VALUES ('a1', 'Test Area')")
+	_, _ = db.Exec("INSERT INTO projects (id, title, area_id) VALUES ('p1', 'Project 1', 'a1')")
 	_, _ = repo.Create(model.CreateTaskInput{Title: "Project task", ProjectID: strPtr("p1")})
 	_, _ = repo.Create(model.CreateTaskInput{Title: "No project task"})
 

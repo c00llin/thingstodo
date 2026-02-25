@@ -18,8 +18,13 @@ func setupProjectRouter(t *testing.T) (*testutil.TestClient, *sql.DB) {
 	broker := sse.NewBroker()
 	projRepo := repository.NewProjectRepository(db)
 	projHandler := handler.NewProjectHandler(projRepo, broker)
+	areaRepo := repository.NewAreaRepository(db)
+	areaHandler := handler.NewAreaHandler(areaRepo, broker)
 
 	r := chi.NewRouter()
+	r.Route("/api/areas", func(r chi.Router) {
+		r.Post("/", areaHandler.Create)
+	})
 	r.Route("/api/projects", func(r chi.Router) {
 		r.Get("/", projHandler.List)
 		r.Post("/", projHandler.Create)
@@ -34,10 +39,21 @@ func setupProjectRouter(t *testing.T) (*testutil.TestClient, *sql.DB) {
 	return testutil.NewTestClient(t, r), db
 }
 
+// createTestArea creates an area and returns its ID.
+func createTestArea(t *testing.T, client *testutil.TestClient) string {
+	t.Helper()
+	resp := client.Post("/api/areas", map[string]string{"title": "Test Area"})
+	testutil.AssertStatus(t, resp, http.StatusCreated)
+	var area map[string]interface{}
+	resp.JSON(t, &area)
+	return area["id"].(string)
+}
+
 func TestProjectHandlerCreate(t *testing.T) {
 	client, _ := setupProjectRouter(t)
+	areaID := createTestArea(t, client)
 
-	resp := client.Post("/api/projects", map[string]string{"title": "My Project"})
+	resp := client.Post("/api/projects", map[string]string{"title": "My Project", "area_id": areaID})
 	testutil.AssertStatus(t, resp, http.StatusCreated)
 	testutil.AssertJSONField(t, resp, "title", "My Project")
 	testutil.AssertJSONField(t, resp, "status", "open")
@@ -45,15 +61,24 @@ func TestProjectHandlerCreate(t *testing.T) {
 
 func TestProjectHandlerCreateMissingTitle(t *testing.T) {
 	client, _ := setupProjectRouter(t)
+	areaID := createTestArea(t, client)
 
-	resp := client.Post("/api/projects", map[string]string{})
+	resp := client.Post("/api/projects", map[string]string{"area_id": areaID})
+	testutil.AssertStatus(t, resp, http.StatusBadRequest)
+}
+
+func TestProjectHandlerCreateMissingArea(t *testing.T) {
+	client, _ := setupProjectRouter(t)
+
+	resp := client.Post("/api/projects", map[string]string{"title": "No Area"})
 	testutil.AssertStatus(t, resp, http.StatusBadRequest)
 }
 
 func TestProjectHandlerGet(t *testing.T) {
 	client, _ := setupProjectRouter(t)
+	areaID := createTestArea(t, client)
 
-	createResp := client.Post("/api/projects", map[string]string{"title": "Test"})
+	createResp := client.Post("/api/projects", map[string]string{"title": "Test", "area_id": areaID})
 	var created map[string]interface{}
 	createResp.JSON(t, &created)
 
@@ -71,8 +96,9 @@ func TestProjectHandlerGetNotFound(t *testing.T) {
 
 func TestProjectHandlerUpdate(t *testing.T) {
 	client, _ := setupProjectRouter(t)
+	areaID := createTestArea(t, client)
 
-	createResp := client.Post("/api/projects", map[string]string{"title": "Original"})
+	createResp := client.Post("/api/projects", map[string]string{"title": "Original", "area_id": areaID})
 	var created map[string]interface{}
 	createResp.JSON(t, &created)
 
@@ -83,8 +109,9 @@ func TestProjectHandlerUpdate(t *testing.T) {
 
 func TestProjectHandlerDelete(t *testing.T) {
 	client, _ := setupProjectRouter(t)
+	areaID := createTestArea(t, client)
 
-	createResp := client.Post("/api/projects", map[string]string{"title": "To delete"})
+	createResp := client.Post("/api/projects", map[string]string{"title": "To delete", "area_id": areaID})
 	var created map[string]interface{}
 	createResp.JSON(t, &created)
 
@@ -97,8 +124,9 @@ func TestProjectHandlerDelete(t *testing.T) {
 
 func TestProjectHandlerComplete(t *testing.T) {
 	client, _ := setupProjectRouter(t)
+	areaID := createTestArea(t, client)
 
-	createResp := client.Post("/api/projects", map[string]string{"title": "To complete"})
+	createResp := client.Post("/api/projects", map[string]string{"title": "To complete", "area_id": areaID})
 	var created map[string]interface{}
 	createResp.JSON(t, &created)
 
@@ -109,9 +137,10 @@ func TestProjectHandlerComplete(t *testing.T) {
 
 func TestProjectHandlerList(t *testing.T) {
 	client, _ := setupProjectRouter(t)
+	areaID := createTestArea(t, client)
 
-	client.Post("/api/projects", map[string]string{"title": "Project 1"})
-	client.Post("/api/projects", map[string]string{"title": "Project 2"})
+	client.Post("/api/projects", map[string]string{"title": "Project 1", "area_id": areaID})
+	client.Post("/api/projects", map[string]string{"title": "Project 2", "area_id": areaID})
 
 	resp := client.Get("/api/projects")
 	testutil.AssertStatus(t, resp, http.StatusOK)
