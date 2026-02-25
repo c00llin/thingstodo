@@ -34,6 +34,7 @@ import type {
   LoginRequest,
   UserSettings,
   SimpleReorderItem,
+  Project,
 } from '../api/types'
 
 // --- Query Keys ---
@@ -610,6 +611,23 @@ export function useReorderProjects() {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: (items: SimpleReorderItem[]) => projectsApi.reorderProjects(items),
+    onMutate: async (items) => {
+      // Cancel in-flight project fetches so they don't overwrite optimistic area_id changes
+      await queryClient.cancelQueries({ queryKey: queryKeys.projects.all })
+      const orderMap = new Map(items.map((i) => [i.id, i.sort_order]))
+      queryClient.setQueriesData<{ projects: Project[] }>(
+        { queryKey: queryKeys.projects.all },
+        (old) => {
+          if (!old) return old
+          return {
+            ...old,
+            projects: old.projects
+              .map((p) => orderMap.has(p.id) ? { ...p, sort_order: orderMap.get(p.id)! } : p)
+              .sort((a, b) => a.sort_order - b.sort_order),
+          }
+        },
+      )
+    },
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.projects.all })
     },

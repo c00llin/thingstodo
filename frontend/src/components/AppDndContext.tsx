@@ -276,6 +276,8 @@ function AppDndContextInner({ children }: AppDndContextProps) {
         // Reassign to area (dropped on area header)
         if (overId.startsWith('sidebar-area-')) {
           const newAreaId = overId.replace('sidebar-area-', '')
+          // Cancel any in-flight project queries so they don't overwrite our optimistic area_id
+          queryClient.cancelQueries({ queryKey: ['projects'] })
           queryClient.setQueriesData<{ projects: typeof projects }>(
             { queryKey: ['projects'] },
             (old) => old ? { ...old, projects: old.projects.map((p) => p.id === movedId ? { ...p, area_id: newAreaId } : p) } : old,
