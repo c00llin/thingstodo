@@ -297,6 +297,9 @@ function AppDndContextInner({ children }: AppDndContextProps) {
           if (gen !== projectDndGenRef.current) return
           queryClient.invalidateQueries({ queryKey: queryKeys.projects.all })
           queryClient.invalidateQueries({ queryKey: ['areas'] })
+        }).catch((err) => {
+          console.error('Project DnD API error:', err)
+          queryClient.invalidateQueries({ queryKey: queryKeys.projects.all })
         })
 
         return

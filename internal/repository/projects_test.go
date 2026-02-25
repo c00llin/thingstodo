@@ -2,6 +2,7 @@ package repository_test
 
 import (
 	"database/sql"
+	"encoding/json"
 	"testing"
 
 	"github.com/collinjanssen/thingstodo/internal/model"
@@ -155,6 +156,41 @@ func TestProjectUpdate(t *testing.T) {
 	}
 	if updated.Title != "Updated" {
 		t.Errorf("expected 'Updated', got %q", updated.Title)
+	}
+}
+
+func TestProjectUpdateArea(t *testing.T) {
+	db := testutil.SetupTestDB(t)
+	repo := repository.NewProjectRepository(db)
+	areaRepo := repository.NewAreaRepository(db)
+
+	area1, _ := areaRepo.Create(model.CreateAreaInput{Title: "Area 1"})
+	area2, _ := areaRepo.Create(model.CreateAreaInput{Title: "Area 2"})
+
+	created, _ := repo.Create(model.CreateProjectInput{Title: "Move Me", AreaID: &area1.ID})
+	if *created.AreaID != area1.ID {
+		t.Fatalf("expected area_id=%q, got %q", area1.ID, *created.AreaID)
+	}
+
+	// Update area_id via Raw (simulating JSON {"area_id": "..."})
+	raw := map[string]json.RawMessage{
+		"area_id": json.RawMessage(`"` + area2.ID + `"`),
+	}
+	updated, err := repo.Update(created.ID, model.UpdateProjectInput{
+		AreaID: &area2.ID,
+		Raw:    raw,
+	})
+	if err != nil {
+		t.Fatalf("failed to update area: %v", err)
+	}
+	if *updated.AreaID != area2.ID {
+		t.Errorf("expected area_id=%q, got %q", area2.ID, *updated.AreaID)
+	}
+
+	// Verify by re-fetching
+	fetched, _ := repo.GetByID(created.ID)
+	if *fetched.AreaID != area2.ID {
+		t.Errorf("re-fetch: expected area_id=%q, got %q", area2.ID, *fetched.AreaID)
 	}
 }
 
