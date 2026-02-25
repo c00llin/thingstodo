@@ -136,7 +136,7 @@ export function SettingsView() {
       </section>
 
       <p className="mt-12 text-center text-xs text-neutral-400 dark:text-neutral-500">
-        ThingsToDo v{__APP_VERSION__}
+        ThingsToDo v{__APP_VERSION__}{__BUILD_SHA__ !== 'dev' ? ` (${__BUILD_SHA__})` : ''}
       </p>
     </div>
   )

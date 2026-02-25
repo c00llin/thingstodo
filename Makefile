@@ -4,7 +4,7 @@ run:
 	go run ./cmd/server
 
 build:
-	go build -ldflags="-s -w" -o bin/thingstodo ./cmd/server
+	go build -ldflags="-s -w -X main.Version=$$(jq -r .version frontend/package.json) -X main.Commit=$$(git rev-parse --short HEAD)" -o bin/thingstodo ./cmd/server
 
 test:
 	go test ./...

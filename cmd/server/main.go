@@ -15,6 +15,12 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
+// Set via -ldflags at build time.
+var (
+	Version = "dev"
+	Commit  = "unknown"
+)
+
 func main() {
 	// Healthcheck mode for Docker scratch containers.
 	if len(os.Args) > 1 && os.Args[1] == "-healthcheck" {
@@ -27,6 +33,8 @@ func main() {
 	}
 
 	cfg := config.Load()
+
+	log.Printf("ThingsToDo v%s (commit %s)", Version, Commit)
 
 	db, err := database.Open(cfg.DBPath)
 	if err != nil {
