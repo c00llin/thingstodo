@@ -250,76 +250,54 @@ function AppDndContextInner({ children }: AppDndContextProps) {
       if (activeId.startsWith('sort-project-')) {
         const movedId = activeId.replace('sort-project-', '')
 
-        // Reorder (same or cross-area)
+        // Determine target area and sort position
+        let targetAreaId: string | undefined
+        let newPos: number | undefined
+
         if (overId.startsWith('sort-project-')) {
           if (activeId === overId) return
           const overedId = overId.replace('sort-project-', '')
-          const movedProject = projects.find((p) => p.id === movedId)
           const overedProject = projects.find((p) => p.id === overedId)
-          if (!movedProject || !overedProject) return
-          const isCrossArea = movedProject.area_id !== overedProject.area_id
-
-          // Calculate new sort position within the target area's projects
-          const targetAreaId = overedProject.area_id
+          if (!overedProject) return
+          targetAreaId = overedProject.area_id
           const targetProjects = projects.filter((p) => p.area_id === targetAreaId && p.id !== movedId)
           const newIndex = targetProjects.findIndex((p) => p.id === overedId)
           if (newIndex === -1) return
-          const newPos = calculateEntityPosition(targetProjects, newIndex)
-
-          if (isCrossArea) {
-            // Cross-area: update area_id + sort_order
-            const gen = ++projectDndGenRef.current
-            queryClient.cancelQueries({ queryKey: queryKeys.projects.all })
-            queryClient.setQueriesData<{ projects: Project[] }>(
-              { queryKey: queryKeys.projects.all },
-              (old) => {
-                if (!old) return old
-                return { ...old, projects: old.projects.map((p) => p.id === movedId ? { ...p, area_id: targetAreaId, sort_order: newPos } : p).sort((a, b) => a.sort_order - b.sort_order) }
-              },
-            )
-            Promise.all([
-              updateProject(movedId, { area_id: targetAreaId }),
-              reorderProjects([{ id: movedId, sort_order: newPos }]),
-            ]).then(() => {
-              if (gen !== projectDndGenRef.current) return
-              queryClient.invalidateQueries({ queryKey: queryKeys.projects.all })
-              queryClient.invalidateQueries({ queryKey: ['areas'] })
-            })
-          } else {
-            // Same area: just update sort_order
-            const gen = ++projectDndGenRef.current
-            queryClient.cancelQueries({ queryKey: queryKeys.projects.all })
-            queryClient.setQueriesData<{ projects: Project[] }>(
-              { queryKey: queryKeys.projects.all },
-              (old) => {
-                if (!old) return old
-                return { ...old, projects: old.projects.map((p) => p.id === movedId ? { ...p, sort_order: newPos } : p).sort((a, b) => a.sort_order - b.sort_order) }
-              },
-            )
-            reorderProjects([{ id: movedId, sort_order: newPos }]).then(() => {
-              if (gen !== projectDndGenRef.current) return
-              queryClient.invalidateQueries({ queryKey: queryKeys.projects.all })
-            })
-          }
+          newPos = calculateEntityPosition(targetProjects, newIndex)
+        } else if (overId.startsWith('sidebar-area-')) {
+          targetAreaId = overId.replace('sidebar-area-', '')
+        } else {
           return
         }
 
-        // Reassign to area (dropped on area header)
-        if (overId.startsWith('sidebar-area-')) {
-          const newAreaId = overId.replace('sidebar-area-', '')
-          const gen = ++projectDndGenRef.current
-          queryClient.cancelQueries({ queryKey: queryKeys.projects.all })
-          queryClient.setQueriesData<{ projects: typeof projects }>(
-            { queryKey: queryKeys.projects.all },
-            (old) => old ? { ...old, projects: old.projects.map((p) => p.id === movedId ? { ...p, area_id: newAreaId } : p) } : old,
-          )
-          updateProject(movedId, { area_id: newAreaId }).then(() => {
-            if (gen !== projectDndGenRef.current) return
-            queryClient.invalidateQueries({ queryKey: queryKeys.projects.all })
-            queryClient.invalidateQueries({ queryKey: ['areas'] })
-          })
-          return
+        // Always update area_id (+ sort_order when reordering)
+        const gen = ++projectDndGenRef.current
+        queryClient.cancelQueries({ queryKey: queryKeys.projects.all })
+        queryClient.setQueriesData<{ projects: Project[] }>(
+          { queryKey: queryKeys.projects.all },
+          (old) => {
+            if (!old) return old
+            return {
+              ...old,
+              projects: old.projects
+                .map((p) => p.id === movedId
+                  ? { ...p, area_id: targetAreaId!, ...(newPos != null ? { sort_order: newPos } : {}) }
+                  : p)
+                .sort((a, b) => a.sort_order - b.sort_order),
+            }
+          },
+        )
+        const apiCalls: Promise<unknown>[] = [
+          updateProject(movedId, { area_id: targetAreaId }),
+        ]
+        if (newPos != null) {
+          apiCalls.push(reorderProjects([{ id: movedId, sort_order: newPos }]))
         }
+        Promise.all(apiCalls).then(() => {
+          if (gen !== projectDndGenRef.current) return
+          queryClient.invalidateQueries({ queryKey: queryKeys.projects.all })
+          queryClient.invalidateQueries({ queryKey: ['areas'] })
+        })
 
         return
       }
