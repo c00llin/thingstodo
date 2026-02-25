@@ -1,5 +1,24 @@
 # Changelog
 
+## [0.7.1] - 2026-02-25
+
+### Fixed
+- Project reverting to old area after sort button click
+- Cross-area project drag-and-drop not updating area_id
+- Intermittent DnD failures caused by race condition between optimistic updates and stale invalidations
+- Pull-to-refresh on iOS Safari
+- PWA not auto-updating when new service worker version is deployed
+
+### Changed
+- Projects now always require an area (database NOT NULL constraint, migration 017)
+- "New Project" option only appears when on an area page
+- Area deletion blocked when area still has projects (ON DELETE RESTRICT)
+
+### Added
+- Build version and commit SHA displayed in settings page
+- Version and commit SHA logged on container startup
+- PWA auto-reloads when a new version is available
+
 ## [0.7.0] - 2026-02-23
 
 ### Added

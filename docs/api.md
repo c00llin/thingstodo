@@ -394,7 +394,7 @@ Response (200):
       "id": "string",
       "title": "string",
       "notes": "string",
-      "area_id": "string|null",
+      "area_id": "string (required)",
       "area": { "id": "string", "title": "string" },
       "status": "open|completed|canceled",
       "when_date": "string|null",
@@ -416,7 +416,7 @@ Request:
 {
   "title": "string (required)",
   "notes": "string",
-  "area_id": "string|null",
+  "area_id": "string (required)",
   "when_date": "string|null",
   "deadline": "string|null",
   "tag_ids": ["string"]
@@ -432,7 +432,7 @@ Response (200): Project with nested headings and tasks
   "id": "string",
   "title": "string",
   "notes": "string",
-  "area_id": "string|null",
+  "area_id": "string (required)",
   "area": { "id": "string", "title": "string" },
   "status": "open|completed|canceled",
   "when_date": "string|null",
