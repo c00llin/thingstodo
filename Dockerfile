@@ -17,7 +17,8 @@ RUN go mod download
 COPY . .
 COPY --from=frontend-build /app/internal/frontend/dist /app/internal/frontend/dist
 RUN APP_VERSION=$(jq -r .version frontend/package.json) && \
-    CGO_ENABLED=0 go build -ldflags="-s -w -X main.Version=${APP_VERSION} -X main.Commit=${COMMIT_SHA}" -o /thingstodo ./cmd/server
+    SHORT_SHA=$(echo "${COMMIT_SHA}" | cut -c1-7) && \
+    CGO_ENABLED=0 go build -ldflags="-s -w -X main.Version=${APP_VERSION} -X main.Commit=${SHORT_SHA}" -o /thingstodo ./cmd/server
 
 # Stage 3: Runtime
 FROM scratch

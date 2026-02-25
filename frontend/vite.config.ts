@@ -7,7 +7,7 @@ import pkg from './package.json' with { type: 'json' }
 export default defineConfig({
   define: {
     __APP_VERSION__: JSON.stringify(pkg.version),
-    __BUILD_SHA__: JSON.stringify(process.env.COMMIT_SHA || 'dev'),
+    __BUILD_SHA__: JSON.stringify((process.env.COMMIT_SHA || 'dev').slice(0, 7)),
   },
   plugins: [
     react(),
