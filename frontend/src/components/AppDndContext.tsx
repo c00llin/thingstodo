@@ -1,4 +1,4 @@
-import { type ReactNode, useState, useCallback, useMemo } from 'react'
+import { type ReactNode, useState, useCallback, useMemo, useRef } from 'react'
 import {
   DndContext,
   type DragEndEvent,
@@ -161,6 +161,7 @@ function AppDndContextInner({ children }: AppDndContextProps) {
   const allTags = useMemo(() => tagsData?.tags ?? [], [tagsData?.tags])
   const queryClient = useQueryClient()
   const registry = useSortableListRegistry()
+  const projectDndGenRef = useRef(0)
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -267,6 +268,7 @@ function AppDndContextInner({ children }: AppDndContextProps) {
 
           if (isCrossArea) {
             // Cross-area: update area_id + sort_order
+            const gen = ++projectDndGenRef.current
             queryClient.cancelQueries({ queryKey: queryKeys.projects.all })
             queryClient.setQueriesData<{ projects: Project[] }>(
               { queryKey: queryKeys.projects.all },
@@ -279,11 +281,14 @@ function AppDndContextInner({ children }: AppDndContextProps) {
               updateProject(movedId, { area_id: targetAreaId }),
               reorderProjects([{ id: movedId, sort_order: newPos }]),
             ]).then(() => {
+              if (gen !== projectDndGenRef.current) return
               queryClient.invalidateQueries({ queryKey: queryKeys.projects.all })
               queryClient.invalidateQueries({ queryKey: ['areas'] })
             })
           } else {
             // Same area: just update sort_order
+            const gen = ++projectDndGenRef.current
+            queryClient.cancelQueries({ queryKey: queryKeys.projects.all })
             queryClient.setQueriesData<{ projects: Project[] }>(
               { queryKey: queryKeys.projects.all },
               (old) => {
@@ -292,6 +297,7 @@ function AppDndContextInner({ children }: AppDndContextProps) {
               },
             )
             reorderProjects([{ id: movedId, sort_order: newPos }]).then(() => {
+              if (gen !== projectDndGenRef.current) return
               queryClient.invalidateQueries({ queryKey: queryKeys.projects.all })
             })
           }
@@ -301,14 +307,15 @@ function AppDndContextInner({ children }: AppDndContextProps) {
         // Reassign to area (dropped on area header)
         if (overId.startsWith('sidebar-area-')) {
           const newAreaId = overId.replace('sidebar-area-', '')
-          // Cancel any in-flight project queries so they don't overwrite our optimistic area_id
-          queryClient.cancelQueries({ queryKey: ['projects'] })
+          const gen = ++projectDndGenRef.current
+          queryClient.cancelQueries({ queryKey: queryKeys.projects.all })
           queryClient.setQueriesData<{ projects: typeof projects }>(
-            { queryKey: ['projects'] },
+            { queryKey: queryKeys.projects.all },
             (old) => old ? { ...old, projects: old.projects.map((p) => p.id === movedId ? { ...p, area_id: newAreaId } : p) } : old,
           )
           updateProject(movedId, { area_id: newAreaId }).then(() => {
-            queryClient.invalidateQueries({ queryKey: ['projects'] })
+            if (gen !== projectDndGenRef.current) return
+            queryClient.invalidateQueries({ queryKey: queryKeys.projects.all })
             queryClient.invalidateQueries({ queryKey: ['areas'] })
           })
           return
