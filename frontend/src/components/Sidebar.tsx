@@ -1102,7 +1102,7 @@ function PlusMenu({ side }: { side: 'top' | 'right' }) {
         placeholder="New project name..."
         open={dialogType === 'project'}
         onClose={() => setDialogType(null)}
-        onSubmit={async (name) => { await createProject.mutateAsync({ title: name, area_id: currentAreaId }) }}
+        onSubmit={async (name) => { await createProject.mutateAsync({ title: name, area_id: currentAreaId! }) }}
       />
       <NameInputDialog
         icon={<Blocks size={18} />}
