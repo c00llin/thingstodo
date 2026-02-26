@@ -10,6 +10,7 @@ type SSEEventType =
   | 'area_updated'
   | 'tag_updated'
   | 'bulk_change'
+  | 'saved_filter_changed'
 
 interface SSEPayload {
   id?: string
@@ -97,6 +98,14 @@ export function useSSE() {
             queryClient.invalidateQueries({ queryKey: queryKeys.areas.all, ...refetch })
             invalidateViewQueries(queryClient, refetch)
             break
+
+          case 'saved_filter_changed': {
+            const view = (payload as { view?: string }).view
+            if (view) {
+              queryClient.invalidateQueries({ queryKey: queryKeys.savedFilters(view), ...refetch })
+            }
+            break
+          }
         }
       }
 
@@ -108,6 +117,7 @@ export function useSSE() {
         'area_updated',
         'tag_updated',
         'bulk_change',
+        'saved_filter_changed',
       ]
 
       for (const type of eventTypes) {

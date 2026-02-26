@@ -1,4 +1,4 @@
-import { useState, useRef, useMemo, useEffect } from 'react'
+import { useState, useRef, useMemo, useEffect, useCallback } from 'react'
 import * as Popover from '@radix-ui/react-popover'
 import {
   Filter,
@@ -10,12 +10,15 @@ import {
   Flag,
   Calendar,
   AlertTriangle,
+  Bookmark,
 } from 'lucide-react'
 import { useFilterStore, type DateFilter } from '../stores/filters'
 import { useAppStore } from '../stores/app'
 import { useAreas, useProjects, useTags } from '../hooks/queries'
 import { hasFilters } from '../lib/filter-tasks'
 import { CalendarPicker } from './CalendarPicker'
+import { SavedFiltersBar } from './SavedFiltersBar'
+import { SaveViewModal } from './SaveViewModal'
 
 export type FilterField = 'area' | 'project' | 'tag' | 'highPriority' | 'plannedDate' | 'deadline'
 
@@ -49,6 +52,7 @@ export function FilterToggleButton() {
 
 interface FilterBarProps {
   availableFields: FilterField[]
+  viewName: string
 }
 
 const PLANNED_DATE_PRESETS: { label: string; value: DateFilter }[] = [
@@ -88,7 +92,7 @@ function getDateFilterLabel(f: DateFilter): string {
   return ''
 }
 
-export function FilterBar({ availableFields }: FilterBarProps) {
+export function FilterBar({ availableFields, viewName }: FilterBarProps) {
   const searchRef = useRef<HTMLInputElement>(null)
   useEffect(() => { searchRef.current?.focus() }, [])
 
@@ -111,6 +115,11 @@ export function FilterBar({ availableFields }: FilterBarProps) {
   } = useFilterStore()
 
   const [expanded, setExpanded] = useState(false)
+  const [saveModalOpen, setSaveModalOpen] = useState(false)
+
+  const handleSavedFilterApply = useCallback((hasSecondaryFields: boolean) => {
+    if (hasSecondaryFields) setExpanded(true)
+  }, [])
 
   const { data: areasData } = useAreas()
   const { data: projectsData } = useProjects()
@@ -227,6 +236,7 @@ export function FilterBar({ availableFields }: FilterBarProps) {
 
   return (
     <div className="mb-4" data-filter-bar>
+      <SavedFiltersBar viewName={viewName} onApply={handleSavedFilterApply} />
       {/* Filter bar */}
       <div className="flex items-center gap-1 border-b border-neutral-100 pb-2 dark:border-neutral-800">
         {/* Search */}
@@ -338,15 +348,25 @@ export function FilterBar({ availableFields }: FilterBarProps) {
         {/* Spacer */}
         <div className="flex-1" />
 
-        {/* Clear all */}
+        {/* Clear all + Save */}
         {hasActive && (
-          <button
-            onClick={clearAll}
-            className="flex h-7 items-center gap-1 rounded px-2 text-xs text-neutral-400 transition-colors hover:text-red-500"
-          >
-            <X size={12} />
-            Clear all
-          </button>
+          <>
+            <button
+              onClick={clearAll}
+              className="flex h-7 items-center gap-1 rounded px-2 text-xs text-neutral-400 transition-colors hover:text-red-500"
+            >
+              <X size={12} />
+              Clear all
+            </button>
+            <button
+              onClick={() => setSaveModalOpen(true)}
+              className="flex h-7 items-center gap-1 rounded px-2 text-xs text-neutral-400 transition-colors hover:text-neutral-600 dark:hover:text-neutral-300"
+              title="Save current filters"
+            >
+              <Bookmark size={12} />
+              Save
+            </button>
+          </>
         )}
       </div>
 
@@ -370,6 +390,7 @@ export function FilterBar({ availableFields }: FilterBarProps) {
           ))}
         </div>
       )}
+      <SaveViewModal open={saveModalOpen} onClose={() => setSaveModalOpen(false)} viewName={viewName} />
     </div>
   )
 }

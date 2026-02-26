@@ -63,7 +63,7 @@ export function LogbookView() {
           )}
         </div>
       </div>
-      {filterBarOpen && <FilterBar availableFields={['area', 'project', 'tag', 'highPriority', 'plannedDate', 'deadline']} />}
+      {filterBarOpen && <FilterBar availableFields={['area', 'project', 'tag', 'highPriority', 'plannedDate', 'deadline']} viewName="logbook" />}
       {!hasTasks ? (
         active
           ? <FilterEmptyState />

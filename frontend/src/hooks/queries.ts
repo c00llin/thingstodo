@@ -12,6 +12,7 @@ import * as viewsApi from '../api/views'
 import * as searchApi from '../api/search'
 import * as authApi from '../api/auth'
 import * as settingsApi from '../api/settings'
+import * as savedFiltersApi from '../api/savedFilters'
 import { playCompleteSound, playReviewSound } from '../lib/sounds'
 import type {
   Task,
@@ -35,6 +36,7 @@ import type {
   UserSettings,
   SimpleReorderItem,
   Project,
+  CreateSavedFilterRequest,
 } from '../api/types'
 
 // --- Query Keys ---
@@ -76,6 +78,7 @@ export const queryKeys = {
     me: ['auth', 'me'] as const,
   },
   settings: ['settings'] as const,
+  savedFilters: (view: string) => ['savedFilters', view] as const,
 }
 
 // --- View Hooks ---
@@ -960,6 +963,36 @@ export function useUpdateSettings() {
         queryClient.invalidateQueries({ queryKey: queryKeys.views.inbox })
         queryClient.invalidateQueries({ queryKey: queryKeys.views.counts })
       }
+    },
+  })
+}
+
+// --- Saved Filters ---
+
+export function useSavedFilters(view: string) {
+  return useQuery({
+    queryKey: queryKeys.savedFilters(view),
+    queryFn: () => savedFiltersApi.listSavedFilters(view),
+    staleTime: 30_000,
+  })
+}
+
+export function useCreateSavedFilter() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (data: CreateSavedFilterRequest) => savedFiltersApi.createSavedFilter(data),
+    onSuccess: (result) => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.savedFilters(result.view) })
+    },
+  })
+}
+
+export function useDeleteSavedFilter(view: string) {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (id: string) => savedFiltersApi.deleteSavedFilter(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.savedFilters(view) })
     },
   })
 }

@@ -483,6 +483,21 @@ export interface UserSettings {
   sort_tags: SortPreference
 }
 
+// Saved Filters
+export interface SavedFilter {
+  id: string
+  view: string
+  name: string
+  config: string
+  created_at: string
+}
+
+export interface CreateSavedFilterRequest {
+  view: string
+  name: string
+  config: string
+}
+
 // Task query params
 export interface TaskQueryParams {
   status?: TaskStatus
