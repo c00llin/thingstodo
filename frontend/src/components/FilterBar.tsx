@@ -89,6 +89,9 @@ function getDateFilterLabel(f: DateFilter): string {
 }
 
 export function FilterBar({ availableFields }: FilterBarProps) {
+  const searchRef = useRef<HTMLInputElement>(null)
+  useEffect(() => { searchRef.current?.focus() }, [])
+
   const {
     areas: selectedAreas,
     projects: selectedProjects,
@@ -212,6 +215,7 @@ export function FilterBar({ availableFields }: FilterBarProps) {
         <div className="relative mr-1">
           <Search size={14} className="absolute left-2 top-1/2 -translate-y-1/2 text-neutral-400" />
           <input
+            ref={searchRef}
             type="text"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
