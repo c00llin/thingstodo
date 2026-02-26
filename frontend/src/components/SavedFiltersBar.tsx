@@ -46,7 +46,13 @@ export function SavedFiltersBar({ viewName }: SavedFiltersBarProps) {
     )
   }
 
-  function handleApply(sf: SavedFilter) {
+  function handleClick(sf: SavedFilter) {
+    // Toggle: clicking the active pill clears the filter
+    if (sf.id === activeFilterId) {
+      useFilterStore.getState().clearAll()
+      return
+    }
+
     const config = parseConfig(sf)
     if (!config) return
 
@@ -78,7 +84,7 @@ export function SavedFiltersBar({ viewName }: SavedFiltersBarProps) {
 
   return (
     <>
-      <div className="mb-2 flex flex-wrap gap-1">
+      <div className="mb-4 flex flex-wrap gap-1">
         {savedFilters.map((sf) => {
           const isActive = sf.id === activeFilterId
           const stale = hasStaleRefs(sf)
@@ -90,10 +96,10 @@ export function SavedFiltersBar({ viewName }: SavedFiltersBarProps) {
                   ? 'border-red-400 bg-red-50 text-red-600 dark:border-red-600 dark:bg-red-900/30 dark:text-red-400'
                   : 'border-neutral-200 bg-neutral-50 text-neutral-600 hover:border-red-300 hover:bg-red-50 hover:text-red-600 dark:border-neutral-700 dark:bg-neutral-800/50 dark:text-neutral-300 dark:hover:border-red-600 dark:hover:bg-red-900/30 dark:hover:text-red-400'
               }`}
-              onClick={() => handleApply(sf)}
+              onClick={() => handleClick(sf)}
               role="button"
               tabIndex={0}
-              onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleApply(sf) } }}
+              onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleClick(sf) } }}
             >
               {stale && (
                 <span
