@@ -7,6 +7,7 @@ import { SortableTaskList } from '../components/SortableTaskList'
 import { TaskItem } from '../components/TaskItem'
 import { CompletedTasksSection } from '../components/CompletedTasksSection'
 import { FilterBar, FilterToggleButton, FilterEmptyState } from '../components/FilterBar'
+import { SavedFiltersBar } from '../components/SavedFiltersBar'
 import { useAppStore } from '../stores/app'
 import { useFilterStore } from '../stores/filters'
 import { filterTasks, filterTodaySections, hasFilters } from '../lib/filter-tasks'
@@ -57,6 +58,7 @@ export function TodayView() {
         <h2 className="text-2xl font-bold text-neutral-900 dark:text-neutral-100">Today</h2>
         <FilterToggleButton />
       </div>
+      <SavedFiltersBar viewName="today" />
       {filterBarOpen && <FilterBar availableFields={['area', 'project', 'tag', 'highPriority']} viewName="today" />}
 
       {active && overdue.length === 0 && earlier.length === 0 && sections.every((s) => s.tasks.length === 0) && completed.length === 0 && (

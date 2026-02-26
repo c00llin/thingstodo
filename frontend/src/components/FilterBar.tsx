@@ -1,4 +1,4 @@
-import { useState, useRef, useMemo, useEffect, useCallback } from 'react'
+import { useState, useRef, useMemo, useEffect } from 'react'
 import * as Popover from '@radix-ui/react-popover'
 import {
   Filter,
@@ -17,7 +17,6 @@ import { useAppStore } from '../stores/app'
 import { useAreas, useProjects, useTags } from '../hooks/queries'
 import { hasFilters } from '../lib/filter-tasks'
 import { CalendarPicker } from './CalendarPicker'
-import { SavedFiltersBar } from './SavedFiltersBar'
 import { SaveViewModal } from './SaveViewModal'
 
 export type FilterField = 'area' | 'project' | 'tag' | 'highPriority' | 'plannedDate' | 'deadline'
@@ -116,10 +115,6 @@ export function FilterBar({ availableFields, viewName }: FilterBarProps) {
 
   const [expanded, setExpanded] = useState(false)
   const [saveModalOpen, setSaveModalOpen] = useState(false)
-
-  const handleSavedFilterApply = useCallback((hasSecondaryFields: boolean) => {
-    if (hasSecondaryFields) setExpanded(true)
-  }, [])
 
   const { data: areasData } = useAreas()
   const { data: projectsData } = useProjects()
@@ -236,7 +231,6 @@ export function FilterBar({ availableFields, viewName }: FilterBarProps) {
 
   return (
     <div className="mb-4" data-filter-bar>
-      <SavedFiltersBar viewName={viewName} onApply={handleSavedFilterApply} />
       {/* Filter bar */}
       <div className="flex items-center gap-1 border-b border-neutral-100 pb-2 dark:border-neutral-800">
         {/* Search */}

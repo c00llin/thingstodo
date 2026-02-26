@@ -6,6 +6,7 @@ import { useUpcoming } from '../hooks/queries'
 import { TaskGroup } from '../components/TaskGroup'
 import { TaskItem } from '../components/TaskItem'
 import { FilterBar, FilterToggleButton, FilterEmptyState } from '../components/FilterBar'
+import { SavedFiltersBar } from '../components/SavedFiltersBar'
 import { useAppStore } from '../stores/app'
 import { useFilterStore } from '../stores/filters'
 import { filterTasks, filterUpcomingDates, hasFilters } from '../lib/filter-tasks'
@@ -107,6 +108,7 @@ export function UpcomingView() {
         <h2 className="text-2xl font-bold text-neutral-900 dark:text-neutral-100">Upcoming</h2>
         <FilterToggleButton />
       </div>
+      <SavedFiltersBar viewName="upcoming" />
       {filterBarOpen && <FilterBar availableFields={['area', 'project', 'tag', 'highPriority', 'plannedDate', 'deadline']} viewName="upcoming" />}
       {overdue.length > 0 && (
         <div className="mb-6">
