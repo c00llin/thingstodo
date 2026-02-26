@@ -205,7 +205,7 @@ export function FilterBar({ availableFields }: FilterBarProps) {
   }
 
   return (
-    <div className="mb-4">
+    <div className="mb-4" data-filter-bar>
       {/* Filter bar */}
       <div className="flex items-center gap-1 border-b border-neutral-100 pb-2 dark:border-neutral-800">
         {/* Search */}
@@ -415,6 +415,7 @@ function MultiSelectFilter({ label, options, selected, onChange }: MultiSelectFi
           align="start"
           sideOffset={4}
           onKeyDown={handleKeyDown}
+          data-filter-bar
           className="z-50 w-56 rounded-lg border border-neutral-200 bg-white p-1 shadow-lg dark:border-neutral-700 dark:bg-neutral-900"
         >
           {showSearch && (
@@ -531,6 +532,7 @@ function DateFilterButton({ label, icon, value, onChange, presets }: DateFilterB
           side="bottom"
           align="start"
           sideOffset={4}
+          data-filter-bar
           className="z-50 rounded-lg border border-neutral-200 bg-white p-3 shadow-lg dark:border-neutral-700 dark:bg-neutral-900"
         >
           <CalendarPicker value={value} onChange={onChange} presets={presets} />

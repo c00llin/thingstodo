@@ -129,6 +129,11 @@ export function useGlobalShortcuts() {
   }, [toggleShortcutsHelp])
 }
 
+/** Returns true when focus is inside the filter bar or one of its portaled dropdowns. */
+function isFocusInFilterBar(): boolean {
+  return document.activeElement?.closest('[data-filter-bar]') !== null
+}
+
 function getVisibleTaskIds(): string[] {
   const nodes = document.querySelectorAll<HTMLElement>('[data-task-id]:not([data-departing="true"])')
   return Array.from(nodes).map((el) => el.dataset.taskId!)
@@ -155,6 +160,7 @@ export function useTaskShortcuts() {
 
   // Space toggles detail panel (keep task selected when closing)
   useHotkeys('space', (e) => {
+    if (isFocusInFilterBar()) return
     e.preventDefault()
     if (selectedTaskId) {
       if (expandedTaskId === selectedTaskId) {
@@ -167,6 +173,7 @@ export function useTaskShortcuts() {
 
   // Enter edits title
   useHotkeys('enter', (e) => {
+    if (isFocusInFilterBar()) return
     e.preventDefault()
     if (selectedTaskId) {
       startEditingTask(selectedTaskId)
@@ -183,6 +190,7 @@ export function useTaskShortcuts() {
 
   // Escape closes detail and deselects
   useHotkeys('escape', (e) => {
+    if (isFocusInFilterBar()) return
     e.preventDefault()
     if (expandedTaskId) {
       expandTask(null)
@@ -193,6 +201,7 @@ export function useTaskShortcuts() {
 
   // Arrow down — select next task (wraps around)
   useHotkeys('down', (e) => {
+    if (isFocusInFilterBar()) return
     e.preventDefault()
     const ids = getVisibleTaskIds()
     if (ids.length === 0) return
@@ -209,6 +218,7 @@ export function useTaskShortcuts() {
 
   // Arrow up — select previous task (wraps around)
   useHotkeys('up', (e) => {
+    if (isFocusInFilterBar()) return
     e.preventDefault()
     const ids = getVisibleTaskIds()
     if (ids.length === 0) return
@@ -257,6 +267,7 @@ export function useTaskShortcuts() {
 
   // Delete task
   useHotkeys('delete', (e) => {
+    if (isFocusInFilterBar()) return
     e.preventDefault()
     if (selectedTaskId) {
       deleteTask.mutate(selectedTaskId)
@@ -265,6 +276,7 @@ export function useTaskShortcuts() {
   }, { enabled })
 
   useHotkeys('backspace', (e) => {
+    if (isFocusInFilterBar()) return
     e.preventDefault()
     if (selectedTaskId) {
       deleteTask.mutate(selectedTaskId)
