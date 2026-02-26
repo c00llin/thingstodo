@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect, useCallback, useMemo } from 'react'
+import { useIsMobile } from '../hooks/useIsMobile'
 import { NavLink, useLocation, useNavigate } from 'react-router'
 import {
   Inbox,
@@ -350,14 +351,18 @@ function SortButtons({ onSort }: { onSort: (direction: 'a-z' | 'z-a') => void })
 }
 
 function SortableSidebarItem({ id, children }: { id: string; children: React.ReactNode }) {
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id })
+  const isMobile = useIsMobile()
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+    id,
+    disabled: isMobile,
+  })
   const style = {
     transform: CSS.Transform.toString(transform),
     transition,
     opacity: isDragging ? 0.5 : 1,
   }
   return (
-    <div ref={setNodeRef} style={style} {...attributes} {...listeners}>
+    <div ref={setNodeRef} style={style} {...attributes} {...(isMobile ? {} : listeners)}>
       {children}
     </div>
   )
