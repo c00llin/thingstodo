@@ -5,6 +5,7 @@ import { useLogbook } from '../hooks/queries'
 import { TaskGroup } from '../components/TaskGroup'
 import { ConfirmDialog } from '../components/ConfirmDialog'
 import { FilterBar, FilterToggleButton, FilterEmptyState } from '../components/FilterBar'
+import { SavedFiltersBar } from '../components/SavedFiltersBar'
 import { useAppStore } from '../stores/app'
 import { useFilterStore } from '../stores/filters'
 import { filterLogbookGroups, hasFilters } from '../lib/filter-tasks'
@@ -63,7 +64,8 @@ export function LogbookView() {
           )}
         </div>
       </div>
-      {filterBarOpen && <FilterBar availableFields={['area', 'project', 'highPriority', 'plannedDate', 'deadline']} />}
+      <SavedFiltersBar viewName="logbook" />
+      {filterBarOpen && <FilterBar availableFields={['area', 'project', 'tag', 'highPriority', 'plannedDate', 'deadline']} viewName="logbook" />}
       {!hasTasks ? (
         active
           ? <FilterEmptyState />

@@ -41,6 +41,7 @@ func New(db *sql.DB, cfg config.Config, broker *sse.Broker, sched *scheduler.Sch
 	viewRepo := repository.NewViewRepository(db)
 	userRepo := repository.NewUserRepository(db)
 	settingsRepo := repository.NewUserSettingsRepository(db)
+	savedFilterRepo := repository.NewSavedFilterRepository(db)
 
 	// Handlers
 	taskH := handler.NewTaskHandler(taskRepo, broker, sched)
@@ -55,6 +56,7 @@ func New(db *sql.DB, cfg config.Config, broker *sse.Broker, sched *scheduler.Sch
 	viewH := handler.NewViewHandler(viewRepo, settingsRepo)
 	authH := handler.NewAuthHandler(userRepo, cfg)
 	settingsH := handler.NewUserSettingsHandler(settingsRepo)
+	savedFilterH := handler.NewSavedFilterHandler(savedFilterRepo, broker)
 	eventH := handler.NewEventHandler(broker)
 
 	var oidcH *handler.OIDCHandler
@@ -183,6 +185,11 @@ func New(db *sql.DB, cfg config.Config, broker *sse.Broker, sched *scheduler.Sch
 			// User Settings
 			r.Get("/user/settings", settingsH.Get)
 			r.Patch("/user/settings", settingsH.Update)
+
+			// Saved Filters
+			r.Get("/saved-filters", savedFilterH.List)
+			r.Post("/saved-filters", savedFilterH.Create)
+			r.Delete("/saved-filters/{id}", savedFilterH.Delete)
 
 			// Search
 			r.Get("/search", searchH.Search)

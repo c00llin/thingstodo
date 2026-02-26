@@ -3,6 +3,7 @@ import { useAnytime } from '../hooks/queries'
 import { TaskGroup } from '../components/TaskGroup'
 import { SortableTaskList } from '../components/SortableTaskList'
 import { FilterBar, FilterToggleButton, FilterEmptyState } from '../components/FilterBar'
+import { SavedFiltersBar } from '../components/SavedFiltersBar'
 import { useAppStore } from '../stores/app'
 import { useFilterStore } from '../stores/filters'
 import { filterAreaGroups, filterNoArea, hasFilters } from '../lib/filter-tasks'
@@ -36,7 +37,8 @@ export function AnytimeView() {
         <h2 className="text-2xl font-bold text-neutral-900 dark:text-neutral-100">Anytime</h2>
         <FilterToggleButton />
       </div>
-      {filterBarOpen && <FilterBar availableFields={['area', 'project', 'highPriority', 'deadline']} />}
+      <SavedFiltersBar viewName="anytime" />
+      {filterBarOpen && <FilterBar availableFields={['area', 'project', 'tag', 'highPriority', 'deadline']} viewName="anytime" />}
 
       {active && areas.length === 0 && (!noArea || (noArea.standalone_tasks.length === 0 && noArea.projects.length === 0)) && (
         <FilterEmptyState />

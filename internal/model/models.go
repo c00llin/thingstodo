@@ -428,3 +428,17 @@ type SearchResult struct {
 	NotesSnippet string       `json:"notes_snippet"`
 	Rank         float64      `json:"rank"`
 }
+
+type SavedFilter struct {
+	ID        string `json:"id"`
+	View      string `json:"view"`
+	Name      string `json:"name"`
+	Config    string `json:"config"`
+	CreatedAt string `json:"created_at"`
+}
+
+type CreateSavedFilterInput struct {
+	View   string `json:"view"`
+	Name   string `json:"name"`
+	Config string `json:"config"`
+}

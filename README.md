@@ -14,6 +14,7 @@ A self-hosted, Things 3 / Todoist inspired task manager.
 - **Repeating Tasks** — daily, weekly, monthly, and custom schedules
 - **Natural Language Dates** — type "tomorrow", "next friday", etc.
 - **Keyboard-Driven** — full keyboard navigation and shortcuts
+- **Filters** — filter any view by area, project, tag, priority, date, and deadline with saved filter presets
 - **Search** — full-text search across tasks and notes
 - **Dark Mode** — automatic or manual theme switching
 - **PWA** — installable on mobile and desktop

@@ -961,6 +961,60 @@ data: {"type": "reorder|move|delete", "entity": "task|project|heading|area|tag",
 
 ---
 
+## Saved Filters
+
+### GET /saved-filters?view={view}
+
+Returns all saved filters for the current user for a specific view, sorted A-Z by name.
+
+Query params: `view` — one of `today`, `upcoming`, `anytime`, `someday`, `logbook` (required)
+
+Response (200):
+```json
+{
+  "saved_filters": [
+    {
+      "id": "abc1234567",
+      "view": "today",
+      "name": "High priority",
+      "config": "{\"areas\":[],\"projects\":[],\"tags\":[],\"highPriority\":true,\"plannedDate\":null,\"deadline\":null,\"search\":\"\"}",
+      "created_at": "2026-02-26T12:00:00"
+    }
+  ]
+}
+```
+
+### POST /saved-filters
+
+Creates a new saved filter. Maximum 10 per view.
+
+Request:
+```json
+{
+  "view": "today",
+  "name": "High priority",
+  "config": "{\"areas\":[],\"projects\":[],\"tags\":[],\"highPriority\":true,\"plannedDate\":null,\"deadline\":null,\"search\":\"\"}"
+}
+```
+
+Response (201): the created SavedFilter object.
+
+Error (422): `LIMIT_REACHED` — maximum 10 saved filters per view.
+
+SSE: broadcasts `saved_filter_changed` with `{ "view": "<view>" }`.
+
+### DELETE /saved-filters/{id}
+
+Deletes a saved filter. Only the owning user can delete it.
+
+Response: 204 No Content.
+
+Error (404): `NOT_FOUND`.
+
+SSE: broadcasts `saved_filter_changed` with `{ "view": "<view>" }`.
+
+---
+
 ## Health
 
 ### GET /health

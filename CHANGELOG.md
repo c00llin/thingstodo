@@ -1,5 +1,23 @@
 # Changelog
 
+## [0.8.1] - 2026-02-26
+
+### Added
+- Saved filters: save and recall filter presets per view (up to 10 per view)
+- Tag filter: multi-select dropdown as a primary filter field
+- Saved filter pills always visible below page headers with toggle-on/off behavior
+- Stale reference warnings on saved filters when areas, projects, or tags are deleted
+- Save button (bookmark icon) in filter bar to save current filter configuration
+- SSE sync for saved filter changes across devices
+
+### Changed
+- Priority filter promoted to primary field on views without date filters (Today)
+- Saved filter pills dynamically resize: delete button appears on hover with smooth animation
+- Saved filter pill hover colors changed to red accent for readability
+
+### Fixed
+- Saved filter pill text centering (no extra space when delete button is hidden)
+
 ## [0.8.0] - 2026-02-26
 
 ### Added

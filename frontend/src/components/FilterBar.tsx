@@ -10,14 +10,16 @@ import {
   Flag,
   Calendar,
   AlertTriangle,
+  Bookmark,
 } from 'lucide-react'
 import { useFilterStore, type DateFilter } from '../stores/filters'
 import { useAppStore } from '../stores/app'
-import { useAreas, useProjects } from '../hooks/queries'
+import { useAreas, useProjects, useTags } from '../hooks/queries'
 import { hasFilters } from '../lib/filter-tasks'
 import { CalendarPicker } from './CalendarPicker'
+import { SaveViewModal } from './SaveViewModal'
 
-export type FilterField = 'area' | 'project' | 'highPriority' | 'plannedDate' | 'deadline'
+export type FilterField = 'area' | 'project' | 'tag' | 'highPriority' | 'plannedDate' | 'deadline'
 
 /** Icon button that toggles the filter bar open/closed. Shows a red dot when filters are active. */
 export function FilterToggleButton() {
@@ -49,6 +51,7 @@ export function FilterToggleButton() {
 
 interface FilterBarProps {
   availableFields: FilterField[]
+  viewName: string
 }
 
 const PLANNED_DATE_PRESETS: { label: string; value: DateFilter }[] = [
@@ -88,19 +91,21 @@ function getDateFilterLabel(f: DateFilter): string {
   return ''
 }
 
-export function FilterBar({ availableFields }: FilterBarProps) {
+export function FilterBar({ availableFields, viewName }: FilterBarProps) {
   const searchRef = useRef<HTMLInputElement>(null)
   useEffect(() => { searchRef.current?.focus() }, [])
 
   const {
     areas: selectedAreas,
     projects: selectedProjects,
+    tags: selectedTags,
     highPriority,
     plannedDate,
     deadline,
     search,
     setAreas,
     setProjects,
+    setTags,
     setHighPriority,
     setPlannedDate,
     setDeadline,
@@ -109,9 +114,11 @@ export function FilterBar({ availableFields }: FilterBarProps) {
   } = useFilterStore()
 
   const [expanded, setExpanded] = useState(false)
+  const [saveModalOpen, setSaveModalOpen] = useState(false)
 
   const { data: areasData } = useAreas()
   const { data: projectsData } = useProjects()
+  const { data: tagsData } = useTags()
 
   const allAreas = useMemo(() => areasData?.areas ?? [], [areasData?.areas])
   const allProjects = useMemo(() => {
@@ -122,6 +129,8 @@ export function FilterBar({ availableFields }: FilterBarProps) {
     }
     return projects
   }, [projectsData?.projects, selectedAreas])
+
+  const allTags = useMemo(() => tagsData?.tags ?? [], [tagsData?.tags])
 
   // Auto-remove orphaned project selections when areas change
   useEffect(() => {
@@ -134,17 +143,19 @@ export function FilterBar({ availableFields }: FilterBarProps) {
     }
   }, [allProjects, selectedAreas, selectedProjects, setProjects])
 
+  const hasDateFields = availableFields.some((f) => f === 'plannedDate' || f === 'deadline')
   const primaryFields = availableFields.filter((f) =>
-    f === 'area' || f === 'project' || f === 'highPriority',
+    f === 'area' || f === 'project' || f === 'tag' || (f === 'highPriority' && !hasDateFields),
   )
   const secondaryFields = availableFields.filter((f) =>
-    f === 'plannedDate' || f === 'deadline',
+    f === 'plannedDate' || f === 'deadline' || (f === 'highPriority' && hasDateFields),
   )
   const hasSecondary = secondaryFields.length > 0
 
   const hasActive =
     selectedAreas.length > 0 ||
     selectedProjects.length > 0 ||
+    selectedTags.length > 0 ||
     highPriority ||
     plannedDate !== null ||
     deadline !== null ||
@@ -172,6 +183,17 @@ export function FilterBar({ availableFields }: FilterBarProps) {
       label: names.join(', '),
       field: 'Project',
       onRemove: () => setProjects([]),
+    })
+  }
+  if (selectedTags.length > 0) {
+    const names = allTags
+      .filter((t) => selectedTags.includes(t.id))
+      .map((t) => t.title)
+    chips.push({
+      key: 'tags',
+      label: names.join(', '),
+      field: 'Tag',
+      onRemove: () => setTags([]),
     })
   }
   if (highPriority) {
@@ -247,6 +269,14 @@ export function FilterBar({ availableFields }: FilterBarProps) {
             onChange={setProjects}
           />
         )}
+        {primaryFields.includes('tag') && (
+          <MultiSelectFilter
+            label="Tag"
+            options={allTags.map((t) => ({ id: t.id, label: t.title }))}
+            selected={selectedTags}
+            onChange={setTags}
+          />
+        )}
         {primaryFields.includes('highPriority') && (
           <button
             onClick={() => setHighPriority(!highPriority)}
@@ -264,6 +294,19 @@ export function FilterBar({ availableFields }: FilterBarProps) {
         {/* Secondary filters (progressive disclosure) */}
         {hasSecondary && expanded && (
           <>
+            {secondaryFields.includes('highPriority') && (
+              <button
+                onClick={() => setHighPriority(!highPriority)}
+                className={`flex h-7 items-center gap-1 rounded px-2 text-xs transition-colors ${
+                  highPriority
+                    ? 'bg-red-50 text-red-600 dark:bg-red-900/30 dark:text-red-400'
+                    : 'text-neutral-400 hover:bg-neutral-100 hover:text-neutral-600 dark:hover:bg-neutral-800 dark:hover:text-neutral-300'
+                }`}
+              >
+                <Flag size={12} />
+                Priority
+              </button>
+            )}
             {secondaryFields.includes('plannedDate') && (
               <DateFilterButton
                 label="Planned"
@@ -299,15 +342,25 @@ export function FilterBar({ availableFields }: FilterBarProps) {
         {/* Spacer */}
         <div className="flex-1" />
 
-        {/* Clear all */}
+        {/* Clear all + Save */}
         {hasActive && (
-          <button
-            onClick={clearAll}
-            className="flex h-7 items-center gap-1 rounded px-2 text-xs text-neutral-400 transition-colors hover:text-red-500"
-          >
-            <X size={12} />
-            Clear all
-          </button>
+          <>
+            <button
+              onClick={clearAll}
+              className="flex h-7 items-center gap-1 rounded px-2 text-xs text-neutral-400 transition-colors hover:text-red-500"
+            >
+              <X size={12} />
+              Clear all
+            </button>
+            <button
+              onClick={() => setSaveModalOpen(true)}
+              className="flex h-7 items-center gap-1 rounded px-2 text-xs text-neutral-400 transition-colors hover:text-neutral-600 dark:hover:text-neutral-300"
+              title="Save current filters"
+            >
+              <Bookmark size={12} />
+              Save
+            </button>
+          </>
         )}
       </div>
 
@@ -331,6 +384,7 @@ export function FilterBar({ availableFields }: FilterBarProps) {
           ))}
         </div>
       )}
+      <SaveViewModal open={saveModalOpen} onClose={() => setSaveModalOpen(false)} viewName={viewName} />
     </div>
   )
 }
