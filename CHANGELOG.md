@@ -1,5 +1,26 @@
 # Changelog
 
+## [0.8.0] - 2026-02-26
+
+### Added
+- Client-side filter bar for all task views (Today, Upcoming, Anytime, Someday, Logbook)
+- Filter by area, project, priority, planned date, and deadline
+- Text search filter across task titles and notes
+- Progressive disclosure (More/Less) for date filters
+- CalendarPicker component with single date, date range, and preset selection
+- Active filter chips with individual removal
+- Filter empty state with "No tasks match" message and clear button
+- Filter bar toggle button (funnel icon) in page headers
+- G X shortcut to toggle filter bar visibility
+- Alt+X shortcut to clear all filters (double-press closes filter bar)
+- Keyboard navigation in multi-select dropdowns (Arrow keys, Enter, Space)
+- Auto-focus search input when filter bar opens
+- Cascading area→project filter (selecting areas scopes project options)
+- Filter bar state preserved within session, cleared on route change
+
+### Fixed
+- Task keyboard shortcuts (arrows, space, enter, escape, delete) no longer conflict with filter bar interaction
+
 ## [0.7.2] - 2026-02-26
 
 ### Fixed
