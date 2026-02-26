@@ -12,10 +12,12 @@ const navigationShortcuts = [
   { keys: 'G R', action: 'Go to Trash' },
   { keys: 'G N', action: 'Navigator' },
   { keys: 'G F', action: 'Search tasks' },
+  { keys: 'G X', action: 'Toggle filter bar' },
 ]
 
 const globalShortcuts = [
   { keys: 'Q', action: 'Quick Entry' },
+  { keys: 'Alt + X', action: 'Clear all filters' },
   { keys: '?', action: 'Show this help' },
 ]
 

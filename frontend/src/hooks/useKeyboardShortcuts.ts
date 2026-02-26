@@ -2,6 +2,8 @@ import { useEffect, useRef, useCallback } from 'react'
 import { useHotkeys } from 'react-hotkeys-hook'
 import { useNavigate } from 'react-router'
 import { useAppStore } from '../stores/app'
+import { useFilterStore } from '../stores/filters'
+import { hasFilters } from '../lib/filter-tasks'
 import { useCompleteTask, useDeleteTask, useUpdateTask } from './queries'
 
 const VIEW_ROUTES = ['/inbox', '/today', '/upcoming', '/anytime', '/someday', '/logbook']
@@ -71,6 +73,7 @@ export function useGlobalShortcuts() {
   const toggleShortcutsHelp = useAppStore((s) => s.toggleShortcutsHelp)
   const openCommandPalette = useAppStore((s) => s.openCommandPalette)
   const openSearch = useAppStore((s) => s.openSearch)
+  const toggleFilterBar = useAppStore((s) => s.toggleFilterBar)
 
   // g + <key> navigation sequences
   useKeySequences({
@@ -83,12 +86,24 @@ export function useGlobalShortcuts() {
     r: () => navigate('/trash'),
     n: () => openCommandPalette(),
     f: () => openSearch(),
+    x: () => toggleFilterBar(),
   })
 
   // New task (open quick entry empty)
   useHotkeys('q', (e) => {
     e.preventDefault()
     openQuickEntry()
+  })
+
+  // Clear all filters — if already clear, close the filter bar
+  useHotkeys('alt+x', (e) => {
+    e.preventDefault()
+    const filters = useFilterStore.getState()
+    if (hasFilters(filters)) {
+      filters.clearAll()
+    } else {
+      useAppStore.setState({ filterBarOpen: false })
+    }
   })
 
   // Navigate to views Alt+1 through Alt+6
@@ -120,6 +135,11 @@ export function useGlobalShortcuts() {
   }, [toggleShortcutsHelp])
 }
 
+/** Returns true when focus is inside the filter bar or one of its portaled dropdowns. */
+function isFocusInFilterBar(): boolean {
+  return document.activeElement?.closest('[data-filter-bar]') !== null
+}
+
 function getVisibleTaskIds(): string[] {
   const nodes = document.querySelectorAll<HTMLElement>('[data-task-id]:not([data-departing="true"])')
   return Array.from(nodes).map((el) => el.dataset.taskId!)
@@ -146,6 +166,7 @@ export function useTaskShortcuts() {
 
   // Space toggles detail panel (keep task selected when closing)
   useHotkeys('space', (e) => {
+    if (isFocusInFilterBar()) return
     e.preventDefault()
     if (selectedTaskId) {
       if (expandedTaskId === selectedTaskId) {
@@ -158,6 +179,7 @@ export function useTaskShortcuts() {
 
   // Enter edits title
   useHotkeys('enter', (e) => {
+    if (isFocusInFilterBar()) return
     e.preventDefault()
     if (selectedTaskId) {
       startEditingTask(selectedTaskId)
@@ -174,6 +196,7 @@ export function useTaskShortcuts() {
 
   // Escape closes detail and deselects
   useHotkeys('escape', (e) => {
+    if (isFocusInFilterBar()) return
     e.preventDefault()
     if (expandedTaskId) {
       expandTask(null)
@@ -184,6 +207,7 @@ export function useTaskShortcuts() {
 
   // Arrow down — select next task (wraps around)
   useHotkeys('down', (e) => {
+    if (isFocusInFilterBar()) return
     e.preventDefault()
     const ids = getVisibleTaskIds()
     if (ids.length === 0) return
@@ -200,6 +224,7 @@ export function useTaskShortcuts() {
 
   // Arrow up — select previous task (wraps around)
   useHotkeys('up', (e) => {
+    if (isFocusInFilterBar()) return
     e.preventDefault()
     const ids = getVisibleTaskIds()
     if (ids.length === 0) return
@@ -248,6 +273,7 @@ export function useTaskShortcuts() {
 
   // Delete task
   useHotkeys('delete', (e) => {
+    if (isFocusInFilterBar()) return
     e.preventDefault()
     if (selectedTaskId) {
       deleteTask.mutate(selectedTaskId)
@@ -256,6 +282,7 @@ export function useTaskShortcuts() {
   }, { enabled })
 
   useHotkeys('backspace', (e) => {
+    if (isFocusInFilterBar()) return
     e.preventDefault()
     if (selectedTaskId) {
       deleteTask.mutate(selectedTaskId)

@@ -5,6 +5,10 @@ import { format } from 'date-fns'
 import { useUpcoming } from '../hooks/queries'
 import { TaskGroup } from '../components/TaskGroup'
 import { TaskItem } from '../components/TaskItem'
+import { FilterBar, FilterToggleButton, FilterEmptyState } from '../components/FilterBar'
+import { useAppStore } from '../stores/app'
+import { useFilterStore } from '../stores/filters'
+import { filterTasks, filterUpcomingDates, hasFilters } from '../lib/filter-tasks'
 import { formatRelativeDate } from '../lib/format-date'
 import type { Task, UpcomingViewDate } from '../api/types'
 
@@ -66,12 +70,27 @@ function groupDateSections(dates: UpcomingViewDate[]): Section[] {
 
 export function UpcomingView() {
   const { data, isLoading } = useUpcoming()
+  const filterBarOpen = useAppStore((s) => s.filterBarOpen)
+  const filters = useFilterStore()
+  const active = hasFilters(filters)
   const [overdueOpen, setOverdueOpen] = useState(() => localStorage.getItem('upcoming-overdue') !== 'false')
   const [earlierOpen, setEarlierOpen] = useState(() => localStorage.getItem('upcoming-earlier') !== 'false')
 
+  const filteredDates = useMemo(
+    () => active ? filterUpcomingDates(data?.dates ?? [], filters) : data?.dates ?? [],
+    [data?.dates, active, filters],
+  )
   const sections = useMemo(
-    () => groupDateSections(data?.dates ?? []),
-    [data?.dates],
+    () => groupDateSections(filteredDates),
+    [filteredDates],
+  )
+  const overdue = useMemo(
+    () => active ? filterTasks(data?.overdue ?? [], filters) : data?.overdue ?? [],
+    [data?.overdue, active, filters],
+  )
+  const earlier = useMemo(
+    () => active ? filterTasks(data?.earlier ?? [], filters) : data?.earlier ?? [],
+    [data?.earlier, active, filters],
   )
 
   if (isLoading) {
@@ -84,8 +103,12 @@ export function UpcomingView() {
 
   return (
     <div className="mx-auto max-w-3xl px-4 pt-14 pb-4 md:p-6">
-      <h2 className="mb-3 text-2xl font-bold text-neutral-900 dark:text-neutral-100">Upcoming</h2>
-      {data?.overdue && data.overdue.length > 0 && (
+      <div className="mb-3 flex items-center justify-between">
+        <h2 className="text-2xl font-bold text-neutral-900 dark:text-neutral-100">Upcoming</h2>
+        <FilterToggleButton />
+      </div>
+      {filterBarOpen && <FilterBar availableFields={['area', 'project', 'highPriority', 'plannedDate', 'deadline']} />}
+      {overdue.length > 0 && (
         <div className="mb-6">
           <button
             onClick={() => setOverdueOpen((v) => { const next = !v; localStorage.setItem('upcoming-overdue', String(next)); return next })}
@@ -96,14 +119,14 @@ export function UpcomingView() {
           </button>
           {overdueOpen && (
             <AnimatePresence initial={false}>
-              {data.overdue.map((task) => (
+              {overdue.map((task) => (
                 <TaskItem key={task.id} task={task} showDivider />
               ))}
             </AnimatePresence>
           )}
         </div>
       )}
-      {data?.earlier && data.earlier.length > 0 && (
+      {earlier.length > 0 && (
         <div className="mb-6">
           <button
             onClick={() => setEarlierOpen((v) => { const next = !v; localStorage.setItem('upcoming-earlier', String(next)); return next })}
@@ -114,7 +137,7 @@ export function UpcomingView() {
           </button>
           {earlierOpen && (
             <AnimatePresence initial={false}>
-              {data.earlier.map((task) => (
+              {earlier.map((task) => (
                 <TaskItem key={task.id} task={task} showDivider />
               ))}
             </AnimatePresence>
@@ -122,10 +145,10 @@ export function UpcomingView() {
         </div>
       )}
       {sections.length === 0 ? (
-        !data?.earlier?.length && !data?.overdue?.length && (
-          <p className="py-12 text-center text-sm text-neutral-400">
-            Nothing scheduled yet.
-          </p>
+        !earlier.length && !overdue.length && (
+          active
+            ? <FilterEmptyState />
+            : <p className="py-12 text-center text-sm text-neutral-400">Nothing scheduled yet.</p>
         )
       ) : (
         sections.map((s) => (

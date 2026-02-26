@@ -6,21 +6,42 @@ import { useToday } from '../hooks/queries'
 import { SortableTaskList } from '../components/SortableTaskList'
 import { TaskItem } from '../components/TaskItem'
 import { CompletedTasksSection } from '../components/CompletedTasksSection'
+import { FilterBar, FilterToggleButton, FilterEmptyState } from '../components/FilterBar'
+import { useAppStore } from '../stores/app'
+import { useFilterStore } from '../stores/filters'
+import { filterTasks, filterTodaySections, hasFilters } from '../lib/filter-tasks'
 
 export function TodayView() {
   const { data, isLoading } = useToday()
+  const filterBarOpen = useAppStore((s) => s.filterBarOpen)
+  const filters = useFilterStore()
+  const active = hasFilters(filters)
   const [overdueOpen, setOverdueOpen] = useState(() => localStorage.getItem('today-overdue') !== 'false')
   const [earlierOpen, setEarlierOpen] = useState(() => localStorage.getItem('today-earlier') !== 'false')
 
   // Flatten grouped tasks into a single list per section
   const dataSections = data?.sections
   const sections = useMemo(() => {
-    if (!dataSections) return []
-    return dataSections.map((section) => ({
+    const src = active && dataSections ? filterTodaySections(dataSections, filters) : dataSections
+    if (!src) return []
+    return src.map((section) => ({
       title: section.title,
       tasks: section.groups.flatMap((g) => g.tasks),
     }))
-  }, [dataSections])
+  }, [dataSections, active, filters])
+
+  const overdue = useMemo(
+    () => active ? filterTasks(data?.overdue ?? [], filters) : data?.overdue ?? [],
+    [data?.overdue, active, filters],
+  )
+  const earlier = useMemo(
+    () => active ? filterTasks(data?.earlier ?? [], filters) : data?.earlier ?? [],
+    [data?.earlier, active, filters],
+  )
+  const completed = useMemo(
+    () => active ? filterTasks(data?.completed ?? [], filters) : data?.completed ?? [],
+    [data?.completed, active, filters],
+  )
 
   if (isLoading) {
     return (
@@ -32,10 +53,18 @@ export function TodayView() {
 
   return (
     <div className="mx-auto max-w-3xl px-4 pt-14 pb-4 md:p-6">
-      <h2 className="mb-3 text-2xl font-bold text-neutral-900 dark:text-neutral-100">Today</h2>
+      <div className="mb-3 flex items-center justify-between">
+        <h2 className="text-2xl font-bold text-neutral-900 dark:text-neutral-100">Today</h2>
+        <FilterToggleButton />
+      </div>
+      {filterBarOpen && <FilterBar availableFields={['area', 'project', 'highPriority']} />}
+
+      {active && overdue.length === 0 && earlier.length === 0 && sections.every((s) => s.tasks.length === 0) && completed.length === 0 && (
+        <FilterEmptyState />
+      )}
 
       {/* Overdue tasks */}
-      {data?.overdue && data.overdue.length > 0 && (
+      {overdue.length > 0 && (
         <div className="mb-6">
           <button
             onClick={() => setOverdueOpen((v) => { const next = !v; localStorage.setItem('today-overdue', String(next)); return next })}
@@ -46,7 +75,7 @@ export function TodayView() {
           </button>
           {overdueOpen && (
             <AnimatePresence initial={false}>
-              {data.overdue.map((task) => (
+              {overdue.map((task) => (
                 <TaskItem key={task.id} task={task} showDivider />
               ))}
             </AnimatePresence>
@@ -55,7 +84,7 @@ export function TodayView() {
       )}
 
       {/* Earlier: past-dated tasks without overdue deadline */}
-      {data?.earlier && data.earlier.length > 0 && (
+      {earlier.length > 0 && (
         <div className="mb-6">
           <button
             onClick={() => setEarlierOpen((v) => { const next = !v; localStorage.setItem('today-earlier', String(next)); return next })}
@@ -66,7 +95,7 @@ export function TodayView() {
           </button>
           {earlierOpen && (
             <AnimatePresence initial={false}>
-              {data.earlier.map((task) => (
+              {earlier.map((task) => (
                 <TaskItem key={task.id} task={task} showDivider />
               ))}
             </AnimatePresence>
@@ -97,7 +126,7 @@ export function TodayView() {
         )
       })}
 
-      {data?.completed && <CompletedTasksSection tasks={data.completed} />}
+      {completed.length > 0 && <CompletedTasksSection tasks={completed} />}
     </div>
   )
 }
