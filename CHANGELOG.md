@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.7.2] - 2026-02-26
+
+### Fixed
+- Sidebar DnD sorting blocking normal scroll on iOS
+- 25 failing frontend tests (missing providers, stale mock data, outdated assertions)
+
+### Changed
+- Sidebar drag-and-drop sorting disabled on mobile (below 768px); sort buttons and task-to-sidebar drops still work
+
 ## [0.7.1] - 2026-02-25
 
 ### Fixed
