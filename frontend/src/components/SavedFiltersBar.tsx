@@ -91,7 +91,7 @@ export function SavedFiltersBar({ viewName }: SavedFiltersBarProps) {
           return (
             <div
               key={sf.id}
-              className={`group inline-flex cursor-pointer items-center gap-1 rounded-full border px-2.5 py-0.5 text-xs transition-colors ${
+              className={`group inline-flex cursor-pointer items-center rounded-full border px-2.5 py-0.5 text-xs transition-colors ${
                 isActive
                   ? 'border-red-400 bg-red-50 text-red-600 dark:border-red-600 dark:bg-red-900/30 dark:text-red-400'
                   : 'border-neutral-200 bg-neutral-50 text-neutral-600 hover:border-red-300 hover:bg-red-50 hover:text-red-600 dark:border-neutral-700 dark:bg-neutral-800/50 dark:text-neutral-300 dark:hover:border-red-600 dark:hover:bg-red-900/30 dark:hover:text-red-400'
@@ -103,7 +103,7 @@ export function SavedFiltersBar({ viewName }: SavedFiltersBarProps) {
             >
               {stale && (
                 <span
-                  className="text-amber-500"
+                  className="mr-1 text-amber-500"
                   title="Some referenced areas, projects, or tags no longer exist"
                 >
                   <AlertTriangle size={10} />
