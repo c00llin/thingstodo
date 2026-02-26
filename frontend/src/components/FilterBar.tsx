@@ -382,7 +382,7 @@ function MultiSelectFilter({ label, options, selected, onChange }: MultiSelectFi
         scrollToItem(next)
         return next
       })
-    } else if (e.key === 'Enter') {
+    } else if (e.key === 'Enter' || e.key === ' ') {
       e.preventDefault()
       if (filtered[clampedHighlight]) toggle(filtered[clampedHighlight].id)
     }
