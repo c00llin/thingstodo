@@ -71,6 +71,7 @@ export function useGlobalShortcuts() {
   const toggleShortcutsHelp = useAppStore((s) => s.toggleShortcutsHelp)
   const openCommandPalette = useAppStore((s) => s.openCommandPalette)
   const openSearch = useAppStore((s) => s.openSearch)
+  const toggleFilterBar = useAppStore((s) => s.toggleFilterBar)
 
   // g + <key> navigation sequences
   useKeySequences({
@@ -83,6 +84,7 @@ export function useGlobalShortcuts() {
     r: () => navigate('/trash'),
     n: () => openCommandPalette(),
     f: () => openSearch(),
+    x: () => toggleFilterBar(),
   })
 
   // New task (open quick entry empty)

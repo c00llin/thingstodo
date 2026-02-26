@@ -37,6 +37,10 @@ interface AppStore {
   openSearch: () => void
   closeSearch: () => void
 
+  // Filter bar
+  filterBarOpen: boolean
+  toggleFilterBar: () => void
+
   // Shortcuts help
   shortcutsHelpOpen: boolean
   toggleShortcutsHelp: () => void
@@ -132,6 +136,9 @@ export const useAppStore = create<AppStore>((set) => ({
   searchOpen: false,
   openSearch: () => set({ searchOpen: true }),
   closeSearch: () => set({ searchOpen: false }),
+
+  filterBarOpen: false,
+  toggleFilterBar: () => set((s) => ({ filterBarOpen: !s.filterBarOpen })),
 
   shortcutsHelpOpen: false,
   toggleShortcutsHelp: () => set((s) => ({ shortcutsHelpOpen: !s.shortcutsHelpOpen })),

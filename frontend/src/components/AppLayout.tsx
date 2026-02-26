@@ -10,6 +10,7 @@ import { useSSE } from '../hooks/useSSE'
 import { useMe, useFlushPendingInvalidation } from '../hooks/queries'
 import { usePullToRefresh } from '../hooks/usePullToRefresh'
 import { useAppStore } from '../stores/app'
+import { useFilterStore } from '../stores/filters'
 
 const QuickEntry = lazy(() => import('./QuickEntry').then(m => ({ default: m.QuickEntry })))
 const CommandPalette = lazy(() => import('./CommandPalette').then(m => ({ default: m.CommandPalette })))
@@ -29,9 +30,11 @@ export function AppLayout() {
   useSSE()
   useFlushPendingInvalidation()
 
-  // Close task detail panel when navigating to a different page
+  // Close task detail panel, filter bar, and reset filters when navigating to a different page
   useEffect(() => {
     expandTask(null)
+    useFilterStore.getState().clearAll()
+    useAppStore.setState({ filterBarOpen: false })
   }, [location.pathname, expandTask])
 
   // Auto-close mobile sidebar on navigation
