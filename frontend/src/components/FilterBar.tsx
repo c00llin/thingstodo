@@ -139,11 +139,12 @@ export function FilterBar({ availableFields }: FilterBarProps) {
     }
   }, [allProjects, selectedAreas, selectedProjects, setProjects])
 
+  const hasDateFields = availableFields.some((f) => f === 'plannedDate' || f === 'deadline')
   const primaryFields = availableFields.filter((f) =>
-    f === 'area' || f === 'project' || f === 'tag',
+    f === 'area' || f === 'project' || f === 'tag' || (f === 'highPriority' && !hasDateFields),
   )
   const secondaryFields = availableFields.filter((f) =>
-    f === 'highPriority' || f === 'plannedDate' || f === 'deadline',
+    f === 'plannedDate' || f === 'deadline' || (f === 'highPriority' && hasDateFields),
   )
   const hasSecondary = secondaryFields.length > 0
 
@@ -271,6 +272,19 @@ export function FilterBar({ availableFields }: FilterBarProps) {
             selected={selectedTags}
             onChange={setTags}
           />
+        )}
+        {primaryFields.includes('highPriority') && (
+          <button
+            onClick={() => setHighPriority(!highPriority)}
+            className={`flex h-7 items-center gap-1 rounded px-2 text-xs transition-colors ${
+              highPriority
+                ? 'bg-red-50 text-red-600 dark:bg-red-900/30 dark:text-red-400'
+                : 'text-neutral-400 hover:bg-neutral-100 hover:text-neutral-600 dark:hover:bg-neutral-800 dark:hover:text-neutral-300'
+            }`}
+          >
+            <Flag size={12} />
+            Priority
+          </button>
         )}
 
         {/* Secondary filters (progressive disclosure) */}
