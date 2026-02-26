@@ -449,7 +449,7 @@ function MultiSelectFilter({ label, options, selected, onChange }: MultiSelectFi
                     aria-selected={isSelected}
                     onClick={() => toggle(opt.id)}
                     onMouseEnter={() => setHighlightIndex(i)}
-                    className={`flex w-full items-center gap-2 rounded px-2 py-1.5 text-left text-xs transition-colors ${
+                    className={`flex w-full items-center gap-2 rounded px-2 py-1.5 text-left text-xs outline-none transition-colors ${
                       isSelected
                         ? 'bg-red-50 text-red-600 dark:bg-red-900/20 dark:text-red-400'
                         : isHighlighted
