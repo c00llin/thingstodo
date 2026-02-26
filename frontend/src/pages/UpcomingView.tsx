@@ -1,15 +1,78 @@
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { AnimatePresence } from 'framer-motion'
 import { ChevronRight } from 'lucide-react'
+import { format } from 'date-fns'
 import { useUpcoming } from '../hooks/queries'
 import { TaskGroup } from '../components/TaskGroup'
 import { TaskItem } from '../components/TaskItem'
 import { formatRelativeDate } from '../lib/format-date'
+import type { Task, UpcomingViewDate } from '../api/types'
+
+interface Section {
+  key: string
+  title: string
+  tasks: Task[]
+  hideWhenDate: boolean
+}
+
+/** Group date entries: current + next month show individual days,
+ *  further months are collapsed into a single "Month YYYY" section. */
+function groupDateSections(dates: UpcomingViewDate[]): Section[] {
+  const now = new Date()
+  const currentMonth = now.getFullYear() * 12 + now.getMonth()
+  const nextMonth = currentMonth + 1
+
+  const sections: Section[] = []
+  const monthBuckets = new Map<string, Task[]>()
+  const monthOrder: string[] = []
+
+  for (const d of dates) {
+    const date = new Date(d.date + 'T00:00:00')
+    const dateMonth = date.getFullYear() * 12 + date.getMonth()
+
+    if (dateMonth <= nextMonth) {
+      // Current or next month: individual day section
+      sections.push({
+        key: d.date,
+        title: formatRelativeDate(d.date),
+        tasks: d.tasks,
+        hideWhenDate: true,
+      })
+    } else {
+      // Further out: group by month
+      const monthKey = format(date, 'yyyy-MM')
+      if (!monthBuckets.has(monthKey)) {
+        monthBuckets.set(monthKey, [])
+        monthOrder.push(monthKey)
+      }
+      monthBuckets.get(monthKey)!.push(...d.tasks)
+    }
+  }
+
+  // Append month-grouped sections in order
+  for (const monthKey of monthOrder) {
+    const [yearStr, monthStr] = monthKey.split('-')
+    const monthDate = new Date(Number(yearStr), Number(monthStr) - 1, 1)
+    sections.push({
+      key: monthKey,
+      title: format(monthDate, 'MMMM'),
+      tasks: monthBuckets.get(monthKey)!,
+      hideWhenDate: false,
+    })
+  }
+
+  return sections
+}
 
 export function UpcomingView() {
   const { data, isLoading } = useUpcoming()
   const [overdueOpen, setOverdueOpen] = useState(() => localStorage.getItem('upcoming-overdue') !== 'false')
   const [earlierOpen, setEarlierOpen] = useState(() => localStorage.getItem('upcoming-earlier') !== 'false')
+
+  const sections = useMemo(
+    () => groupDateSections(data?.dates ?? []),
+    [data?.dates],
+  )
 
   if (isLoading) {
     return (
@@ -58,15 +121,15 @@ export function UpcomingView() {
           )}
         </div>
       )}
-      {!data?.dates || data.dates.length === 0 ? (
+      {sections.length === 0 ? (
         !data?.earlier?.length && !data?.overdue?.length && (
           <p className="py-12 text-center text-sm text-neutral-400">
             Nothing scheduled yet.
           </p>
         )
       ) : (
-        data.dates.map((d) => (
-          <TaskGroup key={d.date} title={formatRelativeDate(d.date)} tasks={d.tasks} hideWhenDate />
+        sections.map((s) => (
+          <TaskGroup key={s.key} title={s.title} tasks={s.tasks} hideWhenDate={s.hideWhenDate} />
         ))
       )}
     </div>
