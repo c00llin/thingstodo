@@ -13,11 +13,11 @@ import {
 } from 'lucide-react'
 import { useFilterStore, type DateFilter } from '../stores/filters'
 import { useAppStore } from '../stores/app'
-import { useAreas, useProjects } from '../hooks/queries'
+import { useAreas, useProjects, useTags } from '../hooks/queries'
 import { hasFilters } from '../lib/filter-tasks'
 import { CalendarPicker } from './CalendarPicker'
 
-export type FilterField = 'area' | 'project' | 'highPriority' | 'plannedDate' | 'deadline'
+export type FilterField = 'area' | 'project' | 'tag' | 'highPriority' | 'plannedDate' | 'deadline'
 
 /** Icon button that toggles the filter bar open/closed. Shows a red dot when filters are active. */
 export function FilterToggleButton() {
@@ -95,12 +95,14 @@ export function FilterBar({ availableFields }: FilterBarProps) {
   const {
     areas: selectedAreas,
     projects: selectedProjects,
+    tags: selectedTags,
     highPriority,
     plannedDate,
     deadline,
     search,
     setAreas,
     setProjects,
+    setTags,
     setHighPriority,
     setPlannedDate,
     setDeadline,
@@ -112,6 +114,7 @@ export function FilterBar({ availableFields }: FilterBarProps) {
 
   const { data: areasData } = useAreas()
   const { data: projectsData } = useProjects()
+  const { data: tagsData } = useTags()
 
   const allAreas = useMemo(() => areasData?.areas ?? [], [areasData?.areas])
   const allProjects = useMemo(() => {
@@ -122,6 +125,8 @@ export function FilterBar({ availableFields }: FilterBarProps) {
     }
     return projects
   }, [projectsData?.projects, selectedAreas])
+
+  const allTags = useMemo(() => tagsData?.tags ?? [], [tagsData?.tags])
 
   // Auto-remove orphaned project selections when areas change
   useEffect(() => {
@@ -135,16 +140,17 @@ export function FilterBar({ availableFields }: FilterBarProps) {
   }, [allProjects, selectedAreas, selectedProjects, setProjects])
 
   const primaryFields = availableFields.filter((f) =>
-    f === 'area' || f === 'project' || f === 'highPriority',
+    f === 'area' || f === 'project' || f === 'tag',
   )
   const secondaryFields = availableFields.filter((f) =>
-    f === 'plannedDate' || f === 'deadline',
+    f === 'highPriority' || f === 'plannedDate' || f === 'deadline',
   )
   const hasSecondary = secondaryFields.length > 0
 
   const hasActive =
     selectedAreas.length > 0 ||
     selectedProjects.length > 0 ||
+    selectedTags.length > 0 ||
     highPriority ||
     plannedDate !== null ||
     deadline !== null ||
@@ -172,6 +178,17 @@ export function FilterBar({ availableFields }: FilterBarProps) {
       label: names.join(', '),
       field: 'Project',
       onRemove: () => setProjects([]),
+    })
+  }
+  if (selectedTags.length > 0) {
+    const names = allTags
+      .filter((t) => selectedTags.includes(t.id))
+      .map((t) => t.title)
+    chips.push({
+      key: 'tags',
+      label: names.join(', '),
+      field: 'Tag',
+      onRemove: () => setTags([]),
     })
   }
   if (highPriority) {
@@ -247,23 +264,31 @@ export function FilterBar({ availableFields }: FilterBarProps) {
             onChange={setProjects}
           />
         )}
-        {primaryFields.includes('highPriority') && (
-          <button
-            onClick={() => setHighPriority(!highPriority)}
-            className={`flex h-7 items-center gap-1 rounded px-2 text-xs transition-colors ${
-              highPriority
-                ? 'bg-red-50 text-red-600 dark:bg-red-900/30 dark:text-red-400'
-                : 'text-neutral-400 hover:bg-neutral-100 hover:text-neutral-600 dark:hover:bg-neutral-800 dark:hover:text-neutral-300'
-            }`}
-          >
-            <Flag size={12} />
-            Priority
-          </button>
+        {primaryFields.includes('tag') && (
+          <MultiSelectFilter
+            label="Tag"
+            options={allTags.map((t) => ({ id: t.id, label: t.title }))}
+            selected={selectedTags}
+            onChange={setTags}
+          />
         )}
 
         {/* Secondary filters (progressive disclosure) */}
         {hasSecondary && expanded && (
           <>
+            {secondaryFields.includes('highPriority') && (
+              <button
+                onClick={() => setHighPriority(!highPriority)}
+                className={`flex h-7 items-center gap-1 rounded px-2 text-xs transition-colors ${
+                  highPriority
+                    ? 'bg-red-50 text-red-600 dark:bg-red-900/30 dark:text-red-400'
+                    : 'text-neutral-400 hover:bg-neutral-100 hover:text-neutral-600 dark:hover:bg-neutral-800 dark:hover:text-neutral-300'
+                }`}
+              >
+                <Flag size={12} />
+                Priority
+              </button>
+            )}
             {secondaryFields.includes('plannedDate') && (
               <DateFilterButton
                 label="Planned"

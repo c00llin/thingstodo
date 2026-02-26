@@ -11,6 +11,7 @@ export interface DateFilter {
 export interface FilterState {
   areas: string[]
   projects: string[]
+  tags: string[]
   highPriority: boolean
   plannedDate: DateFilter | null
   deadline: DateFilter | null
@@ -20,6 +21,7 @@ export interface FilterState {
 const defaultFilters: FilterState = {
   areas: [],
   projects: [],
+  tags: [],
   highPriority: false,
   plannedDate: null,
   deadline: null,
@@ -29,6 +31,7 @@ const defaultFilters: FilterState = {
 interface FilterStore extends FilterState {
   setAreas: (areas: string[]) => void
   setProjects: (projects: string[]) => void
+  setTags: (tags: string[]) => void
   setHighPriority: (on: boolean) => void
   setPlannedDate: (filter: DateFilter | null) => void
   setDeadline: (filter: DateFilter | null) => void
@@ -41,6 +44,7 @@ export const useFilterStore = create<FilterStore>((set, get) => ({
   ...defaultFilters,
   setAreas: (areas) => set({ areas }),
   setProjects: (projects) => set({ projects }),
+  setTags: (tags) => set({ tags }),
   setHighPriority: (on) => set({ highPriority: on }),
   setPlannedDate: (filter) => set({ plannedDate: filter }),
   setDeadline: (filter) => set({ deadline: filter }),
@@ -51,6 +55,7 @@ export const useFilterStore = create<FilterStore>((set, get) => ({
     return (
       s.areas.length > 0 ||
       s.projects.length > 0 ||
+      s.tags.length > 0 ||
       s.highPriority ||
       s.plannedDate !== null ||
       s.deadline !== null ||

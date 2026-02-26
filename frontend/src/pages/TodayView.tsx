@@ -57,7 +57,7 @@ export function TodayView() {
         <h2 className="text-2xl font-bold text-neutral-900 dark:text-neutral-100">Today</h2>
         <FilterToggleButton />
       </div>
-      {filterBarOpen && <FilterBar availableFields={['area', 'project', 'highPriority']} />}
+      {filterBarOpen && <FilterBar availableFields={['area', 'project', 'tag', 'highPriority']} />}
 
       {active && overdue.length === 0 && earlier.length === 0 && sections.every((s) => s.tasks.length === 0) && completed.length === 0 && (
         <FilterEmptyState />

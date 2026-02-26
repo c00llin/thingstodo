@@ -105,6 +105,12 @@ export function filterTasks(tasks: Task[], filters: FilterState): Task[] {
       if (!task.project_id || !filters.projects.includes(task.project_id)) return false
     }
 
+    // Tags (OR within — task must have at least one of the selected tags)
+    if (filters.tags.length > 0) {
+      const taskTagIds = (task.tags ?? []).map((t) => t.id)
+      if (!filters.tags.some((id) => taskTagIds.includes(id))) return false
+    }
+
     // High Priority
     if (filters.highPriority && !task.high_priority) return false
 
@@ -123,6 +129,7 @@ export function hasFilters(filters: FilterState): boolean {
   return (
     filters.areas.length > 0 ||
     filters.projects.length > 0 ||
+    filters.tags.length > 0 ||
     filters.highPriority ||
     filters.plannedDate !== null ||
     filters.deadline !== null ||

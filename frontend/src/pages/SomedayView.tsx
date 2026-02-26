@@ -36,7 +36,7 @@ export function SomedayView() {
         <h2 className="text-2xl font-bold text-neutral-900 dark:text-neutral-100">Someday</h2>
         <FilterToggleButton />
       </div>
-      {filterBarOpen && <FilterBar availableFields={['area', 'project', 'highPriority', 'deadline']} />}
+      {filterBarOpen && <FilterBar availableFields={['area', 'project', 'tag', 'highPriority', 'deadline']} />}
 
       {active && areas.length === 0 && (!noArea || (noArea.standalone_tasks.length === 0 && noArea.projects.length === 0)) && (
         <FilterEmptyState />

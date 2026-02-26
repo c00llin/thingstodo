@@ -107,7 +107,7 @@ export function UpcomingView() {
         <h2 className="text-2xl font-bold text-neutral-900 dark:text-neutral-100">Upcoming</h2>
         <FilterToggleButton />
       </div>
-      {filterBarOpen && <FilterBar availableFields={['area', 'project', 'highPriority', 'plannedDate', 'deadline']} />}
+      {filterBarOpen && <FilterBar availableFields={['area', 'project', 'tag', 'highPriority', 'plannedDate', 'deadline']} />}
       {overdue.length > 0 && (
         <div className="mb-6">
           <button
