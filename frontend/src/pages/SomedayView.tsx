@@ -2,7 +2,7 @@ import { useMemo } from 'react'
 import { useSomeday } from '../hooks/queries'
 import { TaskGroup } from '../components/TaskGroup'
 import { SortableTaskList } from '../components/SortableTaskList'
-import { FilterBar, FilterToggleButton } from '../components/FilterBar'
+import { FilterBar, FilterToggleButton, FilterEmptyState } from '../components/FilterBar'
 import { useAppStore } from '../stores/app'
 import { useFilterStore } from '../stores/filters'
 import { filterAreaGroups, filterNoArea, hasFilters } from '../lib/filter-tasks'
@@ -37,6 +37,10 @@ export function SomedayView() {
         <FilterToggleButton />
       </div>
       {filterBarOpen && <FilterBar availableFields={['area', 'project', 'highPriority', 'deadline']} />}
+
+      {active && areas.length === 0 && (!noArea || (noArea.standalone_tasks.length === 0 && noArea.projects.length === 0)) && (
+        <FilterEmptyState />
+      )}
 
       {noArea && noArea.standalone_tasks.length > 0 && (
         <div className="mb-6">

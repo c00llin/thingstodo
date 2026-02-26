@@ -5,7 +5,7 @@ import { format } from 'date-fns'
 import { useUpcoming } from '../hooks/queries'
 import { TaskGroup } from '../components/TaskGroup'
 import { TaskItem } from '../components/TaskItem'
-import { FilterBar, FilterToggleButton } from '../components/FilterBar'
+import { FilterBar, FilterToggleButton, FilterEmptyState } from '../components/FilterBar'
 import { useAppStore } from '../stores/app'
 import { useFilterStore } from '../stores/filters'
 import { filterTasks, filterUpcomingDates, hasFilters } from '../lib/filter-tasks'
@@ -146,9 +146,9 @@ export function UpcomingView() {
       )}
       {sections.length === 0 ? (
         !earlier.length && !overdue.length && (
-          <p className="py-12 text-center text-sm text-neutral-400">
-            Nothing scheduled yet.
-          </p>
+          active
+            ? <FilterEmptyState />
+            : <p className="py-12 text-center text-sm text-neutral-400">Nothing scheduled yet.</p>
         )
       ) : (
         sections.map((s) => (

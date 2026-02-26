@@ -2,6 +2,7 @@ import { useEffect, useRef, useCallback } from 'react'
 import { useHotkeys } from 'react-hotkeys-hook'
 import { useNavigate } from 'react-router'
 import { useAppStore } from '../stores/app'
+import { useFilterStore } from '../stores/filters'
 import { useCompleteTask, useDeleteTask, useUpdateTask } from './queries'
 
 const VIEW_ROUTES = ['/inbox', '/today', '/upcoming', '/anytime', '/someday', '/logbook']
@@ -91,6 +92,12 @@ export function useGlobalShortcuts() {
   useHotkeys('q', (e) => {
     e.preventDefault()
     openQuickEntry()
+  })
+
+  // Clear all filters
+  useHotkeys('alt+x', (e) => {
+    e.preventDefault()
+    useFilterStore.getState().clearAll()
   })
 
   // Navigate to views Alt+1 through Alt+6

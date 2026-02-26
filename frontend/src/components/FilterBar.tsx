@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from 'react'
+import { useState, useRef, useMemo, useEffect } from 'react'
 import * as Popover from '@radix-ui/react-popover'
 import {
   Filter,
@@ -343,12 +343,17 @@ interface MultiSelectFilterProps {
 function MultiSelectFilter({ label, options, selected, onChange }: MultiSelectFilterProps) {
   const [open, setOpen] = useState(false)
   const [search, setSearch] = useState('')
+  const [highlightIndex, setHighlightIndex] = useState(0)
+  const listRef = useRef<HTMLDivElement>(null)
 
   const filtered = search
     ? options.filter((o) => o.label.toLowerCase().includes(search.toLowerCase()))
     : options
 
   const showSearch = options.length > 5
+
+  // Clamp highlight to valid range when filtered list shrinks
+  const clampedHighlight = filtered.length > 0 ? Math.min(highlightIndex, filtered.length - 1) : 0
 
   function toggle(id: string) {
     onChange(
@@ -358,8 +363,35 @@ function MultiSelectFilter({ label, options, selected, onChange }: MultiSelectFi
     )
   }
 
+  function handleKeyDown(e: React.KeyboardEvent) {
+    if (e.key === 'ArrowDown') {
+      e.preventDefault()
+      setHighlightIndex((i) => {
+        const next = Math.min(i + 1, filtered.length - 1)
+        scrollToItem(next)
+        return next
+      })
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault()
+      setHighlightIndex((i) => {
+        const next = Math.max(i - 1, 0)
+        scrollToItem(next)
+        return next
+      })
+    } else if (e.key === 'Enter') {
+      e.preventDefault()
+      if (filtered[clampedHighlight]) toggle(filtered[clampedHighlight].id)
+    }
+  }
+
+  function scrollToItem(index: number) {
+    requestAnimationFrame(() => {
+      listRef.current?.children[index]?.scrollIntoView({ block: 'nearest' })
+    })
+  }
+
   return (
-    <Popover.Root open={open} onOpenChange={(v) => { setOpen(v); if (!v) setSearch('') }}>
+    <Popover.Root open={open} onOpenChange={(v) => { setOpen(v); if (!v) { setSearch(''); setHighlightIndex(0) } }}>
       <Popover.Trigger asChild>
         <button
           className={`flex h-7 items-center gap-1 rounded px-2 text-xs transition-colors ${
@@ -382,6 +414,7 @@ function MultiSelectFilter({ label, options, selected, onChange }: MultiSelectFi
           side="bottom"
           align="start"
           sideOffset={4}
+          onKeyDown={handleKeyDown}
           className="z-50 w-56 rounded-lg border border-neutral-200 bg-white p-1 shadow-lg dark:border-neutral-700 dark:bg-neutral-900"
         >
           {showSearch && (
@@ -397,20 +430,26 @@ function MultiSelectFilter({ label, options, selected, onChange }: MultiSelectFi
               />
             </div>
           )}
-          <div className="max-h-52 overflow-y-auto">
+          <div ref={listRef} className="max-h-52 overflow-y-auto" role="listbox">
             {filtered.length === 0 ? (
               <p className="px-2 py-3 text-center text-xs text-neutral-400">No options</p>
             ) : (
-              filtered.map((opt) => {
+              filtered.map((opt, i) => {
                 const isSelected = selected.includes(opt.id)
+                const isHighlighted = i === clampedHighlight
                 return (
                   <button
                     key={opt.id}
+                    role="option"
+                    aria-selected={isSelected}
                     onClick={() => toggle(opt.id)}
+                    onMouseEnter={() => setHighlightIndex(i)}
                     className={`flex w-full items-center gap-2 rounded px-2 py-1.5 text-left text-xs transition-colors ${
                       isSelected
                         ? 'bg-red-50 text-red-600 dark:bg-red-900/20 dark:text-red-400'
-                        : 'text-neutral-700 hover:bg-neutral-50 dark:text-neutral-300 dark:hover:bg-neutral-800'
+                        : isHighlighted
+                          ? 'bg-neutral-100 text-neutral-700 dark:bg-neutral-800 dark:text-neutral-300'
+                          : 'text-neutral-700 hover:bg-neutral-50 dark:text-neutral-300 dark:hover:bg-neutral-800'
                     }`}
                   >
                     <span
@@ -439,6 +478,23 @@ function MultiSelectFilter({ label, options, selected, onChange }: MultiSelectFi
         </Popover.Content>
       </Popover.Portal>
     </Popover.Root>
+  )
+}
+
+/* ─── Empty filter result message ─────────────────────────────────── */
+
+export function FilterEmptyState() {
+  const clearAll = useFilterStore((s) => s.clearAll)
+  return (
+    <div className="py-12 text-center">
+      <p className="text-sm text-neutral-400">No tasks match your filters</p>
+      <button
+        onClick={clearAll}
+        className="mt-2 text-xs text-neutral-400 hover:text-red-500"
+      >
+        Clear all filters
+      </button>
+    </div>
   )
 }
 

@@ -4,7 +4,7 @@ import { useQueryClient } from '@tanstack/react-query'
 import { useLogbook } from '../hooks/queries'
 import { TaskGroup } from '../components/TaskGroup'
 import { ConfirmDialog } from '../components/ConfirmDialog'
-import { FilterBar, FilterToggleButton } from '../components/FilterBar'
+import { FilterBar, FilterToggleButton, FilterEmptyState } from '../components/FilterBar'
 import { useAppStore } from '../stores/app'
 import { useFilterStore } from '../stores/filters'
 import { filterLogbookGroups, hasFilters } from '../lib/filter-tasks'
@@ -65,9 +65,9 @@ export function LogbookView() {
       </div>
       {filterBarOpen && <FilterBar availableFields={['area', 'project', 'highPriority', 'plannedDate', 'deadline']} />}
       {!hasTasks ? (
-        <p className="py-12 text-center text-sm text-neutral-400">
-          No completed tasks yet.
-        </p>
+        active
+          ? <FilterEmptyState />
+          : <p className="py-12 text-center text-sm text-neutral-400">No completed tasks yet.</p>
       ) : (
         groups.map((group) => (
           <TaskGroup key={group.date} title={formatRelativeDate(group.date)} tasks={group.tasks} />
