@@ -110,13 +110,15 @@ export function SavedFiltersBar({ viewName }: SavedFiltersBarProps) {
                 </span>
               )}
               <span>{sf.name}</span>
-              <button
-                onClick={(e) => handleDeleteClick(e, sf)}
-                className="ml-0.5 rounded-full p-0.5 text-neutral-400 opacity-0 transition-opacity group-hover:opacity-100 hover:text-red-500"
-                aria-label={`Delete saved filter "${sf.name}"`}
-              >
-                <X size={9} />
-              </button>
+              <span className="grid grid-cols-[0fr] transition-all duration-150 group-hover:grid-cols-[1fr]">
+                <button
+                  onClick={(e) => handleDeleteClick(e, sf)}
+                  className="overflow-hidden rounded-full p-0.5 text-neutral-400 opacity-0 transition-opacity duration-150 group-hover:opacity-100 hover:text-red-500"
+                  aria-label={`Delete saved filter "${sf.name}"`}
+                >
+                  <X size={9} />
+                </button>
+              </span>
             </div>
           )
         })}
