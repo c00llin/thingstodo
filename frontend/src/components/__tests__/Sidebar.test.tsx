@@ -12,7 +12,7 @@ describe('Sidebar', () => {
       expect(screen.getByText('Upcoming')).toBeInTheDocument()
       expect(screen.getByText('Anytime')).toBeInTheDocument()
       expect(screen.getByText('Someday')).toBeInTheDocument()
-      expect(screen.getByText('Logbook')).toBeInTheDocument()
+      expect(screen.getByText('Completed')).toBeInTheDocument()
     })
   })
 

@@ -16,12 +16,14 @@ describe('TaskItem', () => {
 
   it('renders deadline indicator', () => {
     render(<TaskItem task={mockTaskWithTags} />)
-    expect(screen.getByText('2026-03-15')).toBeInTheDocument()
+    // formatRelativeDate renders "Sun, Mar 15" for 2026-03-15
+    expect(screen.getByText('Sun, Mar 15')).toBeInTheDocument()
   })
 
   it('renders when_date', () => {
     render(<TaskItem task={mockTaskWithTags} />)
-    expect(screen.getByText('2026-03-10')).toBeInTheDocument()
+    // formatRelativeDate renders "Tue, Mar 10" for 2026-03-10
+    expect(screen.getByText('Tue, Mar 10')).toBeInTheDocument()
   })
 
   it('renders checklist progress', () => {

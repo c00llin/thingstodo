@@ -24,19 +24,11 @@ describe('TodayView', () => {
     })
   })
 
-  it('renders tasks grouped by project', async () => {
+  it('renders tasks in Today section', async () => {
     render(<TodayView />)
 
     await waitFor(() => {
-      expect(screen.getByText('Website Redesign')).toBeInTheDocument()
       expect(screen.getByText('Deploy staging')).toBeInTheDocument()
-    })
-  })
-
-  it('renders tasks without a project', async () => {
-    render(<TodayView />)
-
-    await waitFor(() => {
       expect(screen.getByText('Morning workout')).toBeInTheDocument()
     })
   })

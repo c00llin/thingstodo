@@ -8,6 +8,8 @@ import {
   mockProjectDetail,
   mockArea,
   mockTag,
+  mockViewCounts,
+  mockUserSettings,
 } from './data'
 
 export const handlers = [
@@ -146,6 +148,16 @@ export const handlers = [
 
   http.get('/api/tags/:id/tasks', () => {
     return HttpResponse.json({ tasks: [] })
+  }),
+
+  // View counts
+  http.get('/api/views/counts', () => {
+    return HttpResponse.json(mockViewCounts)
+  }),
+
+  // User settings
+  http.get('/api/user/settings', () => {
+    return HttpResponse.json(mockUserSettings)
   }),
 
   // Search

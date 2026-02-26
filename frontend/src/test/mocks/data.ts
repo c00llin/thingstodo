@@ -7,6 +7,8 @@ import type {
   Tag,
   InboxView,
   TodayView,
+  ViewCounts,
+  UserSettings,
 } from '../../api/types'
 
 export const mockTask: Task = {
@@ -16,6 +18,7 @@ export const mockTask: Task = {
   status: 'open',
   when_date: null,
   when_evening: false,
+  high_priority: false,
   deadline: null,
   project_id: null,
   area_id: null,
@@ -25,6 +28,7 @@ export const mockTask: Task = {
   sort_order_heading: 1024,
   completed_at: null,
   canceled_at: null,
+  deleted_at: null,
   created_at: '2026-01-01 00:00:00',
   updated_at: '2026-01-01 00:00:00',
   tags: [],
@@ -34,13 +38,15 @@ export const mockTask: Task = {
   has_links: false,
   has_files: false,
   has_repeat_rule: false,
+  project_name: null,
+  area_name: null,
 }
 
 export const mockTaskWithTags: Task = {
   ...mockTask,
   id: 'task-2',
   title: 'Review PR',
-  tags: [{ id: 'tag-1', title: 'work' }],
+  tags: [{ id: 'tag-1', title: 'work', color: null }],
   deadline: '2026-03-15',
   when_date: '2026-03-10',
   checklist_count: 3,
@@ -90,6 +96,7 @@ export const mockProjectDetail: ProjectDetail = {
   tasks_without_heading: [
     { ...mockTask, id: 'task-4', title: 'Setup project repo', project_id: 'proj-1' },
   ],
+  completed_tasks: [],
 }
 
 export const mockArea: Area = {
@@ -98,6 +105,7 @@ export const mockArea: Area = {
   sort_order: 1024,
   project_count: 2,
   task_count: 5,
+  standalone_task_count: 0,
   created_at: '2026-01-01 00:00:00',
   updated_at: '2026-01-01 00:00:00',
 }
@@ -105,17 +113,41 @@ export const mockArea: Area = {
 export const mockTag: Tag = {
   id: 'tag-1',
   title: 'urgent',
+  color: null,
   parent_tag_id: null,
   sort_order: 1024,
   task_count: 3,
 }
 
+export const mockViewCounts: ViewCounts = {
+  inbox: 2,
+  today: 1,
+  overdue: 0,
+  review: 0,
+  anytime: 0,
+  someday: 0,
+  logbook: 0,
+  trash: 0,
+}
+
+export const mockUserSettings: UserSettings = {
+  play_complete_sound: true,
+  show_count_main: true,
+  show_count_projects: true,
+  show_count_tags: true,
+  review_after_days: 7,
+  sort_areas: 'manual',
+  sort_tags: 'manual',
+}
+
 export const mockInboxView: InboxView = {
   tasks: [mockTask, { ...mockTask, id: 'task-5', title: 'Clean kitchen' }],
+  review: [],
 }
 
 export const mockEmptyInboxView: InboxView = {
   tasks: [],
+  review: [],
 }
 
 export const mockTodayView: TodayView = {
@@ -144,4 +176,6 @@ export const mockTodayView: TodayView = {
     },
   ],
   overdue: [{ ...mockTask, id: 'task-9', title: 'Overdue report', deadline: '2026-02-10' }],
+  earlier: [],
+  completed: [],
 }

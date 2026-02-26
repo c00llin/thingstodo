@@ -11,6 +11,20 @@ if (typeof globalThis.localStorage === 'undefined' || typeof globalThis.localSto
   }
 }
 
+// Polyfill matchMedia for jsdom (used by useIsMobile and useTheme)
+if (typeof window.matchMedia !== 'function') {
+  window.matchMedia = (query: string) => ({
+    matches: false,
+    media: query,
+    onchange: null,
+    addListener: () => {},
+    removeListener: () => {},
+    addEventListener: () => {},
+    removeEventListener: () => {},
+    dispatchEvent: () => false,
+  }) as MediaQueryList
+}
+
 import '@testing-library/jest-dom/vitest'
 import { cleanup } from '@testing-library/react'
 import { afterAll, afterEach, beforeAll } from 'vitest'

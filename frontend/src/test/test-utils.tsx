@@ -2,6 +2,8 @@ import { type ReactElement } from 'react'
 import { render, type RenderOptions } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { MemoryRouter, type MemoryRouterProps } from 'react-router'
+import { DndContext } from '@dnd-kit/core'
+import { SortableListRegistryProvider } from '../contexts/SortableListRegistry'
 import userEvent from '@testing-library/user-event'
 
 interface CustomRenderOptions extends Omit<RenderOptions, 'wrapper'> {
@@ -26,7 +28,11 @@ function renderWithProviders(
   function Wrapper({ children }: { children: React.ReactNode }) {
     return (
       <QueryClientProvider client={queryClient}>
-        <MemoryRouter {...routerProps}>{children}</MemoryRouter>
+        <DndContext>
+          <SortableListRegistryProvider>
+            <MemoryRouter {...routerProps}>{children}</MemoryRouter>
+          </SortableListRegistryProvider>
+        </DndContext>
       </QueryClientProvider>
     )
   }

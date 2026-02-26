@@ -2,6 +2,8 @@ import { describe, it, expect } from 'vitest'
 import { screen, waitFor } from '../../test/test-utils'
 import { render } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { DndContext } from '@dnd-kit/core'
+import { SortableListRegistryProvider } from '../../contexts/SortableListRegistry'
 import { MemoryRouter, Routes, Route } from 'react-router'
 import { ProjectView } from '../ProjectView'
 
@@ -15,11 +17,15 @@ function renderProjectView(projectId = 'proj-1') {
 
   return render(
     <QueryClientProvider client={queryClient}>
-      <MemoryRouter initialEntries={[`/project/${projectId}`]}>
-        <Routes>
-          <Route path="/project/:id" element={<ProjectView />} />
-        </Routes>
-      </MemoryRouter>
+      <DndContext>
+        <SortableListRegistryProvider>
+          <MemoryRouter initialEntries={[`/project/${projectId}`]}>
+            <Routes>
+              <Route path="/project/:id" element={<ProjectView />} />
+            </Routes>
+          </MemoryRouter>
+        </SortableListRegistryProvider>
+      </DndContext>
     </QueryClientProvider>,
   )
 }
