@@ -218,6 +218,7 @@ export interface Task {
   first_schedule_end_time: string | null
   schedule_entry_id: string | null
   past_schedule_count?: number
+  has_actionable_schedules?: boolean
 }
 
 export interface TaskDetail extends Task {

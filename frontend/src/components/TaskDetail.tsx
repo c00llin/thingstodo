@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from 'react'
 import * as Checkbox from '@radix-ui/react-checkbox'
 import { Check, Plus, Paperclip, Link, Trash2, X, Calendar, Flag, ListChecks, StickyNote, CircleMinus, CircleX, RefreshCw, CircleAlert } from 'lucide-react'
 import { DateInput } from './DateInput'
+import { ConfirmDialog } from './ConfirmDialog'
 import { ScheduleEditor } from './ScheduleEditor'
 import {
   useTask,
@@ -50,6 +51,7 @@ export function TaskDetail({ taskId }: TaskDetailProps) {
   const [showDeadline, setShowDeadline] = useState(false)
   const [showChecklist, setShowChecklist] = useState(false)
   const [showRepeat, setShowRepeat] = useState(false)
+  const [scheduleConfirmAction, setScheduleConfirmAction] = useState<'cancel' | 'wontdo' | null>(null)
   const [dateError, setDateError] = useState<string | null>(null)
   const dateErrorTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const whenDateInputRef = useRef<HTMLDivElement>(null)
@@ -180,14 +182,27 @@ export function TaskDetail({ taskId }: TaskDetailProps) {
     setShowWhen(false)
   }
 
+  const today = new Date().toISOString().split('T')[0]
+  const hasActionableSchedules = task
+    ? (task.schedules ?? []).some((s) => !s.completed && s.when_date !== today)
+    : false
+
   function handleCancel() {
-    cancelTask.mutate(taskId)
-    expandTask(null)
+    if (hasActionableSchedules) {
+      setScheduleConfirmAction('cancel')
+    } else {
+      cancelTask.mutate(taskId)
+      expandTask(null)
+    }
   }
 
   function handleWontDo() {
-    wontDoTask.mutate(taskId)
-    expandTask(null)
+    if (hasActionableSchedules) {
+      setScheduleConfirmAction('wontdo')
+    } else {
+      wontDoTask.mutate(taskId)
+      expandTask(null)
+    }
   }
 
   function handleDelete() {
@@ -462,6 +477,27 @@ export function TaskDetail({ taskId }: TaskDetailProps) {
           </button>
         </div>
       </div>
+      <ConfirmDialog
+        open={scheduleConfirmAction !== null}
+        title={
+          scheduleConfirmAction === 'cancel'
+            ? 'Cancel task with scheduled dates?'
+            : "Mark as won't do with scheduled dates?"
+        }
+        description="Past scheduled dates will be marked done. Today and future dates will be removed."
+        confirmLabel={scheduleConfirmAction === 'cancel' ? 'Cancel task' : "Won't do"}
+        onConfirm={() => {
+          const action = scheduleConfirmAction
+          setScheduleConfirmAction(null)
+          if (action === 'cancel') {
+            cancelTask.mutate(taskId)
+          } else {
+            wontDoTask.mutate(taskId)
+          }
+          expandTask(null)
+        }}
+        onCancel={() => setScheduleConfirmAction(null)}
+      />
     </div>
   )
 }

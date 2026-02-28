@@ -185,6 +185,35 @@ func (r *ScheduleRepository) CreateFirstEntry(taskID, date string) error {
 	return err
 }
 
+// CleanupOnTaskDone completes past and today's uncompleted schedule entries
+// and deletes future + someday uncompleted entries for a task. Called when a
+// task is completed, canceled, or marked won't do.
+func (r *ScheduleRepository) CleanupOnTaskDone(taskID, today string) error {
+	tx, err := r.db.Begin()
+	if err != nil {
+		return err
+	}
+	defer func() { _ = tx.Rollback() }()
+
+	// Mark past and today's uncompleted entries as completed
+	if _, err = tx.Exec(
+		"UPDATE task_schedules SET completed = 1 WHERE task_id = ? AND when_date <= ? AND when_date != 'someday' AND completed = 0",
+		taskID, today,
+	); err != nil {
+		return fmt.Errorf("complete past/today schedules: %w", err)
+	}
+
+	// Delete future (after today) and someday uncompleted entries
+	if _, err = tx.Exec(
+		"DELETE FROM task_schedules WHERE task_id = ? AND (when_date > ? OR when_date = 'someday') AND completed = 0",
+		taskID, today,
+	); err != nil {
+		return fmt.Errorf("delete future schedules: %w", err)
+	}
+
+	return tx.Commit()
+}
+
 // SyncFirstScheduleDate updates the first schedule entry's when_date to match tasks.when_date.
 // This is called when when_date is updated via PATCH /tasks/{id}.
 func (r *ScheduleRepository) SyncFirstScheduleDate(taskID string, date *string) error {

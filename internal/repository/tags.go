@@ -130,5 +130,7 @@ func (r *TagRepository) GetTasksByTag(tagID string) ([]model.TaskListItem, error
 		return nil, err
 	}
 	defer rows.Close()
-	return scanTaskListItems(r.db, rows), nil
+	tasks := scanTaskListItems(r.db, rows)
+	populateActionableScheduleFlags(r.db, tasks)
+	return tasks, nil
 }

@@ -111,9 +111,10 @@ type TaskListItem struct {
 	FirstScheduleTime    *string  `json:"first_schedule_time"`
 	FirstScheduleEndTime *string  `json:"first_schedule_end_time"`
 	ScheduleEntryID      *string  `json:"schedule_entry_id"`
-	PastScheduleCount    int      `json:"past_schedule_count,omitempty"`
-	ProjectName          *string  `json:"project_name"`
-	AreaName             *string  `json:"area_name"`
+	PastScheduleCount        int      `json:"past_schedule_count,omitempty"`
+	HasActionableSchedules   bool     `json:"has_actionable_schedules,omitempty"`
+	ProjectName              *string  `json:"project_name"`
+	AreaName                 *string  `json:"area_name"`
 }
 
 type TaskDetail struct {

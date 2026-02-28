@@ -23,7 +23,7 @@ func setupTaskRouter(t *testing.T) (*testutil.TestClient, *sql.DB) {
 	attachRepo := repository.NewAttachmentRepository(db)
 	scheduleRepo := repository.NewScheduleRepository(db)
 	sched := scheduler.New(db, taskRepo, ruleRepo, checklistRepo, attachRepo, scheduleRepo)
-	taskHandler := handler.NewTaskHandler(taskRepo, broker, sched)
+	taskHandler := handler.NewTaskHandler(taskRepo, scheduleRepo, broker, sched)
 
 	r := chi.NewRouter()
 	r.Route("/api/tasks", func(r chi.Router) {

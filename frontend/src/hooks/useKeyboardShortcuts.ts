@@ -1,10 +1,11 @@
 import { useEffect, useRef, useCallback } from 'react'
 import { useHotkeys } from 'react-hotkeys-hook'
 import { useNavigate } from 'react-router'
+import { useQueryClient } from '@tanstack/react-query'
 import { useAppStore } from '../stores/app'
 import { useFilterStore } from '../stores/filters'
 import { hasFilters } from '../lib/filter-tasks'
-import { useCompleteTask, useDeleteTask, useUpdateTask } from './queries'
+import { useCompleteTask, useDeleteTask, useUpdateTask, findTaskInViewCache } from './queries'
 
 const VIEW_ROUTES = ['/inbox', '/today', '/upcoming', '/anytime', '/someday', '/logbook']
 
@@ -158,6 +159,8 @@ export function useTaskShortcuts() {
   const expandedTaskId = useAppStore((s) => s.expandedTaskId)
   const expandTask = useAppStore((s) => s.expandTask)
   const startEditingTask = useAppStore((s) => s.startEditingTask)
+  const setPendingCompleteConfirmId = useAppStore((s) => s.setPendingCompleteConfirmId)
+  const queryClient = useQueryClient()
   const completeTask = useCompleteTask()
   const deleteTask = useDeleteTask()
   const updateTask = useUpdateTask()
@@ -242,7 +245,14 @@ export function useTaskShortcuts() {
   // Complete task
   useHotkeys('alt+k', (e) => {
     e.preventDefault()
-    if (selectedTaskId) completeTask.mutate(selectedTaskId)
+    if (selectedTaskId) {
+      const cached = findTaskInViewCache(queryClient, selectedTaskId)
+      if (cached?.has_actionable_schedules) {
+        setPendingCompleteConfirmId(selectedTaskId)
+      } else {
+        completeTask.mutate(selectedTaskId)
+      }
+    }
   }, { enabled })
 
   // Move to Today

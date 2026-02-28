@@ -318,7 +318,9 @@ func getTaskListItems(db *sql.DB, filterCol, filterVal string) []model.TaskListI
 		return []model.TaskListItem{}
 	}
 	defer rows.Close()
-	return scanTaskListItems(db, rows)
+	tasks := scanTaskListItems(db, rows)
+	populateActionableScheduleFlags(db, tasks)
+	return tasks
 }
 
 func getTaskListItemsNoHeading(db *sql.DB, projectID string) []model.TaskListItem {
@@ -341,7 +343,9 @@ func getTaskListItemsNoHeading(db *sql.DB, projectID string) []model.TaskListIte
 		return []model.TaskListItem{}
 	}
 	defer rows.Close()
-	return scanTaskListItems(db, rows)
+	tasks := scanTaskListItems(db, rows)
+	populateActionableScheduleFlags(db, tasks)
+	return tasks
 }
 
 func scanTaskListItems(db *sql.DB, rows *sql.Rows) []model.TaskListItem {

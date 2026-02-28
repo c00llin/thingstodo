@@ -257,12 +257,15 @@ Permanently deletes the task.
 Response (204): No content
 
 ### PATCH /api/tasks/:id/complete
+Automatically cleans up schedule entries: completes past and today's uncompleted entries, deletes future (after today) and someday uncompleted entries.
 Response (200): Updated task with status=completed, completed_at set
 
 ### PATCH /api/tasks/:id/cancel
+Automatically cleans up schedule entries (same as complete).
 Response (200): Updated task with status=canceled, canceled_at set
 
 ### PATCH /api/tasks/:id/wontdo
+Automatically cleans up schedule entries (same as complete).
 Response (200): Updated task with status=wont_do
 
 ### PATCH /api/tasks/:id/reopen

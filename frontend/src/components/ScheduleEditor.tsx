@@ -304,12 +304,12 @@ export function ScheduleEditor({
         const isPast = entry.when_date !== 'someday' && entry.when_date < today
         const isCompleted = entry.completed
 
-        // Field styling: red when past & not completed, grey when completed, normal otherwise
-        const pastFieldClassName = isPast
-          ? isCompleted
-            ? 'border-green-200 bg-green-50 text-green-400 line-through dark:border-green-800 dark:bg-green-900/20 dark:text-green-500'
-            : 'border-red-300 bg-red-50 text-neutral-400 dark:border-red-800 dark:bg-red-950/40 dark:text-neutral-500'
-          : undefined
+        // Field styling: green when completed, red when past & not completed, normal otherwise
+        const pastFieldClassName = isCompleted
+          ? 'border-green-200 bg-green-50 text-green-400 line-through dark:border-green-800 dark:bg-green-900/20 dark:text-green-500'
+          : isPast
+            ? 'border-red-300 bg-red-50 text-neutral-400 dark:border-red-800 dark:bg-red-950/40 dark:text-neutral-500'
+            : undefined
 
         return (
           <div key={entry.id} className="flex items-center gap-2">

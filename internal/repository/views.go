@@ -39,6 +39,7 @@ func (r *ViewRepository) Inbox(reviewAfterDays *int) (*model.InboxView, error) {
 	}
 	defer rows.Close()
 	inboxTasks := scanTaskListItems(r.db, rows)
+	populateActionableScheduleFlags(r.db, inboxTasks)
 
 	// Collect inbox task IDs to exclude from review
 	inboxIDs := make(map[string]bool, len(inboxTasks))
@@ -68,6 +69,7 @@ func (r *ViewRepository) Inbox(reviewAfterDays *int) (*model.InboxView, error) {
 		}
 		defer reviewRows.Close()
 		allReview := scanTaskListItems(r.db, reviewRows)
+		populateActionableScheduleFlags(r.db, allReview)
 
 		// Exclude tasks already in inbox
 		for _, t := range allReview {
@@ -117,6 +119,7 @@ func (r *ViewRepository) Today(eveningStartsAt string) (*model.TodayView, error)
 	}
 	defer todayRows.Close()
 	todayTasks := scanTodayTaskListItems(r.db, todayRows)
+	populateActionableScheduleFlags(r.db, todayTasks)
 
 	// Evening tasks: schedule entry's start_time >= eveningStartsAt
 	eveningRows, err := r.db.Query(`
@@ -146,6 +149,7 @@ func (r *ViewRepository) Today(eveningStartsAt string) (*model.TodayView, error)
 	}
 	defer eveningRows.Close()
 	eveningTasks := scanTodayTaskListItems(r.db, eveningRows)
+	populateActionableScheduleFlags(r.db, eveningTasks)
 
 	// Overdue
 	overdueRows, err := r.db.Query(`
@@ -169,6 +173,7 @@ func (r *ViewRepository) Today(eveningStartsAt string) (*model.TodayView, error)
 	}
 	defer overdueRows.Close()
 	overdueTasks := scanTaskListItems(r.db, overdueRows)
+	populateActionableScheduleFlags(r.db, overdueTasks)
 
 	// Earlier: tasks with when_date before today, but not overdue (no overdue deadline)
 	// Only include tasks that have at least one uncompleted past schedule entry
@@ -199,6 +204,7 @@ func (r *ViewRepository) Today(eveningStartsAt string) (*model.TodayView, error)
 	defer earlierRows.Close()
 	earlierTasks := scanTodayTaskListItems(r.db, earlierRows)
 	populatePastScheduleCounts(r.db, earlierTasks, today)
+	populateActionableScheduleFlags(r.db, earlierTasks)
 
 	// Completed today
 	completedRows, err := r.db.Query(`
@@ -280,7 +286,9 @@ func (r *ViewRepository) Upcoming(from string, days int) (*model.UpcomingView, e
 
 	var dates []model.DateGroup
 	for _, d := range dateOrder {
-		dates = append(dates, model.DateGroup{Date: d, Tasks: dateMap[d]})
+		group := dateMap[d]
+		populateActionableScheduleFlags(r.db, group)
+		dates = append(dates, model.DateGroup{Date: d, Tasks: group})
 	}
 	if dates == nil {
 		dates = []model.DateGroup{}
@@ -308,6 +316,7 @@ func (r *ViewRepository) Upcoming(from string, days int) (*model.UpcomingView, e
 	}
 	defer overdueRows.Close()
 	overdueTasks := scanTaskListItems(r.db, overdueRows)
+	populateActionableScheduleFlags(r.db, overdueTasks)
 
 	// Earlier: tasks with when_date before the from date, not someday, not overdue
 	// Only include tasks that have at least one uncompleted past schedule entry
@@ -338,6 +347,7 @@ func (r *ViewRepository) Upcoming(from string, days int) (*model.UpcomingView, e
 	defer earlierRows.Close()
 	earlierTasks := scanTodayTaskListItems(r.db, earlierRows)
 	populatePastScheduleCounts(r.db, earlierTasks, from)
+	populateActionableScheduleFlags(r.db, earlierTasks)
 
 	return &model.UpcomingView{Overdue: overdueTasks, Dates: dates, Earlier: earlierTasks}, nil
 }
@@ -468,7 +478,9 @@ func (r *ViewRepository) getAnytimeTasks(projectID, areaID *string, byProject, s
 		return []model.TaskListItem{}
 	}
 	defer rows.Close()
-	return scanTaskListItems(r.db, rows)
+	tasks := scanTaskListItems(r.db, rows)
+	populateActionableScheduleFlags(r.db, tasks)
+	return tasks
 }
 
 func (r *ViewRepository) getAnytimeStandaloneNoArea(somedayOnly bool) []model.TaskListItem {
@@ -502,7 +514,9 @@ func (r *ViewRepository) getAnytimeStandaloneNoArea(somedayOnly bool) []model.Ta
 		return []model.TaskListItem{}
 	}
 	defer rows.Close()
-	return scanTaskListItems(r.db, rows)
+	tasks := scanTaskListItems(r.db, rows)
+	populateActionableScheduleFlags(r.db, tasks)
+	return tasks
 }
 
 func (r *ViewRepository) Logbook(limit, offset int) (*model.LogbookView, error) {
@@ -820,6 +834,28 @@ func ParseIntDefault(s string, def int) int {
 		return def
 	}
 	return n
+}
+
+// populateActionableScheduleFlags sets HasActionableSchedules on each task
+// that has uncompleted schedule entries requiring confirmation — i.e. past
+// entries (will be auto-completed) or future/someday entries (will be deleted).
+// If the only uncompleted entries are for today, no flag is set because
+// completing today's entry is the normal expected behavior.
+func populateActionableScheduleFlags(db *sql.DB, tasks []model.TaskListItem) {
+	if len(tasks) == 0 {
+		return
+	}
+	today := time.Now().Format("2006-01-02")
+	for i, t := range tasks {
+		var count int
+		err := db.QueryRow(
+			"SELECT COUNT(*) FROM task_schedules WHERE task_id = ? AND completed = 0 AND (when_date != ? OR when_date = 'someday')",
+			t.ID, today,
+		).Scan(&count)
+		if err == nil && count > 0 {
+			tasks[i].HasActionableSchedules = true
+		}
+	}
 }
 
 // populatePastScheduleCounts sets PastScheduleCount on each task that has

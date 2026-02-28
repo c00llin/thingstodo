@@ -245,6 +245,41 @@ export function useFlushPendingInvalidation() {
   }, [expandedTaskId, departingTaskId, hasPending, queryClient])
 }
 
+// Find a task by ID in the view caches (returns the first match or undefined)
+export function findTaskInViewCache(
+  queryClient: ReturnType<typeof useQueryClient>,
+  taskId: string,
+): Task | undefined {
+  const allData = [
+    ...queryClient.getQueriesData({ queryKey: ['views'] }),
+    ...queryClient.getQueriesData({ queryKey: queryKeys.projects.all }),
+    ...queryClient.getQueriesData({ queryKey: queryKeys.areas.all }),
+    ...queryClient.getQueriesData({ queryKey: queryKeys.tags.all }),
+  ]
+  for (const [, data] of allData) {
+    if (!data) continue
+    const json = JSON.stringify(data)
+    // Quick check before expensive parse
+    if (!json.includes(taskId)) continue
+    let found: Task | undefined
+    JSON.parse(json, (_key, value) => {
+      if (
+        !found &&
+        value &&
+        typeof value === 'object' &&
+        'id' in value &&
+        value.id === taskId &&
+        'status' in value
+      ) {
+        found = value as Task
+      }
+      return value
+    })
+    if (found) return found
+  }
+  return undefined
+}
+
 // Optimistic update helper: updates a task's fields in all cached view queries
 export function updateTaskInCache(
   queryClient: ReturnType<typeof useQueryClient>,

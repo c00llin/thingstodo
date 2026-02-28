@@ -45,7 +45,7 @@ func New(db *sql.DB, cfg config.Config, broker *sse.Broker, sched *scheduler.Sch
 	scheduleRepo := repository.NewScheduleRepository(db)
 
 	// Handlers
-	taskH := handler.NewTaskHandler(taskRepo, broker, sched)
+	taskH := handler.NewTaskHandler(taskRepo, scheduleRepo, broker, sched)
 	projectH := handler.NewProjectHandler(projectRepo, broker)
 	areaH := handler.NewAreaHandler(areaRepo, broker)
 	tagH := handler.NewTagHandler(tagRepo, broker)

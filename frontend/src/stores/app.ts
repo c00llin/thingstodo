@@ -72,6 +72,10 @@ interface AppStore {
   detailFieldCompleted: boolean
   setDetailFieldCompleted: (v: boolean) => void
 
+  // Schedule cleanup confirmation triggered by keyboard shortcut
+  pendingCompleteConfirmId: string | null
+  setPendingCompleteConfirmId: (id: string | null) => void
+
   // Mobile sidebar drawer
   mobileSidebarOpen: boolean
   openMobileSidebar: () => void
@@ -164,6 +168,9 @@ export const useAppStore = create<AppStore>((set) => ({
 
   detailFieldCompleted: false,
   setDetailFieldCompleted: (v) => set({ detailFieldCompleted: v }),
+
+  pendingCompleteConfirmId: null,
+  setPendingCompleteConfirmId: (id) => set({ pendingCompleteConfirmId: id }),
 
   mobileSidebarOpen: false,
   openMobileSidebar: () => set({ mobileSidebarOpen: true }),

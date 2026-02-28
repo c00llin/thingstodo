@@ -8,6 +8,7 @@ import { useCompleteTask, useReopenTask, useUpdateTask, useReviewTask } from '..
 import { getTaskContext } from '../hooks/useTaskContext'
 import { useAppStore } from '../stores/app'
 import { TaskDetail } from './TaskDetail'
+import { ConfirmDialog } from './ConfirmDialog'
 import { useResolveTags } from '../hooks/useResolveTags'
 import { formatRelativeDate } from '../lib/format-date'
 import { formatTime, formatTimeRange } from '../lib/format-time'
@@ -59,6 +60,8 @@ export function TaskItem({ task, showProject = true, hideWhenDate = false, showR
   const detailFieldCompleted = useAppStore((s) => s.detailFieldCompleted)
   const setDetailFieldCompleted = useAppStore((s) => s.setDetailFieldCompleted)
   const isDeparting = useAppStore((s) => s.departingTaskId) === task.id
+  const pendingCompleteConfirmId = useAppStore((s) => s.pendingCompleteConfirmId)
+  const setPendingCompleteConfirmId = useAppStore((s) => s.setPendingCompleteConfirmId)
   const completeTask = useCompleteTask()
   const reopenTask = useReopenTask()
   const updateTask = useUpdateTask()
@@ -82,6 +85,7 @@ export function TaskItem({ task, showProject = true, hideWhenDate = false, showR
   const [editing, setEditing] = useState(false)
   const [title, setTitle] = useState(task.title)
   const [siyuanError, setSiyuanError] = useState<string | null>(null)
+  const [scheduleConfirmPending, setScheduleConfirmPending] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
   const clickTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const skipBlurRef = useRef(false)
@@ -110,6 +114,14 @@ export function TaskItem({ task, showProject = true, hideWhenDate = false, showR
     if (!isSelected && !isExpanded) setEditing(false)
   }, [isSelected, isExpanded])
 
+  // Open schedule confirmation when triggered by keyboard shortcut
+  useEffect(() => {
+    if (pendingCompleteConfirmId === task.id) {
+      setScheduleConfirmPending(true)
+      setPendingCompleteConfirmId(null)
+    }
+  }, [pendingCompleteConfirmId, task.id, setPendingCompleteConfirmId])
+
   // Respond to store-level edit trigger (Enter key)
   useEffect(() => {
     if (editingTaskId === task.id) {
@@ -137,7 +149,11 @@ export function TaskItem({ task, showProject = true, hideWhenDate = false, showR
 
   function handleCheck(checked: boolean | 'indeterminate') {
     if (checked === true) {
-      completeTask.mutate(task.id)
+      if (task.has_actionable_schedules) {
+        setScheduleConfirmPending(true)
+      } else {
+        completeTask.mutate(task.id)
+      }
     } else {
       reopenTask.mutate(task.id)
     }
@@ -426,6 +442,17 @@ export function TaskItem({ task, showProject = true, hideWhenDate = false, showR
           <TaskDetail taskId={task.id} />
         </DelayedReveal>
       )}
+      <ConfirmDialog
+        open={scheduleConfirmPending}
+        title="Complete task with scheduled dates?"
+        description="Past scheduled dates will be marked done. Today and future dates will be removed."
+        confirmLabel="Complete"
+        onConfirm={() => {
+          setScheduleConfirmPending(false)
+          completeTask.mutate(task.id)
+        }}
+        onCancel={() => setScheduleConfirmPending(false)}
+      />
     </motion.div>
   )
 }

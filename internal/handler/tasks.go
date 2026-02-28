@@ -1,8 +1,10 @@
 package handler
 
 import (
+	"log"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/collinjanssen/thingstodo/internal/model"
 	"github.com/collinjanssen/thingstodo/internal/repository"
@@ -12,13 +14,14 @@ import (
 )
 
 type TaskHandler struct {
-	repo      *repository.TaskRepository
-	broker    *sse.Broker
-	scheduler *scheduler.Scheduler
+	repo         *repository.TaskRepository
+	scheduleRepo *repository.ScheduleRepository
+	broker       *sse.Broker
+	scheduler    *scheduler.Scheduler
 }
 
-func NewTaskHandler(repo *repository.TaskRepository, broker *sse.Broker, sched *scheduler.Scheduler) *TaskHandler {
-	return &TaskHandler{repo: repo, broker: broker, scheduler: sched}
+func NewTaskHandler(repo *repository.TaskRepository, scheduleRepo *repository.ScheduleRepository, broker *sse.Broker, sched *scheduler.Scheduler) *TaskHandler {
+	return &TaskHandler{repo: repo, scheduleRepo: scheduleRepo, broker: broker, scheduler: sched}
 }
 
 func (h *TaskHandler) List(w http.ResponseWriter, r *http.Request) {
@@ -181,6 +184,7 @@ func (h *TaskHandler) Purge(w http.ResponseWriter, r *http.Request) {
 
 func (h *TaskHandler) Complete(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")
+	h.cleanupSchedules(id)
 	task, err := h.repo.Complete(id)
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, err.Error(), "INTERNAL")
@@ -199,6 +203,7 @@ func (h *TaskHandler) Complete(w http.ResponseWriter, r *http.Request) {
 
 func (h *TaskHandler) Cancel(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")
+	h.cleanupSchedules(id)
 	task, err := h.repo.Cancel(id)
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, err.Error(), "INTERNAL")
@@ -217,6 +222,7 @@ func (h *TaskHandler) Cancel(w http.ResponseWriter, r *http.Request) {
 
 func (h *TaskHandler) WontDo(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")
+	h.cleanupSchedules(id)
 	task, err := h.repo.WontDo(id)
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, err.Error(), "INTERNAL")
@@ -318,6 +324,15 @@ func (h *TaskHandler) Reorder(w http.ResponseWriter, r *http.Request) {
 		"type": "reorder", "entity": "task", "ids": ids,
 	})
 	writeJSON(w, http.StatusOK, map[string]bool{"ok": true})
+}
+
+// cleanupSchedules completes past uncompleted schedule entries and deletes
+// today + future entries when a task is completed/canceled/wontdo.
+func (h *TaskHandler) cleanupSchedules(taskID string) {
+	today := time.Now().Format("2006-01-02")
+	if err := h.scheduleRepo.CleanupOnTaskDone(taskID, today); err != nil {
+		log.Printf("schedule cleanup for task %s: %v", taskID, err)
+	}
 }
 
 // needsDateCrossCheck returns true when only one of when_date/deadline is

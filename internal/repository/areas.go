@@ -103,6 +103,7 @@ func (r *AreaRepository) GetByID(id string) (*model.AreaDetail, error) {
 	}
 	defer taskRows.Close()
 	a.Tasks = scanTaskListItems(r.db, taskRows)
+	populateActionableScheduleFlags(r.db, a.Tasks)
 
 	// Completed standalone tasks (today only)
 	today := time.Now().Format("2006-01-02")
