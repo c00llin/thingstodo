@@ -9,7 +9,6 @@ import (
 )
 
 func strPtr(s string) *string { return &s }
-func boolPtr(b bool) *bool    { return &b }
 
 func TestTaskCreate(t *testing.T) {
 	db := testutil.SetupTestDB(t)
