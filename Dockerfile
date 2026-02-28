@@ -23,9 +23,6 @@ RUN APP_VERSION=$(jq -r .version frontend/package.json) && \
 # Stage 3: Runtime
 FROM scratch
 COPY --from=backend-build /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
-COPY --from=backend-build /etc/passwd /etc/passwd
-COPY --from=backend-build /etc/group /etc/group
 COPY --from=backend-build /thingstodo /thingstodo
-USER nobody
 EXPOSE 2999
 ENTRYPOINT ["/thingstodo"]
