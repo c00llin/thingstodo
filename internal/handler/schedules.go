@@ -115,14 +115,6 @@ func (h *ScheduleHandler) Update(w http.ResponseWriter, r *http.Request) {
 	}
 	input.Raw = raw
 
-	// start_time requires end_time (check after update would apply)
-	if _, hasStart := raw["start_time"]; hasStart && input.StartTime != nil {
-		if _, hasEnd := raw["end_time"]; !hasEnd {
-			// If setting start_time without end_time in the same request, check existing end_time
-			// We'll let the repo handle this — the handler just validates when both are in payload
-		}
-	}
-
 	// Block duplicate timeless dates when changing date or clearing time
 	if input.WhenDate != nil || input.Raw["start_time"] != nil {
 		// Look up the current entry to determine the final state

@@ -203,7 +203,7 @@ func (r *TaskRepository) Create(input model.CreateTaskInput) (*model.TaskDetail,
 
 	// Create first schedule entry if when_date is set
 	if input.WhenDate != nil {
-		r.syncFirstScheduleDate(id, input.WhenDate)
+		_ = r.syncFirstScheduleDate(id, input.WhenDate)
 	}
 
 	return r.GetByID(id)
