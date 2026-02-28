@@ -67,8 +67,8 @@ export function TaskItem({ task, showProject = true, hideWhenDate = false, showR
   const { data: settings } = useSettings()
   const taskContext = getTaskContext(task)
   const entryId = task.schedule_entry_id
-  const isSelected = selectedTaskId === task.id && (entryId == null || selectedScheduleEntryId === entryId)
-  const isExpanded = expandedTaskId === task.id && (entryId == null || expandedScheduleEntryId === entryId)
+  const isSelected = selectedTaskId === task.id && selectedScheduleEntryId === (entryId ?? null)
+  const isExpanded = expandedTaskId === task.id && expandedScheduleEntryId === (entryId ?? null)
   const isCompleted = task.status === 'completed'
   const isDone = task.status !== 'open'
 

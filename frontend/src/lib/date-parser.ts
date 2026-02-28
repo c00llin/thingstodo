@@ -18,7 +18,6 @@ import {
 
 export interface ParsedDate {
   date: string // ISO date string YYYY-MM-DD
-  evening: boolean
 }
 
 const DAY_FINDERS: Record<string, (d: Date) => Date> = {
@@ -63,29 +62,24 @@ export function parseNaturalDate(input: string): ParsedDate | null {
 
   const today = new Date()
 
-  // "this evening" or "tonight"
-  if (text === 'this evening' || text === 'tonight') {
-    return { date: formatDate(today), evening: true }
-  }
-
   // "today"
-  if (text === 'today') {
-    return { date: formatDate(today), evening: false }
+  if (text === 'today' || text === 'this evening' || text === 'tonight') {
+    return { date: formatDate(today) }
   }
 
   // "tomorrow"
   if (text === 'tomorrow') {
-    return { date: formatDate(addDays(today, 1)), evening: false }
+    return { date: formatDate(addDays(today, 1)) }
   }
 
   // "next week"
   if (text === 'next week') {
-    return { date: formatDate(nextMonday(today)), evening: false }
+    return { date: formatDate(nextMonday(today)) }
   }
 
   // "next month"
   if (text === 'next month') {
-    return { date: formatDate(startOfMonth(addMonths(today, 1))), evening: false }
+    return { date: formatDate(startOfMonth(addMonths(today, 1))) }
   }
 
   // "in N days/weeks/months"
@@ -94,20 +88,20 @@ export function parseNaturalDate(input: string): ParsedDate | null {
     const n = parseInt(inMatch[1], 10)
     const unit = inMatch[2]
     if (unit.startsWith('day')) {
-      return { date: formatDate(addDays(today, n)), evening: false }
+      return { date: formatDate(addDays(today, n)) }
     }
     if (unit.startsWith('week')) {
-      return { date: formatDate(addDays(today, n * 7)), evening: false }
+      return { date: formatDate(addDays(today, n * 7)) }
     }
     if (unit.startsWith('month')) {
-      return { date: formatDate(addMonths(today, n)), evening: false }
+      return { date: formatDate(addMonths(today, n)) }
     }
   }
 
   // Day name: "friday", "mon", etc.
   const dayFinder = DAY_FINDERS[text]
   if (dayFinder) {
-    return { date: formatDate(dayFinder(today)), evening: false }
+    return { date: formatDate(dayFinder(today)) }
   }
 
   // "month day" pattern: "jan 15", "december 3"
@@ -122,7 +116,7 @@ export function parseNaturalDate(input: string): ParsedDate | null {
       if (isBefore(candidate, today)) {
         candidate = addYears(candidate, 1)
       }
-      return { date: formatDate(candidate), evening: false }
+      return { date: formatDate(candidate) }
     }
   }
 
@@ -132,9 +126,9 @@ export function parseNaturalDate(input: string): ParsedDate | null {
     if (isValid(parsed)) {
       // For short formats without year, advance if in the past
       if (!text.includes('-') && isBefore(parsed, today)) {
-        return { date: formatDate(addYears(parsed, 1)), evening: false }
+        return { date: formatDate(addYears(parsed, 1)) }
       }
-      return { date: formatDate(parsed), evening: false }
+      return { date: formatDate(parsed) }
     }
   }
 

@@ -71,13 +71,6 @@ func (r *TaskRepository) List(f model.TaskFilters) ([]model.TaskListItem, error)
 			conditions = append(conditions, "t.deadline IS NULL")
 		}
 	}
-	if f.IsEvening != nil {
-		if *f.IsEvening {
-			conditions = append(conditions, "t.when_evening = 1")
-		} else {
-			conditions = append(conditions, "t.when_evening = 0")
-		}
-	}
 	if len(f.TagIDs) > 0 {
 		placeholders := make([]string, len(f.TagIDs))
 		for i, id := range f.TagIDs {
@@ -121,7 +114,7 @@ func (r *TaskRepository) List(f model.TaskFilters) ([]model.TaskListItem, error)
 		); err != nil {
 			return nil, fmt.Errorf("scan task: %w", err)
 		}
-		t.WhenEvening = whenEvening == 1
+		_ = whenEvening // column retained in DB but no longer exposed
 		t.HighPriority = highPriority == 1
 		t.HasNotes = hasNotes == 1
 		t.HasLinks = hasLinks == 1
@@ -156,7 +149,7 @@ func (r *TaskRepository) GetByID(id string) (*model.TaskDetail, error) {
 	if err != nil {
 		return nil, fmt.Errorf("get task: %w", err)
 	}
-	t.WhenEvening = whenEvening == 1
+	_ = whenEvening // column retained in DB but no longer exposed
 	t.HighPriority = highPriority == 1
 
 	// Load related refs
@@ -186,10 +179,10 @@ func (r *TaskRepository) Create(input model.CreateTaskInput) (*model.TaskDetail,
 	_ = r.db.QueryRow("SELECT COALESCE(MAX(sort_order_today), 0) FROM tasks").Scan(&maxSort)
 
 	_, err := r.db.Exec(`
-		INSERT INTO tasks (id, title, notes, when_date, when_evening, high_priority, deadline,
+		INSERT INTO tasks (id, title, notes, when_date, high_priority, deadline,
 			project_id, area_id, heading_id, sort_order_today, sort_order_project, sort_order_heading)
-		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-		id, input.Title, input.Notes, input.WhenDate, boolToInt(input.WhenEvening),
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+		id, input.Title, input.Notes, input.WhenDate,
 		boolToInt(input.HighPriority), input.Deadline, input.ProjectID, input.AreaID, input.HeadingID,
 		maxSort+1024, maxSort+1024, maxSort+1024,
 	)
@@ -224,10 +217,6 @@ func (r *TaskRepository) Update(id string, input model.UpdateTaskInput) (*model.
 	if _, ok := input.Raw["when_date"]; ok {
 		sets = append(sets, "when_date = ?")
 		args = append(args, input.WhenDate)
-	}
-	if input.WhenEvening != nil {
-		sets = append(sets, "when_evening = ?")
-		args = append(args, boolToInt(*input.WhenEvening))
 	}
 	if input.HighPriority != nil {
 		sets = append(sets, "high_priority = ?")
@@ -290,10 +279,6 @@ func (r *TaskRepository) Move(id string, input model.MoveTaskInput) (*model.Task
 	if input.WhenDate != nil {
 		sets = append(sets, "when_date = ?")
 		args = append(args, *input.WhenDate)
-	}
-	if input.WhenEvening != nil {
-		sets = append(sets, "when_evening = ?")
-		args = append(args, boolToInt(*input.WhenEvening))
 	}
 
 	sets = append(sets, "updated_at = datetime('now')")

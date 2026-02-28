@@ -358,7 +358,7 @@ func scanTaskListItems(db *sql.DB, rows *sql.Rows) []model.TaskListItem {
 			&hasNotes, &hasLinks, &hasFiles, &hasRepeat,
 			&t.FirstScheduleTime, &t.FirstScheduleEndTime,
 		)
-		t.WhenEvening = whenEvening == 1
+		_ = whenEvening // column retained in DB but no longer exposed
 		t.HighPriority = highPriority == 1
 		t.HasNotes = hasNotes == 1
 		t.HasLinks = hasLinks == 1

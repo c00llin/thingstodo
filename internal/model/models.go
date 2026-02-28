@@ -84,7 +84,6 @@ type Task struct {
 	Notes             string  `json:"notes"`
 	Status            string  `json:"status"`
 	WhenDate          *string `json:"when_date"`
-	WhenEvening       bool    `json:"when_evening"`
 	HighPriority      bool    `json:"high_priority"`
 	Deadline          *string `json:"deadline"`
 	ProjectID         *string `json:"project_id"`
@@ -234,7 +233,6 @@ type CreateTaskInput struct {
 	Title        string   `json:"title"`
 	Notes        string   `json:"notes"`
 	WhenDate     *string  `json:"when_date"`
-	WhenEvening  bool     `json:"when_evening"`
 	HighPriority bool     `json:"high_priority"`
 	Deadline     *string  `json:"deadline"`
 	ProjectID   *string  `json:"project_id"`
@@ -247,7 +245,6 @@ type UpdateTaskInput struct {
 	Title        *string  `json:"title"`
 	Notes        *string  `json:"notes"`
 	WhenDate     *string  `json:"when_date"`
-	WhenEvening  *bool    `json:"when_evening"`
 	HighPriority *bool    `json:"high_priority"`
 	Deadline     *string  `json:"deadline"`
 	ProjectID   *string  `json:"project_id"`
@@ -274,7 +271,6 @@ type MoveTaskInput struct {
 	AreaID      *string `json:"area_id"`
 	HeadingID   *string `json:"heading_id"`
 	WhenDate    *string `json:"when_date"`
-	WhenEvening *bool   `json:"when_evening"`
 }
 
 type CreateProjectInput struct {
@@ -385,7 +381,6 @@ type TaskFilters struct {
 	WhenBefore  *string
 	WhenAfter   *string
 	HasDeadline *bool
-	IsEvening   *bool
 	Search      *string
 }
 

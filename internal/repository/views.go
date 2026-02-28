@@ -88,7 +88,7 @@ func (r *ViewRepository) Today(eveningStartsAt string) (*model.TodayView, error)
 
 	// Today tasks: JOIN task_schedules so multi-schedule entries for today each appear.
 	// Includes tasks where ANY schedule entry matches today (not just when_date).
-	// Excludes evening entries (start_time >= eveningStartsAt) and when_evening tasks.
+	// Excludes evening entries (start_time >= eveningStartsAt).
 	// Tasks without any schedule entry for today (e.g. deadline-only) use LEFT JOIN.
 	todayRows, err := r.db.Query(`
 		SELECT t.id, t.title, t.notes, t.status, t.when_date, t.when_evening, t.high_priority,
@@ -106,7 +106,7 @@ func (r *ViewRepository) Today(eveningStartsAt string) (*model.TodayView, error)
 			ts.id AS schedule_entry_id
 		FROM tasks t
 		LEFT JOIN task_schedules ts ON ts.task_id = t.id AND ts.when_date = ?
-		WHERE t.status = 'open' AND t.when_evening = 0
+		WHERE t.status = 'open'
 			AND (t.when_date = ? OR t.deadline = ?
 				OR EXISTS(SELECT 1 FROM task_schedules WHERE task_id = t.id AND when_date = ?))
 			AND t.deleted_at IS NULL
@@ -118,7 +118,7 @@ func (r *ViewRepository) Today(eveningStartsAt string) (*model.TodayView, error)
 	defer todayRows.Close()
 	todayTasks := scanTodayTaskListItems(r.db, todayRows)
 
-	// Evening tasks: either when_evening=1 OR schedule entry's start_time >= eveningStartsAt
+	// Evening tasks: schedule entry's start_time >= eveningStartsAt
 	eveningRows, err := r.db.Query(`
 		SELECT t.id, t.title, t.notes, t.status, t.when_date, t.when_evening, t.high_priority,
 			t.deadline, t.project_id, t.area_id, t.heading_id,
@@ -139,10 +139,7 @@ func (r *ViewRepository) Today(eveningStartsAt string) (*model.TodayView, error)
 			AND (t.when_date = ? OR t.deadline = ?
 				OR EXISTS(SELECT 1 FROM task_schedules WHERE task_id = t.id AND when_date = ?))
 			AND t.deleted_at IS NULL
-			AND (
-				t.when_evening = 1
-				OR (ts.start_time IS NOT NULL AND ts.start_time >= ?)
-			)
+			AND ts.start_time IS NOT NULL AND ts.start_time >= ?
 		ORDER BY t.sort_order_today ASC, ts.start_time ASC`, today, today, today, today, eveningStartsAt)
 	if err != nil {
 		return nil, err
@@ -648,7 +645,7 @@ func scanUpcomingTaskListItems(db *sql.DB, rows *sql.Rows) []upcomingItem {
 			&t.ScheduleEntryID,
 			&scheduleDate,
 		)
-		t.WhenEvening = whenEvening == 1
+		_ = whenEvening // column retained in DB but no longer exposed
 		t.HighPriority = highPriority == 1
 		t.HasNotes = hasNotes == 1
 		t.HasLinks = hasLinks == 1
@@ -708,7 +705,7 @@ func scanTodayTaskListItems(db *sql.DB, rows *sql.Rows) []model.TaskListItem {
 			&t.FirstScheduleTime, &t.FirstScheduleEndTime,
 			&t.ScheduleEntryID,
 		)
-		t.WhenEvening = whenEvening == 1
+		_ = whenEvening // column retained in DB but no longer exposed
 		t.HighPriority = highPriority == 1
 		t.HasNotes = hasNotes == 1
 		t.HasLinks = hasLinks == 1

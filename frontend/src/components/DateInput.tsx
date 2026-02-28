@@ -5,8 +5,7 @@ import { formatRelativeDate } from '../lib/format-date'
 
 interface DateInputProps {
   value: string
-  evening?: boolean
-  onChange: (date: string | null, evening?: boolean) => void
+  onChange: (date: string | null) => void
   variant: 'when' | 'deadline'
   autoFocus?: boolean
   onComplete?: () => void
@@ -20,7 +19,6 @@ interface Suggestion {
   label: string
   detail?: string
   date: string | null
-  evening?: boolean
 }
 
 
@@ -33,7 +31,6 @@ function getDefaultSuggestions(variant: 'when' | 'deadline'): Suggestion[] {
   if (variant === 'when') {
     return [
       { label: 'Today', detail: format(today, 'EEE, MMM d'), date: todayISO },
-      { label: 'This Evening', detail: format(today, 'EEE, MMM d'), date: todayISO, evening: true },
       { label: 'Tomorrow', detail: format(addDays(today, 1), 'EEE, MMM d'), date: tomorrowISO },
       { label: 'Next Week', detail: format(nextMonday(today), 'EEE, MMM d'), date: nextWeekISO },
       { label: 'Someday', date: 'someday' },
@@ -56,11 +53,10 @@ function getTypedSuggestion(text: string): Suggestion | null {
     label: text.charAt(0).toUpperCase() + text.slice(1),
     detail: format(d, 'EEE, MMM d, yyyy'),
     date: parsed.date,
-    evening: parsed.evening || undefined,
   }
 }
 
-export function DateInput({ value, evening, onChange, variant, autoFocus, onComplete, hideSomeday, fieldClassName }: DateInputProps) {
+export function DateInput({ value, onChange, variant, autoFocus, onComplete, hideSomeday, fieldClassName }: DateInputProps) {
   const [active, setActive] = useState(false)
   const [text, setText] = useState('')
   const [highlightIndex, setHighlightIndex] = useState(0)
@@ -83,7 +79,7 @@ export function DateInput({ value, evening, onChange, variant, autoFocus, onComp
     if (typed) {
       // Add parsed result if it's not already represented in filtered defaults
       const alreadyPresent = filtered.some(
-        (s) => s.date === typed.date && (s.evening ?? false) === (typed.evening ?? false)
+        (s) => s.date === typed.date
       )
       if (!alreadyPresent) {
         filtered.push(typed)
@@ -94,7 +90,7 @@ export function DateInput({ value, evening, onChange, variant, autoFocus, onComp
   })()
 
   const select = useCallback((s: Suggestion) => {
-    onChange(s.date, s.evening)
+    onChange(s.date)
     setActive(false)
     setText('')
     inputRef.current?.blur()
@@ -162,7 +158,7 @@ export function DateInput({ value, evening, onChange, variant, autoFocus, onComp
         }}
         className={`w-full rounded-md border px-2 py-1 text-left text-sm ${fieldClassName ?? 'border-neutral-200 bg-white dark:border-neutral-600 dark:bg-neutral-800 dark:text-neutral-100'}`}
       >
-        {formatRelativeDate(value, evening)}
+        {formatRelativeDate(value)}
       </button>
     )
   }

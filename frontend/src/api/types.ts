@@ -192,7 +192,6 @@ export interface Task {
   notes: string
   status: TaskStatus
   when_date: string | null
-  when_evening: boolean
   high_priority: boolean
   deadline: string | null
   project_id: string | null
@@ -235,7 +234,6 @@ export interface CreateTaskRequest {
   title: string
   notes?: string
   when_date?: string | null
-  when_evening?: boolean
   high_priority?: boolean
   deadline?: string | null
   project_id?: string | null
@@ -248,7 +246,6 @@ export interface UpdateTaskRequest {
   title?: string
   notes?: string
   when_date?: string | null
-  when_evening?: boolean
   high_priority?: boolean
   deadline?: string | null
   project_id?: string | null
@@ -544,6 +541,5 @@ export interface TaskQueryParams {
   when_before?: string
   when_after?: string
   has_deadline?: boolean
-  is_evening?: boolean
   search?: string
 }

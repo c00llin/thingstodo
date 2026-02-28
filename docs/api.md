@@ -102,7 +102,7 @@ Required env vars: `OIDC_ISSUER`, `OIDC_CLIENT_ID`, `OIDC_CLIENT_SECRET`, `OIDC_
 ## Tasks
 
 ### GET /api/tasks
-Query params: `status`, `project_id`, `area_id`, `heading_id`, `tag_ids` (comma-separated), `when_date`, `when_before`, `when_after`, `has_deadline`, `is_evening`, `search`
+Query params: `status`, `project_id`, `area_id`, `heading_id`, `tag_ids` (comma-separated), `when_date`, `when_before`, `when_after`, `has_deadline`, `search`
 
 Response (200):
 ```json
@@ -114,7 +114,6 @@ Response (200):
       "notes": "string",
       "status": "open|completed|canceled|wont_do",
       "when_date": "string|null",
-      "when_evening": false,
       "high_priority": false,
       "deadline": "string|null",
       "project_id": "string|null",
@@ -151,7 +150,6 @@ Request:
   "title": "string (required)",
   "notes": "string",
   "when_date": "string|null",
-  "when_evening": false,
   "high_priority": false,
   "deadline": "string|null",
   "project_id": "string|null",
@@ -172,7 +170,6 @@ Response (200): Full task object with nested checklist, attachments, tags, repea
   "notes": "string",
   "status": "open|completed|canceled|wont_do",
   "when_date": "string|null",
-  "when_evening": false,
   "high_priority": false,
   "deadline": "string|null",
   "project_id": "string|null",
@@ -238,7 +235,6 @@ Request: Partial update (any subset of task fields)
   "title": "string",
   "notes": "string",
   "when_date": "string|null",
-  "when_evening": false,
   "high_priority": false,
   "deadline": "string|null",
   "project_id": "string|null",
@@ -291,8 +287,7 @@ Request:
   "project_id": "string|null",
   "area_id": "string|null",
   "heading_id": "string|null",
-  "when_date": "string|null",
-  "when_evening": true
+  "when_date": "string|null"
 }
 ```
 

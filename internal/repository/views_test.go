@@ -75,7 +75,17 @@ func TestViewTodayStructure(t *testing.T) {
 
 	today := time.Now().Format("2006-01-02")
 	_, _ = taskRepo.Create(model.CreateTaskInput{Title: "Today task", WhenDate: &today})
-	_, _ = taskRepo.Create(model.CreateTaskInput{Title: "Evening task", WhenDate: &today, WhenEvening: true})
+
+	// Create a task with an evening schedule entry (start_time >= 18:00)
+	eveningTask, _ := taskRepo.Create(model.CreateTaskInput{Title: "Evening task", WhenDate: &today})
+	scheduleRepo := repository.NewScheduleRepository(db)
+	startTime := "19:00"
+	endTime := "20:00"
+	_, _ = scheduleRepo.Create(eveningTask.ID, model.CreateTaskScheduleInput{
+		WhenDate:  today,
+		StartTime: &startTime,
+		EndTime:   &endTime,
+	})
 
 	view, err := viewRepo.Today("18:00")
 	if err != nil {

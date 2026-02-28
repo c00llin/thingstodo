@@ -369,25 +369,6 @@ func TestTaskListFilterByWhenDate(t *testing.T) {
 	}
 }
 
-func TestTaskListFilterByEvening(t *testing.T) {
-	db := testutil.SetupTestDB(t)
-	repo := repository.NewTaskRepository(db)
-
-	_, _ = repo.Create(model.CreateTaskInput{Title: "Evening", WhenEvening: true})
-	_, _ = repo.Create(model.CreateTaskInput{Title: "Not evening"})
-
-	tasks, err := repo.List(model.TaskFilters{IsEvening: boolPtr(true)})
-	if err != nil {
-		t.Fatalf("failed to list tasks: %v", err)
-	}
-	if len(tasks) != 1 {
-		t.Fatalf("expected 1 evening task, got %d", len(tasks))
-	}
-	if tasks[0].Title != "Evening" {
-		t.Errorf("expected 'Evening', got %q", tasks[0].Title)
-	}
-}
-
 func TestTaskReorder(t *testing.T) {
 	db := testutil.SetupTestDB(t)
 	repo := repository.NewTaskRepository(db)

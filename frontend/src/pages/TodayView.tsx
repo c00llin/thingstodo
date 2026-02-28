@@ -78,7 +78,7 @@ export function TodayView() {
           {overdueOpen && (
             <AnimatePresence initial={false}>
               {overdue.map((task) => (
-                <TaskItem key={task.id} task={task} showDivider />
+                <TaskItem key={task.schedule_entry_id ?? task.id} task={task} showDivider />
               ))}
             </AnimatePresence>
           )}
@@ -98,7 +98,7 @@ export function TodayView() {
           {earlierOpen && (
             <AnimatePresence initial={false}>
               {earlier.map((task) => (
-                <TaskItem key={task.id} task={task} showDivider />
+                <TaskItem key={task.schedule_entry_id ?? task.id} task={task} showDivider />
               ))}
             </AnimatePresence>
           )}

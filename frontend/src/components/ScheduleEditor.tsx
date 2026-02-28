@@ -16,11 +16,10 @@ import { formatRelativeDate } from '../lib/format-date'
 interface ScheduleEditorProps {
   taskId: string
   schedules: TaskSchedule[]
-  whenEvening: boolean
   timeFormat: '12h' | '24h'
   defaultTimeGap: number
   hasRepeatRule: boolean
-  onWhenDateChange: (date: string | null, evening?: boolean) => void
+  onWhenDateChange: (date: string | null) => void
   onClearWhen: () => void
   /** Ref for the first DateInput (for @-trigger focus) */
   whenDateInputRef?: React.RefObject<HTMLDivElement | null>
@@ -39,7 +38,6 @@ function addMinutes(time: string, minutes: number): string {
 export function ScheduleEditor({
   taskId,
   schedules,
-  whenEvening,
   timeFormat,
   defaultTimeGap,
   hasRepeatRule,
@@ -139,8 +137,8 @@ export function ScheduleEditor({
 
   // Measure the widest date label so all rows align their time fields
   const dateLabels = useMemo(
-    () => schedules.map((e, i) => formatRelativeDate(e.when_date, i === 0 ? whenEvening : undefined)),
-    [schedules, whenEvening],
+    () => schedules.map((e) => formatRelativeDate(e.when_date)),
+    [schedules],
   )
   const measureRef = useRef<HTMLSpanElement>(null)
   const [dateMinWidth, setDateMinWidth] = useState<number | undefined>(undefined)
@@ -182,7 +180,7 @@ export function ScheduleEditor({
     createSchedule.mutate({ when_date: date.toISOString().split('T')[0] })
   }
 
-  function handleDateChange(entry: TaskSchedule, index: number, date: string | null, evening?: boolean) {
+  function handleDateChange(entry: TaskSchedule, index: number, date: string | null) {
     // Block duplicate dates when neither entry has a time set
     if (date && date !== 'someday') {
       const duplicate = schedules.find(
@@ -195,12 +193,12 @@ export function ScheduleEditor({
     }
 
     if (index === 0) {
-      onWhenDateChange(date, evening)
+      onWhenDateChange(date)
     } else if (date) {
       updateSchedule.mutate({ id: entry.id, data: { when_date: date } })
     }
-    // Auto-focus start time after selecting a non-someday, non-evening date
-    if (date && date !== 'someday' && !evening && !entry.start_time) {
+    // Auto-focus start time after selecting a non-someday date
+    if (date && date !== 'someday' && !entry.start_time) {
       setFocusStartTimeId(entry.id)
     }
   }
@@ -302,7 +300,6 @@ export function ScheduleEditor({
         const isFirst = index === 0
         const isLast = index === schedules.length - 1
         const hasTime = !!entry.start_time
-        const isEveningEntry = isFirst && whenEvening && !hasTime
         const today = new Date().toISOString().split('T')[0]
         const isPast = entry.when_date !== 'someday' && entry.when_date < today
         const isCompleted = entry.completed
@@ -322,8 +319,7 @@ export function ScheduleEditor({
                 <DateInput
                   variant="when"
                   value={entry.when_date}
-                  evening={isFirst ? whenEvening : undefined}
-                  onChange={(date, eve) => handleDateChange(entry, index, date, eve)}
+                  onChange={(date) => handleDateChange(entry, index, date)}
                   autoFocus={isFirst && autoFocusFirst}
                   onComplete={isFirst ? onComplete : undefined}
                   hideSomeday={schedules.length > 1}
@@ -343,7 +339,7 @@ export function ScheduleEditor({
               )}
 
               {/* Time inputs — always show both start and end together */}
-              {entry.when_date !== 'someday' && !isEveningEntry && (
+              {entry.when_date !== 'someday' && (
                 <>
                   <Clock size={14} className="shrink-0 text-neutral-400" />
                   <span className={isPast ? 'pointer-events-none' : undefined}>
@@ -378,10 +374,6 @@ export function ScheduleEditor({
                     </button>
                   )}
                 </>
-              )}
-
-              {isEveningEntry && (
-                <span className="text-xs text-neutral-400">Evening</span>
               )}
 
               {/* Delete entry (trash) — for non-first entries, after time fields */}

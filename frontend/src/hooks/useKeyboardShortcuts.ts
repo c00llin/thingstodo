@@ -254,15 +254,6 @@ export function useTaskShortcuts() {
     }
   }, { enabled })
 
-  // Move to This Evening
-  useHotkeys('alt+e', (e) => {
-    e.preventDefault()
-    if (selectedTaskId) {
-      const today = new Date().toISOString().split('T')[0]
-      updateTask.mutate({ id: selectedTaskId, data: { when_date: today, when_evening: true } })
-    }
-  }, { enabled })
-
   // Move to Someday
   useHotkeys('alt+s', (e) => {
     e.preventDefault()

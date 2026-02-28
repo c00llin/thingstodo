@@ -18,7 +18,6 @@ export function QuickEntry() {
   // Detail fields
   const [notes, setNotes] = useState('')
   const [whenDate, setWhenDate] = useState('')
-  const [whenEvening, setWhenEvening] = useState(false)
   const [deadline, setDeadline] = useState('')
   const [highPriority, setHighPriority] = useState(false)
   const [showNotes, setShowNotes] = useState(false)
@@ -44,7 +43,6 @@ export function QuickEntry() {
   function resetDetailFields() {
     setNotes('')
     setWhenDate('')
-    setWhenEvening(false)
     setDeadline('')
     setHighPriority(false)
     setShowNotes(false)
@@ -85,7 +83,6 @@ export function QuickEntry() {
         title: parsedTitle,
         notes: notes.trim() || undefined,
         when_date: whenDate || undefined,
-        when_evening: whenEvening || undefined,
         high_priority: highPriority || undefined,
         deadline: deadline || undefined,
         tag_ids: tagIds.length > 0 ? tagIds : undefined,
@@ -100,7 +97,7 @@ export function QuickEntry() {
         },
       }
     )
-  }, [title, notes, whenDate, whenEvening, highPriority, deadline, resolveTags, createTask, close])
+  }, [title, notes, whenDate, highPriority, deadline, resolveTags, createTask, close])
 
   if (!open) return null
 
@@ -146,10 +143,8 @@ export function QuickEntry() {
           onNotesChange={setNotes}
           notesRef={notesRef}
           whenDate={whenDate}
-          whenEvening={whenEvening}
-          onWhenDateChange={(date, evening) => {
+          onWhenDateChange={(date) => {
             setWhenDate(date ?? '')
-            setWhenEvening(evening ?? false)
             if (!date) setShowWhen(false)
           }}
           deadline={deadline}
@@ -185,7 +180,6 @@ function CreateMode({
   onNotesChange,
   notesRef,
   whenDate,
-  whenEvening,
   onWhenDateChange,
   deadline,
   onDeadlineChange,
@@ -207,8 +201,7 @@ function CreateMode({
   onNotesChange: (v: string) => void
   notesRef: React.RefObject<HTMLTextAreaElement | null>
   whenDate: string
-  whenEvening: boolean
-  onWhenDateChange: (date: string | null, evening?: boolean) => void
+  onWhenDateChange: (date: string | null) => void
   deadline: string
   onDeadlineChange: (date: string | null) => void
   highPriority: boolean
@@ -354,7 +347,6 @@ function CreateMode({
                 <DateInput
                   variant="when"
                   value={whenDate}
-                  evening={whenEvening}
                   onChange={onWhenDateChange}
                   autoFocus={!whenDate}
                   onComplete={returnFocusToTitle}

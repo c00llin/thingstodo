@@ -92,23 +92,25 @@ function EveningTimeSetting({
   timeFormat: '12h' | '24h'
   onChange: (v: string) => void
 }) {
-  const [draft, setDraft] = useState(formatTime(value, timeFormat))
+  const [draft, setDraft] = useState<string | null>(null)
+  const display = draft ?? formatTime(value, timeFormat)
 
   return (
     <div className="flex items-center gap-3 py-1.5">
       <span className="text-sm text-neutral-700 dark:text-neutral-300">Evening starts at</span>
       <input
         type="text"
-        value={draft}
+        value={display}
+        onFocus={(e) => setDraft(e.currentTarget.value)}
         onChange={(e) => setDraft(e.target.value)}
         onBlur={() => {
-          const parsed = parseTime(draft)
-          if (parsed) {
-            onChange(parsed)
-            setDraft(formatTime(parsed, timeFormat))
-          } else {
-            setDraft(formatTime(value, timeFormat))
+          if (draft !== null) {
+            const parsed = parseTime(draft)
+            if (parsed) {
+              onChange(parsed)
+            }
           }
+          setDraft(null)
         }}
         onKeyDown={(e) => {
           if (e.key === 'Enter') e.currentTarget.blur()

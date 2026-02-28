@@ -58,7 +58,7 @@ func New(db *sql.DB, cfg config.Config, broker *sse.Broker, sched *scheduler.Sch
 	authH := handler.NewAuthHandler(userRepo, cfg)
 	settingsH := handler.NewUserSettingsHandler(settingsRepo)
 	savedFilterH := handler.NewSavedFilterHandler(savedFilterRepo, broker)
-	scheduleH := handler.NewScheduleHandler(scheduleRepo, settingsRepo, broker)
+	scheduleH := handler.NewScheduleHandler(scheduleRepo, broker)
 	eventH := handler.NewEventHandler(broker)
 
 	var oidcH *handler.OIDCHandler

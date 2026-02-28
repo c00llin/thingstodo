@@ -29,7 +29,6 @@ const taskShortcuts = [
   { keys: '↑ / ↓', action: 'Navigate tasks' },
   { keys: 'Alt + K', action: 'Complete task' },
   { keys: 'Alt + T', action: 'Move to Today' },
-  { keys: 'Alt + E', action: 'Move to This Evening' },
   { keys: 'Alt + S', action: 'Move to Someday' },
   { keys: 'Delete', action: 'Delete task' },
 ]

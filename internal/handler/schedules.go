@@ -4,7 +4,6 @@ import (
 	"log"
 	"net/http"
 
-	mw "github.com/collinjanssen/thingstodo/internal/middleware"
 	"github.com/collinjanssen/thingstodo/internal/model"
 	"github.com/collinjanssen/thingstodo/internal/repository"
 	"github.com/collinjanssen/thingstodo/internal/sse"
@@ -12,25 +11,12 @@ import (
 )
 
 type ScheduleHandler struct {
-	repo         *repository.ScheduleRepository
-	settingsRepo *repository.UserSettingsRepository
-	broker       *sse.Broker
+	repo   *repository.ScheduleRepository
+	broker *sse.Broker
 }
 
-func NewScheduleHandler(repo *repository.ScheduleRepository, settingsRepo *repository.UserSettingsRepository, broker *sse.Broker) *ScheduleHandler {
-	return &ScheduleHandler{repo: repo, settingsRepo: settingsRepo, broker: broker}
-}
-
-func (h *ScheduleHandler) getEveningStartsAt(r *http.Request) string {
-	userID, ok := r.Context().Value(mw.UserIDKey).(string)
-	if !ok || userID == "" {
-		return "18:00"
-	}
-	settings, err := h.settingsRepo.GetOrCreate(userID)
-	if err != nil {
-		return "18:00"
-	}
-	return settings.EveningStartsAt
+func NewScheduleHandler(repo *repository.ScheduleRepository, broker *sse.Broker) *ScheduleHandler {
+	return &ScheduleHandler{repo: repo, broker: broker}
 }
 
 func (h *ScheduleHandler) List(w http.ResponseWriter, r *http.Request) {
@@ -97,7 +83,7 @@ func (h *ScheduleHandler) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := h.repo.SyncPrimary(taskID, h.getEveningStartsAt(r)); err != nil {
+	if err := h.repo.SyncPrimary(taskID); err != nil {
 		log.Printf("WARN schedules.Create syncPrimary: %v", err)
 	}
 
@@ -158,7 +144,7 @@ func (h *ScheduleHandler) Update(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := h.repo.SyncPrimary(item.TaskID, h.getEveningStartsAt(r)); err != nil {
+	if err := h.repo.SyncPrimary(item.TaskID); err != nil {
 		log.Printf("WARN schedules.Update syncPrimary: %v", err)
 	}
 
@@ -180,7 +166,7 @@ func (h *ScheduleHandler) Delete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := h.repo.SyncPrimary(taskID, h.getEveningStartsAt(r)); err != nil {
+	if err := h.repo.SyncPrimary(taskID); err != nil {
 		log.Printf("WARN schedules.Delete syncPrimary: %v", err)
 	}
 
@@ -200,7 +186,7 @@ func (h *ScheduleHandler) Reorder(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := h.repo.SyncPrimary(taskID, h.getEveningStartsAt(r)); err != nil {
+	if err := h.repo.SyncPrimary(taskID); err != nil {
 		log.Printf("WARN schedules.Reorder syncPrimary: %v", err)
 	}
 

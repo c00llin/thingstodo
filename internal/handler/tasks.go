@@ -53,10 +53,6 @@ func (h *TaskHandler) List(w http.ResponseWriter, r *http.Request) {
 		b := v == "true"
 		f.HasDeadline = &b
 	}
-	if v := q.Get("is_evening"); v != "" {
-		b := v == "true"
-		f.IsEvening = &b
-	}
 	if v := q.Get("search"); v != "" {
 		f.Search = &v
 	}

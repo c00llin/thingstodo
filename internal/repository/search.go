@@ -77,7 +77,7 @@ func (r *SearchRepository) Search(query string, limit int) ([]model.SearchResult
 		); err != nil {
 			return nil, err
 		}
-		t.WhenEvening = whenEvening == 1
+		_ = whenEvening // column retained in DB but no longer exposed
 		t.HighPriority = highPriority == 1
 		t.HasNotes = hasNotes == 1
 		t.HasLinks = hasLinks == 1

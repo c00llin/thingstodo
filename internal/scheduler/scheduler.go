@@ -112,15 +112,14 @@ func (s *Scheduler) createNextInstance(originalTaskID string, rule *model.Repeat
 	}
 
 	input := model.CreateTaskInput{
-		Title:       original.Title,
-		Notes:       original.Notes,
-		WhenDate:    &nextDate,
-		WhenEvening: original.WhenEvening,
-		Deadline:    nil,
-		ProjectID:   original.ProjectID,
-		AreaID:      original.AreaID,
-		HeadingID:   original.HeadingID,
-		TagIDs:      tagIDs,
+		Title:     original.Title,
+		Notes:     original.Notes,
+		WhenDate:  &nextDate,
+		Deadline:  nil,
+		ProjectID: original.ProjectID,
+		AreaID:    original.AreaID,
+		HeadingID: original.HeadingID,
+		TagIDs:    tagIDs,
 	}
 
 	newTask, err := s.taskRepo.Create(input)

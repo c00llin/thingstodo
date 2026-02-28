@@ -146,14 +146,14 @@ export function TaskDetail({ taskId }: TaskDetailProps) {
     dateErrorTimerRef.current = setTimeout(() => setDateError(null), 3000)
   }
 
-  function handleWhenDateChange(date: string | null, evening?: boolean) {
+  function handleWhenDateChange(date: string | null) {
     if (date && date !== 'someday' && task?.deadline && date > task.deadline) {
       showDateError('When date cannot be after the deadline')
       return
     }
     updateTask.mutate({
       id: taskId,
-      data: { when_date: date, when_evening: evening ?? false },
+      data: { when_date: date },
     })
     if (!date) setShowWhen(false)
   }
@@ -276,7 +276,6 @@ export function TaskDetail({ taskId }: TaskDetailProps) {
         <ScheduleEditor
           taskId={taskId}
           schedules={task.schedules ?? []}
-          whenEvening={task.when_evening}
           timeFormat={settings?.time_format ?? '12h'}
           defaultTimeGap={settings?.default_time_gap ?? 60}
           hasRepeatRule={hasRepeatRule}

@@ -123,40 +123,25 @@ func (r *ScheduleRepository) CountByTask(taskID string) (int, error) {
 	return count, err
 }
 
-// SyncPrimary updates tasks.when_date and tasks.when_evening from the first schedule entry.
-func (r *ScheduleRepository) SyncPrimary(taskID, eveningStartsAt string) error {
+// SyncPrimary updates tasks.when_date from the first schedule entry.
+func (r *ScheduleRepository) SyncPrimary(taskID string) error {
 	var whenDate sql.NullString
-	var startTime sql.NullString
 
 	err := r.db.QueryRow(
-		"SELECT when_date, start_time FROM task_schedules WHERE task_id = ? ORDER BY sort_order ASC LIMIT 1",
-		taskID).Scan(&whenDate, &startTime)
+		"SELECT when_date FROM task_schedules WHERE task_id = ? ORDER BY sort_order ASC LIMIT 1",
+		taskID).Scan(&whenDate)
 
 	if err == sql.ErrNoRows {
-		// No schedules left — set when_date to NULL
-		_, err = r.db.Exec("UPDATE tasks SET when_date = NULL, when_evening = 0, updated_at = datetime('now') WHERE id = ?", taskID)
+		_, err = r.db.Exec("UPDATE tasks SET when_date = NULL, updated_at = datetime('now') WHERE id = ?", taskID)
 		return err
 	}
 	if err != nil {
 		return fmt.Errorf("sync primary: %w", err)
 	}
 
-	// Determine evening status based on start_time
-	evening := 0
-	if startTime.Valid && startTime.String >= eveningStartsAt {
-		evening = 1
-	}
-	// If task has a start_time, we always set when_evening based on the threshold.
-	// If no start_time, preserve the existing when_evening value.
-	if startTime.Valid {
-		_, err = r.db.Exec(
-			"UPDATE tasks SET when_date = ?, when_evening = ?, updated_at = datetime('now') WHERE id = ?",
-			whenDate.String, evening, taskID)
-	} else {
-		_, err = r.db.Exec(
-			"UPDATE tasks SET when_date = ?, updated_at = datetime('now') WHERE id = ?",
-			whenDate.String, taskID)
-	}
+	_, err = r.db.Exec(
+		"UPDATE tasks SET when_date = ?, updated_at = datetime('now') WHERE id = ?",
+		whenDate.String, taskID)
 	return err
 }
 

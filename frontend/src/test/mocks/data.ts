@@ -17,7 +17,6 @@ export const mockTask: Task = {
   notes: '',
   status: 'open',
   when_date: null,
-  when_evening: false,
   high_priority: false,
   deadline: null,
   project_id: null,
@@ -170,7 +169,7 @@ export const mockTodayView: TodayView = {
       groups: [
         {
           project: null,
-          tasks: [{ ...mockTask, id: 'task-8', title: 'Read a book', when_date: '2026-02-15', when_evening: true }],
+          tasks: [{ ...mockTask, id: 'task-8', title: 'Read a book', when_date: '2026-02-15', first_schedule_time: '19:00' }],
         },
       ],
     },
