@@ -157,7 +157,7 @@ func TestViewUpcoming(t *testing.T) {
 	_, _ = taskRepo.Create(model.CreateTaskInput{Title: "Next week", WhenDate: &nextWeek})
 
 	today := time.Now().Format("2006-01-02")
-	view, err := viewRepo.Upcoming(today, 30)
+	view, err := viewRepo.Upcoming(today)
 	if err != nil {
 		t.Fatalf("failed: %v", err)
 	}
