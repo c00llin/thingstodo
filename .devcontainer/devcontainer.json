@@ -1,6 +1,6 @@
 {
   "name": "ThingsToDo",
-  "image": "mcr.microsoft.com/devcontainers/go:1.23",
+  "image": "mcr.microsoft.com/devcontainers/go:1.24",
   "features": {
     "ghcr.io/devcontainers/features/node:1": {
       "version": "22"
@@ -8,6 +8,7 @@
   },
   "forwardPorts": [2999, 5173],
   "postCreateCommand": "go mod download && cd frontend && npm ci",
+  "postStartCommand": "cp .devcontainer/.env.example .env 2>/dev/null || true",
   "customizations": {
     "vscode": {
       "extensions": [
@@ -15,11 +16,17 @@
         "dbaeumer.vscode-eslint",
         "bradlc.vscode-tailwindcss",
         "esbenp.prettier-vscode"
-      ]
+      ],
+      "settings": {
+        "go.lintTool": "golangci-lint",
+        "editor.defaultFormatter": "esbenp.prettier-vscode",
+        "[go]": {
+          "editor.defaultFormatter": "golang.go"
+        }
+      }
     }
   },
   "mounts": [
-    "source=thingstodo-data,target=/data,type=volume",
-    "source=thingstodo-attachments,target=/attachments,type=volume"
+    "source=thingstodo-data,target=${containerWorkspaceFolder}/data,type=volume"
   ]
 }
