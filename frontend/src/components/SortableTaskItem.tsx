@@ -5,8 +5,9 @@ import { motion } from 'framer-motion'
 import * as Checkbox from '@radix-ui/react-checkbox'
 import { Check, Calendar, Flag, GripVertical, X, ListChecks, StickyNote, Link, Paperclip, RefreshCw } from 'lucide-react'
 import type { Task } from '../api/types'
-import { useCompleteTask, useReopenTask, useUpdateTask, useReviewTask } from '../hooks/queries'
+import { useCompleteTask, useReopenTask, useUpdateTask, useReviewTask, useSettings } from '../hooks/queries'
 import { getTaskContext } from '../hooks/useTaskContext'
+import { formatTime, formatTimeRange } from '../lib/format-time'
 import { useAppStore } from '../stores/app'
 import { TaskDetail } from './TaskDetail'
 import { useResolveTags } from '../hooks/useResolveTags'
@@ -55,8 +56,10 @@ export function SortableTaskItem({
   isDragOverlay,
 }: SortableTaskItemProps) {
   const selectedTaskId = useAppStore((s) => s.selectedTaskId)
+  const selectedScheduleEntryId = useAppStore((s) => s.selectedScheduleEntryId)
   const selectTask = useAppStore((s) => s.selectTask)
   const expandedTaskId = useAppStore((s) => s.expandedTaskId)
+  const expandedScheduleEntryId = useAppStore((s) => s.expandedScheduleEntryId)
   const expandTask = useAppStore((s) => s.expandTask)
   const editingTaskId = useAppStore((s) => s.editingTaskId)
   const startEditingTask = useAppStore((s) => s.startEditingTask)
@@ -67,9 +70,11 @@ export function SortableTaskItem({
   const updateTask = useUpdateTask()
   const reviewTask = useReviewTask()
   const resolveTags = useResolveTags()
+  const { data: settings } = useSettings()
   const taskContext = getTaskContext(task)
-  const isSelected = selectedTaskId === task.id
-  const isExpanded = expandedTaskId === task.id
+  const entryId = task.schedule_entry_id
+  const isSelected = selectedTaskId === task.id && (entryId == null || selectedScheduleEntryId === entryId)
+  const isExpanded = expandedTaskId === task.id && (entryId == null || expandedScheduleEntryId === entryId)
   const isCompleted = task.status === 'completed'
   const isDone = task.status !== 'open'
   const isMultiSelected = selectedTaskIds.has(task.id)
@@ -139,7 +144,7 @@ export function SortableTaskItem({
     transform,
     transition,
     isDragging,
-  } = useSortable({ id: task.id, data: { type: 'task', task } })
+  } = useSortable({ id: task.schedule_entry_id ?? task.id, data: { type: 'task', task } })
 
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -156,14 +161,14 @@ export function SortableTaskItem({
 
   function handleClick(e: React.MouseEvent) {
     if (e.metaKey || e.ctrlKey) {
-      selectTask(isSelected ? null : task.id)
+      selectTask(isSelected ? null : task.id, entryId)
       return
     }
     // Delay single-click so double-click can cancel it
     if (clickTimerRef.current) clearTimeout(clickTimerRef.current)
     clickTimerRef.current = setTimeout(() => {
       clickTimerRef.current = null
-      expandTask(isExpanded ? null : task.id)
+      expandTask(isExpanded ? null : task.id, entryId)
     }, 200)
   }
 
@@ -173,7 +178,7 @@ export function SortableTaskItem({
       clearTimeout(clickTimerRef.current)
       clickTimerRef.current = null
     }
-    expandTask(task.id)
+    expandTask(task.id, entryId)
     setTitle(getEditTitle())
     setEditing(true)
   }
@@ -220,7 +225,7 @@ export function SortableTaskItem({
       triggerCursorRef.current = cursorPos - 1
       skipBlurRef.current = true
       setDetailFocusField(field)
-      expandTask(task.id)
+      expandTask(task.id, entryId)
       return
     }
 
@@ -401,8 +406,16 @@ export function SortableTaskItem({
               </div>
             )}
           </div>
-          {showProject && taskContext && !editing && (
-            <p className="mt-0.5 text-[10px] leading-tight text-neutral-400">{taskContext}</p>
+          {!editing && (taskContext || (settings?.show_time_badge !== false && task.first_schedule_time)) && showProject && (
+            <p className="mt-0.5 text-[10px] leading-tight text-neutral-400">
+              {taskContext}
+              {taskContext && settings?.show_time_badge !== false && task.first_schedule_time && ' — '}
+              {settings?.show_time_badge !== false && task.first_schedule_time && (
+                task.first_schedule_end_time
+                  ? formatTimeRange(task.first_schedule_time, task.first_schedule_end_time, settings?.time_format ?? '12h')
+                  : formatTime(task.first_schedule_time, settings?.time_format ?? '12h')
+              )}
+            </p>
           )}
           {siyuanError && (
             <p className="mt-0.5 text-xs text-red-500">{siyuanError}</p>

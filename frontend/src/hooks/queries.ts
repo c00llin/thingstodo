@@ -12,6 +12,7 @@ import * as viewsApi from '../api/views'
 import * as searchApi from '../api/search'
 import * as authApi from '../api/auth'
 import * as settingsApi from '../api/settings'
+import * as schedulesApi from '../api/schedules'
 import * as savedFiltersApi from '../api/savedFilters'
 import { playCompleteSound, playReviewSound } from '../lib/sounds'
 import type {
@@ -30,6 +31,8 @@ import type {
   CreateLinkAttachmentRequest,
   UpdateAttachmentRequest,
   UpsertRepeatRuleRequest,
+  CreateTaskScheduleRequest,
+  UpdateTaskScheduleRequest,
   TaskQueryParams,
   ProjectStatus,
   LoginRequest,
@@ -48,6 +51,7 @@ export const queryKeys = {
     detail: (id: string) => ['tasks', id] as const,
     checklist: (id: string) => ['tasks', id, 'checklist'] as const,
     attachments: (id: string) => ['tasks', id, 'attachments'] as const,
+    schedules: (id: string) => ['tasks', id, 'schedules'] as const,
   },
   projects: {
     all: ['projects'] as const,
@@ -884,6 +888,61 @@ export function useDeleteRepeatRule(taskId: string) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.tasks.detail(taskId) })
       updateTaskInCache(queryClient, taskId, { has_repeat_rule: false })
+    },
+  })
+}
+
+// --- Schedule Hooks ---
+
+export function useCreateTaskSchedule(taskId: string) {
+  const queryClient = useQueryClient()
+  const invalidate = useInvalidateViews()
+  return useMutation({
+    mutationFn: (data: CreateTaskScheduleRequest) =>
+      schedulesApi.createSchedule(taskId, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.tasks.schedules(taskId) })
+      queryClient.invalidateQueries({ queryKey: queryKeys.tasks.detail(taskId) })
+      invalidate()
+    },
+  })
+}
+
+export function useUpdateTaskSchedule(taskId: string) {
+  const queryClient = useQueryClient()
+  const invalidate = useInvalidateViews()
+  return useMutation({
+    mutationFn: ({ id, data }: { id: string; data: UpdateTaskScheduleRequest }) =>
+      schedulesApi.updateSchedule(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.tasks.schedules(taskId) })
+      queryClient.invalidateQueries({ queryKey: queryKeys.tasks.detail(taskId) })
+      invalidate()
+    },
+  })
+}
+
+export function useDeleteTaskSchedule(taskId: string) {
+  const queryClient = useQueryClient()
+  const invalidate = useInvalidateViews()
+  return useMutation({
+    mutationFn: (id: string) => schedulesApi.deleteSchedule(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.tasks.schedules(taskId) })
+      queryClient.invalidateQueries({ queryKey: queryKeys.tasks.detail(taskId) })
+      invalidate()
+    },
+  })
+}
+
+export function useReorderTaskSchedules(taskId: string) {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (items: SimpleReorderItem[]) =>
+      schedulesApi.reorderSchedules(taskId, items),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.tasks.schedules(taskId) })
+      queryClient.invalidateQueries({ queryKey: queryKeys.tasks.detail(taskId) })
     },
   })
 }

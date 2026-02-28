@@ -39,8 +39,20 @@ func (h *ViewHandler) Inbox(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, view)
 }
 
+func (h *ViewHandler) getEveningStartsAt(r *http.Request) string {
+	userID, ok := r.Context().Value(mw.UserIDKey).(string)
+	if !ok || userID == "" {
+		return "18:00"
+	}
+	settings, err := h.settingsRepo.GetOrCreate(userID)
+	if err != nil {
+		return "18:00"
+	}
+	return settings.EveningStartsAt
+}
+
 func (h *ViewHandler) Today(w http.ResponseWriter, r *http.Request) {
-	view, err := h.repo.Today()
+	view, err := h.repo.Today(h.getEveningStartsAt(r))
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, err.Error(), "INTERNAL")
 		return

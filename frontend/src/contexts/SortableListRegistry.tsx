@@ -12,9 +12,10 @@ export function SortableListRegistryProvider({ children }: { children: ReactNode
     unregister(listId: string) {
       mapRef.current.delete(listId)
     },
-    getListForTask(taskId: string) {
+    getListForTask(sortableId: string) {
       for (const [listId, entry] of mapRef.current) {
-        if (entry.tasks.some((t) => t.id === taskId)) {
+        // Match by schedule_entry_id first (multi-date), then by task.id
+        if (entry.tasks.some((t) => (t.schedule_entry_id ?? t.id) === sortableId)) {
           return { listId, ...entry }
         }
       }

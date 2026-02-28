@@ -10,6 +10,8 @@ import { useAppStore } from '../stores/app'
 import { TaskDetail } from './TaskDetail'
 import { useResolveTags } from '../hooks/useResolveTags'
 import { formatRelativeDate } from '../lib/format-date'
+import { formatTime, formatTimeRange } from '../lib/format-time'
+import { useSettings } from '../hooks/queries'
 import { getTagPillClasses, getTagIconClass } from '../lib/tag-colors'
 import { isSiYuanTag } from '../lib/siyuan'
 import { SiYuanIcon } from './SiYuanIcon'
@@ -46,8 +48,10 @@ interface TaskItemProps {
 
 export function TaskItem({ task, showProject = true, hideWhenDate = false, showReviewCheckbox = false, showDivider = false }: TaskItemProps) {
   const selectedTaskId = useAppStore((s) => s.selectedTaskId)
+  const selectedScheduleEntryId = useAppStore((s) => s.selectedScheduleEntryId)
   const selectTask = useAppStore((s) => s.selectTask)
   const expandedTaskId = useAppStore((s) => s.expandedTaskId)
+  const expandedScheduleEntryId = useAppStore((s) => s.expandedScheduleEntryId)
   const expandTask = useAppStore((s) => s.expandTask)
   const editingTaskId = useAppStore((s) => s.editingTaskId)
   const startEditingTask = useAppStore((s) => s.startEditingTask)
@@ -60,9 +64,11 @@ export function TaskItem({ task, showProject = true, hideWhenDate = false, showR
   const updateTask = useUpdateTask()
   const reviewTask = useReviewTask()
   const resolveTags = useResolveTags()
+  const { data: settings } = useSettings()
   const taskContext = getTaskContext(task)
-  const isSelected = selectedTaskId === task.id
-  const isExpanded = expandedTaskId === task.id
+  const entryId = task.schedule_entry_id
+  const isSelected = selectedTaskId === task.id && (entryId == null || selectedScheduleEntryId === entryId)
+  const isExpanded = expandedTaskId === task.id && (entryId == null || expandedScheduleEntryId === entryId)
   const isCompleted = task.status === 'completed'
   const isDone = task.status !== 'open'
 
@@ -71,7 +77,7 @@ export function TaskItem({ task, showProject = true, hideWhenDate = false, showR
     listeners,
     setNodeRef,
     isDragging,
-  } = useDraggable({ id: task.id, data: { type: 'task', task } })
+  } = useDraggable({ id: task.schedule_entry_id ?? task.id, data: { type: 'task', task } })
 
   const [editing, setEditing] = useState(false)
   const [title, setTitle] = useState(task.title)
@@ -139,14 +145,14 @@ export function TaskItem({ task, showProject = true, hideWhenDate = false, showR
 
   function handleClick(e: React.MouseEvent) {
     if (e.metaKey || e.ctrlKey) {
-      selectTask(isSelected ? null : task.id)
+      selectTask(isSelected ? null : task.id, entryId)
       return
     }
     // Delay single-click so double-click can cancel it
     if (clickTimerRef.current) clearTimeout(clickTimerRef.current)
     clickTimerRef.current = setTimeout(() => {
       clickTimerRef.current = null
-      expandTask(isExpanded ? null : task.id)
+      expandTask(isExpanded ? null : task.id, entryId)
     }, 200)
   }
 
@@ -156,7 +162,7 @@ export function TaskItem({ task, showProject = true, hideWhenDate = false, showR
       clearTimeout(clickTimerRef.current)
       clickTimerRef.current = null
     }
-    expandTask(task.id)
+    expandTask(task.id, entryId)
     setTitle(getEditTitle())
     setEditing(true)
   }
@@ -203,7 +209,7 @@ export function TaskItem({ task, showProject = true, hideWhenDate = false, showR
       triggerCursorRef.current = cursorPos - 1
       skipBlurRef.current = true
       setDetailFocusField(field)
-      expandTask(task.id)
+      expandTask(task.id, entryId)
       return
     }
 
@@ -382,9 +388,17 @@ export function TaskItem({ task, showProject = true, hideWhenDate = false, showR
               </div>
             )}
           </div>
-          {showProject && taskContext && !editing && (
+          {!editing && (taskContext || (settings?.show_time_badge !== false && task.first_schedule_time)) && showProject && (
             <p className="mt-0.5 text-[10px] leading-tight text-neutral-400">
               {taskContext}
+              {taskContext && settings?.show_time_badge !== false && task.first_schedule_time && ' — '}
+              {settings?.show_time_badge !== false && task.first_schedule_time && (
+                task.past_schedule_count && task.past_schedule_count > 1
+                  ? 'multiple time frames'
+                  : task.first_schedule_end_time
+                    ? formatTimeRange(task.first_schedule_time, task.first_schedule_end_time, settings?.time_format ?? '12h')
+                    : formatTime(task.first_schedule_time, settings?.time_format ?? '12h')
+              )}
             </p>
           )}
           {siyuanError && (

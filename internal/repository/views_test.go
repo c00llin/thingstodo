@@ -77,7 +77,7 @@ func TestViewTodayStructure(t *testing.T) {
 	_, _ = taskRepo.Create(model.CreateTaskInput{Title: "Today task", WhenDate: &today})
 	_, _ = taskRepo.Create(model.CreateTaskInput{Title: "Evening task", WhenDate: &today, WhenEvening: true})
 
-	view, err := viewRepo.Today()
+	view, err := viewRepo.Today("18:00")
 	if err != nil {
 		t.Fatalf("failed: %v", err)
 	}

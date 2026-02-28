@@ -1,5 +1,32 @@
 # Changelog
 
+## [0.9.0] - 2026-02-28
+
+### Added
+- Multi-date scheduling: tasks can now have up to 12 scheduled when-date/time entries
+- Start and end times on each scheduled date with free-text time input (e.g. "9am", "14:30")
+- Schedule editor in task detail panel with inline date, time, and reorder controls
+- Time badge on task list items showing the first scheduled time range
+- Past schedule entries shown with red styling; mark as completed (green) or delete
+- Completed past entries persist across sessions (database-backed)
+- Tasks with all past entries completed automatically hide from the Earlier section
+- Earlier section shows the first uncompleted past entry's time (not just the first by sort order)
+- Time format setting (12h / 24h) in Settings
+- Evening threshold setting (configurable start time) in Settings
+- Default time duration setting (used when adding end time) in Settings
+- Show time badge toggle in Settings
+- Upcoming view shows the same task on multiple dates when it has multiple schedule entries
+- Instance-level selection: clicking a task in one section only expands that instance
+
+### Changed
+- Task detail "When" section replaced with full schedule editor
+- Upcoming view uses JOIN on task_schedules for per-date display
+- Evening detection considers first schedule entry's start time vs evening threshold
+
+### Fixed
+- Earlier section tasks expanding the wrong instance when the same task appears in multiple sections
+- Schedule deletions now defer view invalidation until task detail panel is closed (consistent with other edits)
+
 ## [0.8.1] - 2026-02-26
 
 ### Added

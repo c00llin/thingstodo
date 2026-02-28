@@ -15,9 +15,11 @@ interface AppStore {
 
   // Task selection & detail panel
   selectedTaskId: string | null
-  selectTask: (id: string | null) => void
+  selectedScheduleEntryId: string | null
+  selectTask: (id: string | null, scheduleEntryId?: string | null) => void
   expandedTaskId: string | null
-  expandTask: (id: string | null) => void
+  expandedScheduleEntryId: string | null
+  expandTask: (id: string | null, scheduleEntryId?: string | null) => void
   editingTaskId: string | null
   startEditingTask: (id: string | null) => void
 
@@ -118,9 +120,11 @@ export const useAppStore = create<AppStore>((set) => ({
     }),
 
   selectedTaskId: null,
-  selectTask: (id) => set({ selectedTaskId: id, expandedTaskId: null, editingTaskId: null }),
+  selectedScheduleEntryId: null,
+  selectTask: (id, scheduleEntryId) => set({ selectedTaskId: id, selectedScheduleEntryId: scheduleEntryId ?? null, expandedTaskId: null, editingTaskId: null }),
   expandedTaskId: null,
-  expandTask: (id) => set({ expandedTaskId: id, selectedTaskId: id }),
+  expandedScheduleEntryId: null,
+  expandTask: (id, scheduleEntryId) => set({ expandedTaskId: id, expandedScheduleEntryId: scheduleEntryId ?? null, selectedTaskId: id, selectedScheduleEntryId: scheduleEntryId ?? null }),
   editingTaskId: null,
   startEditingTask: (id) => set({ editingTaskId: id }),
 

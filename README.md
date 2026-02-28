@@ -11,6 +11,7 @@ A self-hosted, Things 3 / Todoist inspired task manager.
 - **Review Tasks** — tasks not edited for a configurable number of days surface in a Review section in Inbox, so nothing falls through the cracks
 - **Checklists** — subtasks within any task
 - **File Attachments & Links** — attach files or URLs to tasks
+- **Multi-Date Scheduling** — schedule tasks across multiple dates with optional start/end times (up to 12 entries per task)
 - **Repeating Tasks** — daily, weekly, monthly, and custom schedules
 - **Natural Language Dates** — type "tomorrow", "next friday", etc.
 - **Keyboard-Driven** — full keyboard navigation and shortcuts

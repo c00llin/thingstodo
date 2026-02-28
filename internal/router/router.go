@@ -42,6 +42,7 @@ func New(db *sql.DB, cfg config.Config, broker *sse.Broker, sched *scheduler.Sch
 	userRepo := repository.NewUserRepository(db)
 	settingsRepo := repository.NewUserSettingsRepository(db)
 	savedFilterRepo := repository.NewSavedFilterRepository(db)
+	scheduleRepo := repository.NewScheduleRepository(db)
 
 	// Handlers
 	taskH := handler.NewTaskHandler(taskRepo, broker, sched)
@@ -57,6 +58,7 @@ func New(db *sql.DB, cfg config.Config, broker *sse.Broker, sched *scheduler.Sch
 	authH := handler.NewAuthHandler(userRepo, cfg)
 	settingsH := handler.NewUserSettingsHandler(settingsRepo)
 	savedFilterH := handler.NewSavedFilterHandler(savedFilterRepo, broker)
+	scheduleH := handler.NewScheduleHandler(scheduleRepo, settingsRepo, broker)
 	eventH := handler.NewEventHandler(broker)
 
 	var oidcH *handler.OIDCHandler
@@ -139,6 +141,13 @@ func New(db *sql.DB, cfg config.Config, broker *sse.Broker, sched *scheduler.Sch
 			r.Get("/tasks/{id}/repeat", repeatRuleH.Get)
 			r.Put("/tasks/{id}/repeat", repeatRuleH.Upsert)
 			r.Delete("/tasks/{id}/repeat", repeatRuleH.Delete)
+
+			// Schedules
+			r.Get("/tasks/{id}/schedules", scheduleH.List)
+			r.Post("/tasks/{id}/schedules", scheduleH.Create)
+			r.Patch("/tasks/{id}/schedules/reorder", scheduleH.Reorder)
+			r.Patch("/schedules/{id}", scheduleH.Update)
+			r.Delete("/schedules/{id}", scheduleH.Delete)
 
 			// Projects
 			r.Get("/projects", projectH.List)

@@ -17,17 +17,19 @@ type Scheduler struct {
 	ruleRepo      *repository.RepeatRuleRepository
 	checklistRepo *repository.ChecklistRepository
 	attachRepo    *repository.AttachmentRepository
+	scheduleRepo  *repository.ScheduleRepository
 	db            *sql.DB
 	engine        *recurrence.Engine
 }
 
-func New(db *sql.DB, taskRepo *repository.TaskRepository, ruleRepo *repository.RepeatRuleRepository, checklistRepo *repository.ChecklistRepository, attachRepo *repository.AttachmentRepository) *Scheduler {
+func New(db *sql.DB, taskRepo *repository.TaskRepository, ruleRepo *repository.RepeatRuleRepository, checklistRepo *repository.ChecklistRepository, attachRepo *repository.AttachmentRepository, scheduleRepo *repository.ScheduleRepository) *Scheduler {
 	return &Scheduler{
 		cron:          cron.New(),
 		taskRepo:      taskRepo,
 		ruleRepo:      ruleRepo,
 		checklistRepo: checklistRepo,
 		attachRepo:    attachRepo,
+		scheduleRepo:  scheduleRepo,
 		db:            db,
 		engine:        recurrence.NewEngine(),
 	}
@@ -125,6 +127,11 @@ func (s *Scheduler) createNextInstance(originalTaskID string, rule *model.Repeat
 	if err != nil {
 		log.Printf("scheduler: create task instance: %v", err)
 		return
+	}
+
+	// Create first schedule entry for the new task
+	if err := s.scheduleRepo.CreateFirstEntry(newTask.ID, nextDate); err != nil {
+		log.Printf("scheduler: create schedule entry for task %s: %v", newTask.ID, err)
 	}
 
 	// Copy checklist items (unchecked)

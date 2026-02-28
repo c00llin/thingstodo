@@ -37,7 +37,7 @@ export function TaskGroup({
       ) : (
         <AnimatePresence initial={false}>
           {tasks.map((task) => (
-            <TaskItem key={task.id} task={task} showProject={showProject} hideWhenDate={hideWhenDate} showDivider />
+            <TaskItem key={task.schedule_entry_id ?? task.id} task={task} showProject={showProject} hideWhenDate={hideWhenDate} showDivider />
           ))}
         </AnimatePresence>
       )}

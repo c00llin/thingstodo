@@ -157,6 +157,32 @@ export interface RepeatRule {
   day_constraints?: DayConstraint[]
 }
 
+// Schedules
+export interface TaskSchedule {
+  id: string
+  task_id: string
+  when_date: string
+  start_time: string | null
+  end_time: string | null
+  completed: boolean
+  sort_order: number
+  created_at: string
+}
+
+export interface CreateTaskScheduleRequest {
+  when_date: string
+  start_time?: string | null
+  end_time?: string | null
+}
+
+export interface UpdateTaskScheduleRequest {
+  when_date?: string
+  start_time?: string | null
+  end_time?: string | null
+  sort_order?: number
+  completed?: boolean
+}
+
 // Tasks
 export type TaskStatus = 'open' | 'completed' | 'canceled' | 'wont_do'
 
@@ -189,6 +215,10 @@ export interface Task {
   has_repeat_rule: boolean
   project_name: string | null
   area_name: string | null
+  first_schedule_time: string | null
+  first_schedule_end_time: string | null
+  schedule_entry_id: string | null
+  past_schedule_count?: number
 }
 
 export interface TaskDetail extends Task {
@@ -198,6 +228,7 @@ export interface TaskDetail extends Task {
   checklist: ChecklistItem[]
   attachments: Attachment[]
   repeat_rule: RepeatRule | null
+  schedules: TaskSchedule[]
 }
 
 export interface CreateTaskRequest {
@@ -481,6 +512,10 @@ export interface UserSettings {
   review_after_days: number | null
   sort_areas: SortPreference
   sort_tags: SortPreference
+  evening_starts_at: string
+  default_time_gap: number
+  show_time_badge: boolean
+  time_format: '12h' | '24h'
 }
 
 // Saved Filters

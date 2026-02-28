@@ -136,7 +136,9 @@ Response (200):
       "has_notes": false,
       "has_links": false,
       "has_files": false,
-      "has_repeat_rule": false
+      "has_repeat_rule": false,
+      "first_schedule_time": "string|null",
+      "first_schedule_end_time": "string|null"
     }
   ]
 }
@@ -214,7 +216,18 @@ Response (200): Full task object with nested checklist, attachments, tags, repea
     "interval_value": 1,
     "mode": "fixed|after_completion",
     "day_constraints": ["mon", "wed", "fri"]
-  }
+  },
+  "schedules": [
+    {
+      "id": "string",
+      "task_id": "string",
+      "when_date": "string",
+      "start_time": "string|null",
+      "end_time": "string|null",
+      "sort_order": 0.0,
+      "created_at": "string"
+    }
+  ]
 }
 ```
 
@@ -739,6 +752,81 @@ All patterns share: `type` (string), `every` (int, interval), `mode` ("fixed" | 
 
 ---
 
+## Schedules
+
+Multi-date scheduling entries for a task. Each task can have up to 12 schedule entries. The first entry's `when_date` is synced to `tasks.when_date` as a denormalized cache. Only the first entry can be set to `'someday'`.
+
+### GET /api/tasks/:id/schedules
+Response (200):
+```json
+{
+  "items": [
+    {
+      "id": "string",
+      "task_id": "string",
+      "when_date": "string",
+      "start_time": "string|null",
+      "end_time": "string|null",
+      "sort_order": 0.0,
+      "created_at": "string"
+    }
+  ]
+}
+```
+
+### POST /api/tasks/:id/schedules
+Request:
+```json
+{
+  "when_date": "string (required)",
+  "start_time": "string|null (HH:MM 24h)",
+  "end_time": "string|null (HH:MM 24h, required when start_time is set)"
+}
+```
+
+Response (201): Schedule entry object
+
+Validation:
+- Maximum 12 schedule entries per task
+- Only the first entry can have `when_date = 'someday'`
+- `start_time` requires `end_time`
+
+SSE: broadcasts `task_updated`
+
+### PATCH /api/schedules/:id
+Request: Partial update
+```json
+{
+  "when_date": "string",
+  "start_time": "string|null",
+  "end_time": "string|null",
+  "sort_order": 0.0
+}
+```
+
+Response (200): Updated schedule entry
+
+SSE: broadcasts `task_updated`
+
+### DELETE /api/schedules/:id
+Response (204): No content
+
+SSE: broadcasts `task_updated`
+
+### PATCH /api/tasks/:id/schedules/reorder
+Request (array of items):
+```json
+[
+  { "id": "string", "sort_order": 0.0 }
+]
+```
+
+Response (204): No content
+
+SSE: broadcasts `task_updated`
+
+---
+
 ## User Settings
 
 ### GET /api/user/settings
@@ -751,7 +839,11 @@ Response (200):
   "show_count_tags": true,
   "review_after_days": 7,
   "sort_areas": "manual",
-  "sort_tags": "manual"
+  "sort_tags": "manual",
+  "evening_starts_at": "18:00",
+  "default_time_gap": 60,
+  "show_time_badge": true,
+  "time_format": "12h"
 }
 ```
 
@@ -765,7 +857,11 @@ Request: Partial update (any subset of fields)
   "show_count_tags": true,
   "review_after_days": 7,
   "sort_areas": "manual|a-z|z-a",
-  "sort_tags": "manual|a-z|z-a"
+  "sort_tags": "manual|a-z|z-a",
+  "evening_starts_at": "HH:MM (24h, default 18:00)",
+  "default_time_gap": "integer (minutes, default 60)",
+  "show_time_badge": "boolean (default true)",
+  "time_format": "12h|24h (default 12h)"
 }
 ```
 
@@ -817,13 +913,16 @@ Tasks with no project, no area, no when_date, status=open.
 
 ### GET /api/views/upcoming
 Query params: `from` (ISO date, default today), `days` (default 30)
+
+Tasks with multiple schedule entries appear once per date. Each task in the response includes a `schedule_date` field indicating which date it appears under.
+
 ```json
 {
   "overdue": [/* tasks with deadline < today */],
   "dates": [
     {
       "date": "2024-03-15",
-      "tasks": [/* task objects */]
+      "tasks": [/* task objects, each with extra "schedule_date" field */]
     }
   ],
   "earlier": [/* past-dated open tasks */]

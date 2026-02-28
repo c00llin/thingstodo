@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from 'react'
 import * as Checkbox from '@radix-ui/react-checkbox'
 import { Check, Plus, Paperclip, Link, Trash2, X, Calendar, Flag, ListChecks, StickyNote, CircleMinus, CircleX, RefreshCw, CircleAlert } from 'lucide-react'
 import { DateInput } from './DateInput'
+import { ScheduleEditor } from './ScheduleEditor'
 import {
   useTask,
   useUpdateTask,
@@ -14,6 +15,7 @@ import {
   useUploadFile,
   useAddLink,
   useDeleteAttachment,
+  useSettings,
 } from '../hooks/queries'
 import { useAppStore } from '../stores/app'
 import { getFileUrl } from '../api/attachments'
@@ -28,6 +30,7 @@ interface TaskDetailProps {
 
 export function TaskDetail({ taskId }: TaskDetailProps) {
   const { data: task, isLoading } = useTask(taskId)
+  const { data: settings } = useSettings()
   const updateTask = useUpdateTask()
   const deleteTask = useDeleteTask()
   const cancelTask = useCancelTask()
@@ -205,6 +208,7 @@ export function TaskDetail({ taskId }: TaskDetailProps) {
   const hasDeadline = !!task.deadline
   const hasChecklist = task.checklist.length > 0
   const hasRepeatRule = !!task.repeat_rule
+  const hasMultipleSchedules = (task.schedules?.length ?? 0) > 1
   const hasSiYuan = hasSiYuanLink(task.attachments)
 
   return (
@@ -267,30 +271,21 @@ export function TaskDetail({ taskId }: TaskDetailProps) {
         </div>
       )}
 
-      {/* When date — shown when set or toggled */}
+      {/* When date / schedule entries — shown when set or toggled */}
       {(hasWhen || showWhen) && (
-        <div className="flex items-center gap-2">
-          <Calendar size={14} className="shrink-0 text-neutral-400" />
-          <div ref={whenDateInputRef}>
-            <DateInput
-              variant="when"
-              value={task.when_date ?? ''}
-              evening={task.when_evening}
-              onChange={handleWhenDateChange}
-              autoFocus={showWhen && !hasWhen}
-              onComplete={handleWhenComplete}
-            />
-          </div>
-          {hasWhen && (
-            <button
-              onClick={clearWhen}
-              className="text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-300"
-              aria-label="Clear when date"
-            >
-              <X size={14} />
-            </button>
-          )}
-        </div>
+        <ScheduleEditor
+          taskId={taskId}
+          schedules={task.schedules ?? []}
+          whenEvening={task.when_evening}
+          timeFormat={settings?.time_format ?? '12h'}
+          defaultTimeGap={settings?.default_time_gap ?? 60}
+          hasRepeatRule={hasRepeatRule}
+          onWhenDateChange={handleWhenDateChange}
+          onClearWhen={clearWhen}
+          whenDateInputRef={whenDateInputRef}
+          autoFocusFirst={showWhen && !hasWhen}
+          onComplete={handleWhenComplete}
+        />
       )}
 
       {/* Deadline — shown when set or toggled */}
@@ -408,12 +403,12 @@ export function TaskDetail({ taskId }: TaskDetailProps) {
             <CircleAlert size={16} />
           </button>
         )}
-        {hasSiYuan ? (
+        {hasSiYuan || hasMultipleSchedules ? (
           <button
             disabled
             className="rounded-md p-2 md:p-1 text-neutral-300 cursor-not-allowed dark:text-neutral-600"
-            aria-label={hasRepeatRule ? 'Recurring disabled — remove SiYuan link to edit' : 'Recurring not available for SiYuan-linked tasks'}
-            title={hasRepeatRule ? 'Has a repeat rule — remove SiYuan link to edit' : 'Recurring not available for SiYuan-linked tasks'}
+            aria-label={hasMultipleSchedules ? 'Recurring not available with multiple dates' : hasRepeatRule ? 'Recurring disabled — remove SiYuan link to edit' : 'Recurring not available for SiYuan-linked tasks'}
+            title={hasMultipleSchedules ? 'Recurring not available with multiple dates' : hasRepeatRule ? 'Has a repeat rule — remove SiYuan link to edit' : 'Recurring not available for SiYuan-linked tasks'}
           >
             <RefreshCw size={16} />
           </button>

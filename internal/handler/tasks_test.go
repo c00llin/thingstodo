@@ -21,7 +21,8 @@ func setupTaskRouter(t *testing.T) (*testutil.TestClient, *sql.DB) {
 	ruleRepo := repository.NewRepeatRuleRepository(db)
 	checklistRepo := repository.NewChecklistRepository(db)
 	attachRepo := repository.NewAttachmentRepository(db)
-	sched := scheduler.New(db, taskRepo, ruleRepo, checklistRepo, attachRepo)
+	scheduleRepo := repository.NewScheduleRepository(db)
+	sched := scheduler.New(db, taskRepo, ruleRepo, checklistRepo, attachRepo, scheduleRepo)
 	taskHandler := handler.NewTaskHandler(taskRepo, broker, sched)
 
 	r := chi.NewRouter()

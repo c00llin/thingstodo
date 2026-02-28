@@ -308,8 +308,8 @@ function AppDndContextInner({ children }: AppDndContextProps) {
       // Sidebar drops (task → sidebar target)
       // Optimistic update first, then await API before invalidating to avoid refetch race
       if (overId.startsWith('sidebar-')) {
-        const taskId = activeId
         const draggedTask = active.data.current?.task as Task | undefined
+        const taskId = draggedTask?.id ?? activeId
         const isTrashed = !!draggedTask?.deleted_at
         const needsReopen = draggedTask?.status !== 'open'
 
@@ -475,20 +475,23 @@ function AppDndContextInner({ children }: AppDndContextProps) {
       const targetList = registry.getListForTask(overId)
       if (sourceList && targetList && sourceList.listId === targetList.listId) {
         const { tasks, sortField } = sourceList
-        const oldIndex = tasks.findIndex((t) => t.id === activeId)
-        const newIndex = tasks.findIndex((t) => t.id === overId)
+        // Sortable IDs may be schedule_entry_id, so match by composite key
+        const sortableKey = (t: Task) => t.schedule_entry_id ?? t.id
+        const oldIndex = tasks.findIndex((t) => sortableKey(t) === activeId)
+        const newIndex = tasks.findIndex((t) => sortableKey(t) === overId)
         if (oldIndex === -1 || newIndex === -1) return
 
+        const movedTask = tasks[oldIndex]
         const newPosition = calculatePosition(
-          tasks.filter((t) => t.id !== activeId),
+          tasks.filter((t) => sortableKey(t) !== activeId),
           newIndex,
           sortField,
         )
         // Optimistic: reorder the task array in cache immediately
-        reorderTaskInCache(queryClient, activeId, sortField, newPosition)
+        reorderTaskInCache(queryClient, movedTask.id, sortField, newPosition)
         // Persist to backend, then reconcile
         reorderTasks([
-          { id: activeId, sort_field: sortField, sort_order: newPosition },
+          { id: movedTask.id, sort_field: sortField, sort_order: newPosition },
         ]).then(() => {
           queryClient.invalidateQueries({ queryKey: ['views'] })
           queryClient.invalidateQueries({ queryKey: ['projects'] })

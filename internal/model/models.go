@@ -102,15 +102,19 @@ type Task struct {
 
 type TaskListItem struct {
 	Task
-	Tags            []TagRef `json:"tags"`
-	ChecklistCount  int      `json:"checklist_count"`
-	ChecklistDone   int      `json:"checklist_done"`
-	HasNotes        bool     `json:"has_notes"`
-	HasLinks        bool     `json:"has_links"`
-	HasFiles        bool     `json:"has_files"`
-	HasRepeatRule   bool     `json:"has_repeat_rule"`
-	ProjectName     *string  `json:"project_name"`
-	AreaName        *string  `json:"area_name"`
+	Tags                 []TagRef `json:"tags"`
+	ChecklistCount       int      `json:"checklist_count"`
+	ChecklistDone        int      `json:"checklist_done"`
+	HasNotes             bool     `json:"has_notes"`
+	HasLinks             bool     `json:"has_links"`
+	HasFiles             bool     `json:"has_files"`
+	HasRepeatRule        bool     `json:"has_repeat_rule"`
+	FirstScheduleTime    *string  `json:"first_schedule_time"`
+	FirstScheduleEndTime *string  `json:"first_schedule_end_time"`
+	ScheduleEntryID      *string  `json:"schedule_entry_id"`
+	PastScheduleCount    int      `json:"past_schedule_count,omitempty"`
+	ProjectName          *string  `json:"project_name"`
+	AreaName             *string  `json:"area_name"`
 }
 
 type TaskDetail struct {
@@ -122,6 +126,7 @@ type TaskDetail struct {
 	Checklist   []ChecklistItem  `json:"checklist"`
 	Attachments []Attachment     `json:"attachments"`
 	RepeatRule  *RepeatRule      `json:"repeat_rule"`
+	Schedules   []TaskSchedule   `json:"schedules"`
 }
 
 type ChecklistItem struct {
@@ -130,6 +135,17 @@ type ChecklistItem struct {
 	Title     string  `json:"title"`
 	Completed bool    `json:"completed"`
 	SortOrder float64 `json:"sort_order"`
+}
+
+type TaskSchedule struct {
+	ID        string  `json:"id"`
+	TaskID    string  `json:"task_id,omitempty"`
+	WhenDate  string  `json:"when_date"`
+	StartTime *string `json:"start_time"`
+	EndTime   *string `json:"end_time"`
+	Completed bool    `json:"completed"`
+	SortOrder float64 `json:"sort_order"`
+	CreatedAt string  `json:"created_at,omitempty"`
 }
 
 type Attachment struct {
@@ -191,6 +207,10 @@ type UserSettings struct {
 	ReviewAfterDays   *int   `json:"review_after_days"`
 	SortAreas         string `json:"sort_areas"`
 	SortTags          string `json:"sort_tags"`
+	EveningStartsAt   string `json:"evening_starts_at"`
+	DefaultTimeGap    int    `json:"default_time_gap"`
+	ShowTimeBadge     bool   `json:"show_time_badge"`
+	TimeFormat        string `json:"time_format"`
 }
 
 type UpdateUserSettingsInput struct {
@@ -201,6 +221,10 @@ type UpdateUserSettingsInput struct {
 	ReviewAfterDays   *int    `json:"review_after_days"`
 	SortAreas         *string `json:"sort_areas"`
 	SortTags          *string `json:"sort_tags"`
+	EveningStartsAt   *string `json:"evening_starts_at"`
+	DefaultTimeGap    *int    `json:"default_time_gap"`
+	ShowTimeBadge     *bool   `json:"show_time_badge"`
+	TimeFormat        *string `json:"time_format"`
 	Raw               map[string]json.RawMessage `json:"-"`
 }
 
@@ -312,6 +336,21 @@ type UpdateChecklistInput struct {
 	Title     *string  `json:"title"`
 	Completed *bool    `json:"completed"`
 	SortOrder *float64 `json:"sort_order"`
+}
+
+type CreateTaskScheduleInput struct {
+	WhenDate  string  `json:"when_date"`
+	StartTime *string `json:"start_time"`
+	EndTime   *string `json:"end_time"`
+}
+
+type UpdateTaskScheduleInput struct {
+	WhenDate  *string                    `json:"when_date"`
+	StartTime *string                    `json:"start_time"`
+	EndTime   *string                    `json:"end_time"`
+	SortOrder *float64                   `json:"sort_order"`
+	Completed *bool                      `json:"completed"`
+	Raw       map[string]json.RawMessage `json:"-"`
 }
 
 type CreateAttachmentInput struct {

@@ -119,7 +119,9 @@ func (r *TagRepository) GetTasksByTag(tagID string) ([]model.TaskListItem, error
 			CASE WHEN t.notes != '' THEN 1 ELSE 0 END,
 			CASE WHEN EXISTS(SELECT 1 FROM attachments WHERE task_id = t.id AND type = 'link') THEN 1 ELSE 0 END,
 			CASE WHEN EXISTS(SELECT 1 FROM attachments WHERE task_id = t.id AND type = 'file') THEN 1 ELSE 0 END,
-			CASE WHEN EXISTS(SELECT 1 FROM repeat_rules WHERE task_id = t.id) THEN 1 ELSE 0 END
+			CASE WHEN EXISTS(SELECT 1 FROM repeat_rules WHERE task_id = t.id) THEN 1 ELSE 0 END,
+			(SELECT start_time FROM task_schedules WHERE task_id = t.id ORDER BY sort_order ASC LIMIT 1),
+			(SELECT end_time FROM task_schedules WHERE task_id = t.id ORDER BY sort_order ASC LIMIT 1)
 		FROM tasks t
 		JOIN task_tags tt ON t.id = tt.task_id
 		WHERE tt.tag_id = ? AND t.deleted_at IS NULL AND t.status = 'open'

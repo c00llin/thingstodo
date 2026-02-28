@@ -65,7 +65,8 @@ func main() {
 	ruleRepo := repository.NewRepeatRuleRepository(db)
 	checklistRepo := repository.NewChecklistRepository(db)
 	attachRepo := repository.NewAttachmentRepository(db)
-	sched := scheduler.New(db, taskRepo, ruleRepo, checklistRepo, attachRepo)
+	scheduleRepo := repository.NewScheduleRepository(db)
+	sched := scheduler.New(db, taskRepo, ruleRepo, checklistRepo, attachRepo, scheduleRepo)
 	sched.Start()
 	defer sched.Stop()
 

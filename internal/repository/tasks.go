@@ -28,7 +28,9 @@ func (r *TaskRepository) List(f model.TaskFilters) ([]model.TaskListItem, error)
 			CASE WHEN t.notes != '' THEN 1 ELSE 0 END,
 			CASE WHEN EXISTS(SELECT 1 FROM attachments WHERE task_id = t.id AND type = 'link') THEN 1 ELSE 0 END,
 			CASE WHEN EXISTS(SELECT 1 FROM attachments WHERE task_id = t.id AND type = 'file') THEN 1 ELSE 0 END,
-			CASE WHEN EXISTS(SELECT 1 FROM repeat_rules WHERE task_id = t.id) THEN 1 ELSE 0 END
+			CASE WHEN EXISTS(SELECT 1 FROM repeat_rules WHERE task_id = t.id) THEN 1 ELSE 0 END,
+			(SELECT start_time FROM task_schedules WHERE task_id = t.id ORDER BY sort_order ASC LIMIT 1),
+			(SELECT end_time FROM task_schedules WHERE task_id = t.id ORDER BY sort_order ASC LIMIT 1)
 		FROM tasks t`
 
 	var conditions []string
@@ -115,6 +117,7 @@ func (r *TaskRepository) List(f model.TaskFilters) ([]model.TaskListItem, error)
 			&t.CompletedAt, &t.CanceledAt, &t.DeletedAt, &t.CreatedAt, &t.UpdatedAt,
 			&t.ChecklistCount, &t.ChecklistDone,
 			&hasNotes, &hasLinks, &hasFiles, &hasRepeat,
+			&t.FirstScheduleTime, &t.FirstScheduleEndTime,
 		); err != nil {
 			return nil, fmt.Errorf("scan task: %w", err)
 		}
@@ -171,6 +174,7 @@ func (r *TaskRepository) GetByID(id string) (*model.TaskDetail, error) {
 	t.Checklist, _ = r.getChecklist(id)
 	t.Attachments, _ = r.getAttachments(id)
 	t.RepeatRule, _ = r.getRepeatRule(id)
+	t.Schedules, _ = r.getSchedules(id)
 
 	return &t, nil
 }
@@ -195,6 +199,11 @@ func (r *TaskRepository) Create(input model.CreateTaskInput) (*model.TaskDetail,
 
 	if len(input.TagIDs) > 0 {
 		r.setTaskTags(id, input.TagIDs)
+	}
+
+	// Create first schedule entry if when_date is set
+	if input.WhenDate != nil {
+		r.syncFirstScheduleDate(id, input.WhenDate)
 	}
 
 	return r.GetByID(id)
@@ -253,6 +262,13 @@ func (r *TaskRepository) Update(id string, input model.UpdateTaskInput) (*model.
 
 	if input.TagIDs != nil {
 		r.setTaskTags(id, input.TagIDs)
+	}
+
+	// Sync first schedule entry when when_date changes
+	if _, ok := input.Raw["when_date"]; ok {
+		if err := r.syncFirstScheduleDate(id, input.WhenDate); err != nil {
+			return nil, err
+		}
 	}
 
 	return r.GetByID(id)
@@ -467,6 +483,67 @@ func (r *TaskRepository) getRepeatRule(taskID string) (*model.RepeatRule, error)
 		rr.DayConstraints = []string{}
 	}
 	return &rr, nil
+}
+
+// syncFirstScheduleDate keeps the first task_schedules entry in sync with the task's when_date.
+// If when_date is non-null and no schedule entry exists, creates one.
+// If when_date is non-null and a schedule entry exists, updates its when_date.
+// If when_date is null, deletes all schedule entries.
+// Returns an error if the update would create a duplicate timeless date.
+func (r *TaskRepository) syncFirstScheduleDate(taskID string, whenDate *string) error {
+	if whenDate == nil {
+		// Clear all schedule entries
+		_, err := r.db.Exec("DELETE FROM task_schedules WHERE task_id = ?", taskID)
+		return err
+	}
+	// Check if first entry exists
+	var existingID string
+	var startTime sql.NullString
+	err := r.db.QueryRow(
+		"SELECT id, start_time FROM task_schedules WHERE task_id = ? ORDER BY sort_order ASC LIMIT 1", taskID,
+	).Scan(&existingID, &startTime)
+	if err == sql.ErrNoRows {
+		// Create first entry
+		id := model.NewID()
+		_, err = r.db.Exec(
+			"INSERT INTO task_schedules (id, task_id, when_date, sort_order) VALUES (?, ?, ?, 0)",
+			id, taskID, *whenDate)
+		return err
+	} else if err != nil {
+		return err
+	}
+	// Block duplicate timeless dates
+	if !startTime.Valid && *whenDate != "someday" {
+		var count int
+		_ = r.db.QueryRow(
+			"SELECT COUNT(*) FROM task_schedules WHERE task_id = ? AND when_date = ? AND start_time IS NULL AND id != ?",
+			taskID, *whenDate, existingID).Scan(&count)
+		if count > 0 {
+			return fmt.Errorf("duplicate timeless date")
+		}
+	}
+	// Update existing first entry's date
+	_, err = r.db.Exec("UPDATE task_schedules SET when_date = ? WHERE id = ?", *whenDate, existingID)
+	return err
+}
+
+func (r *TaskRepository) getSchedules(taskID string) ([]model.TaskSchedule, error) {
+	rows, err := r.db.Query(
+		"SELECT id, when_date, start_time, end_time, completed, sort_order FROM task_schedules WHERE task_id = ? ORDER BY sort_order", taskID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []model.TaskSchedule
+	for rows.Next() {
+		var s model.TaskSchedule
+		_ = rows.Scan(&s.ID, &s.WhenDate, &s.StartTime, &s.EndTime, &s.Completed, &s.SortOrder)
+		items = append(items, s)
+	}
+	if items == nil {
+		items = []model.TaskSchedule{}
+	}
+	return items, nil
 }
 
 func patternToFrequency(pt model.PatternType) string {

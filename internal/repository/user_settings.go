@@ -19,9 +19,9 @@ func NewUserSettingsRepository(db *sql.DB) *UserSettingsRepository {
 func (r *UserSettingsRepository) GetOrCreate(userID string) (*model.UserSettings, error) {
 	var s model.UserSettings
 	err := r.db.QueryRow(
-		"SELECT play_complete_sound, show_count_main, show_count_projects, show_count_tags, review_after_days, sort_areas, sort_tags FROM user_settings WHERE user_id = ?",
+		"SELECT play_complete_sound, show_count_main, show_count_projects, show_count_tags, review_after_days, sort_areas, sort_tags, evening_starts_at, default_time_gap, show_time_badge, time_format FROM user_settings WHERE user_id = ?",
 		userID,
-	).Scan(&s.PlayCompleteSound, &s.ShowCountMain, &s.ShowCountProjects, &s.ShowCountTags, &s.ReviewAfterDays, &s.SortAreas, &s.SortTags)
+	).Scan(&s.PlayCompleteSound, &s.ShowCountMain, &s.ShowCountProjects, &s.ShowCountTags, &s.ReviewAfterDays, &s.SortAreas, &s.SortTags, &s.EveningStartsAt, &s.DefaultTimeGap, &s.ShowTimeBadge, &s.TimeFormat)
 	if err == sql.ErrNoRows {
 		_, err = r.db.Exec(
 			"INSERT INTO user_settings (user_id) VALUES (?)", userID,
@@ -38,6 +38,10 @@ func (r *UserSettingsRepository) GetOrCreate(userID string) (*model.UserSettings
 			ReviewAfterDays:   &defaultDays,
 			SortAreas:         "manual",
 			SortTags:          "manual",
+			EveningStartsAt:   "18:00",
+			DefaultTimeGap:    60,
+			ShowTimeBadge:     true,
+			TimeFormat:        "12h",
 		}
 		return &s, nil
 	}
@@ -82,6 +86,22 @@ func (r *UserSettingsRepository) Update(userID string, input model.UpdateUserSet
 	if input.SortTags != nil {
 		setClauses = append(setClauses, "sort_tags = ?")
 		args = append(args, *input.SortTags)
+	}
+	if input.EveningStartsAt != nil {
+		setClauses = append(setClauses, "evening_starts_at = ?")
+		args = append(args, *input.EveningStartsAt)
+	}
+	if input.DefaultTimeGap != nil {
+		setClauses = append(setClauses, "default_time_gap = ?")
+		args = append(args, *input.DefaultTimeGap)
+	}
+	if input.ShowTimeBadge != nil {
+		setClauses = append(setClauses, "show_time_badge = ?")
+		args = append(args, boolToInt(*input.ShowTimeBadge))
+	}
+	if input.TimeFormat != nil {
+		setClauses = append(setClauses, "time_format = ?")
+		args = append(args, *input.TimeFormat)
 	}
 
 	if len(setClauses) > 0 {

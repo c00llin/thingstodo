@@ -90,8 +90,8 @@ func (h *AuthHandler) Me(w http.ResponseWriter, r *http.Request) {
 
 	uid := userID.(string)
 
-	// In proxy mode, the user may not exist in the database — return the proxy identity directly.
-	if h.cfg.AuthMode == "proxy" {
+	// In proxy/none mode, the user may not exist in the database — return the identity directly.
+	if h.cfg.AuthMode == "proxy" || h.cfg.AuthMode == "none" {
 		writeJSON(w, http.StatusOK, map[string]interface{}{
 			"user":      map[string]string{"id": uid, "username": uid},
 			"auth_mode": h.cfg.AuthMode,

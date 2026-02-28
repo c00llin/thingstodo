@@ -26,30 +26,36 @@ export function SortableTaskList({ tasks, sortField, showProject, hideWhenDate }
     return () => registry.unregister(listId)
   })
 
-  const taskIds = tasks.map((t) => t.id)
-  const taskIdsKey = taskIds.join(',')
+  // Use schedule_entry_id as sortable ID when available (multi-date tasks),
+  // falling back to task.id for tasks without schedule entries.
+  const sortableIds = tasks.map((t) => t.schedule_entry_id ?? t.id)
+  const sortableIdsKey = sortableIds.join(',')
   const expandedTaskId = useAppStore((s) => s.expandedTaskId)
   const expandTask = useAppStore((s) => s.expandTask)
 
-  // Track which task IDs this list previously contained
-  const prevTaskIdsRef = useRef<Set<string>>(new Set(taskIds))
+  // Track which sortable IDs this list previously contained
+  const prevIdsRef = useRef<Set<string>>(new Set(sortableIds))
   useEffect(() => {
-    prevTaskIdsRef.current = new Set(taskIds)
-  }, [taskIds, taskIdsKey])
+    prevIdsRef.current = new Set(sortableIds)
+  }, [sortableIds, sortableIdsKey])
 
   // Close detail panel only if the expanded task was removed from THIS list
+  const expandedScheduleEntryId = useAppStore((s) => s.expandedScheduleEntryId)
   useEffect(() => {
-    if (expandedTaskId && prevTaskIdsRef.current.has(expandedTaskId) && !taskIds.includes(expandedTaskId)) {
+    if (!expandedTaskId) return
+    // Determine the composite key that was expanded
+    const expandedKey = expandedScheduleEntryId ?? expandedTaskId
+    if (prevIdsRef.current.has(expandedKey) && !sortableIds.includes(expandedKey)) {
       expandTask(null)
     }
-  }, [taskIds, taskIdsKey, expandedTaskId, expandTask])
+  }, [sortableIds, sortableIdsKey, expandedTaskId, expandedScheduleEntryId, expandTask])
 
   return (
-    <SortableContext items={taskIds} strategy={verticalListSortingStrategy}>
+    <SortableContext items={sortableIds} strategy={verticalListSortingStrategy}>
       <AnimatePresence initial={false}>
         {tasks.map((task) => (
           <SortableTaskItem
-            key={task.id}
+            key={task.schedule_entry_id ?? task.id}
             task={task}
             showProject={showProject}
             hideWhenDate={hideWhenDate}

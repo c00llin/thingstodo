@@ -10,6 +10,10 @@ interface DateInputProps {
   variant: 'when' | 'deadline'
   autoFocus?: boolean
   onComplete?: () => void
+  /** Hide the "Someday" option from suggestions */
+  hideSomeday?: boolean
+  /** Extra classes applied to the button/input field */
+  fieldClassName?: string
 }
 
 interface Suggestion {
@@ -56,7 +60,7 @@ function getTypedSuggestion(text: string): Suggestion | null {
   }
 }
 
-export function DateInput({ value, evening, onChange, variant, autoFocus, onComplete }: DateInputProps) {
+export function DateInput({ value, evening, onChange, variant, autoFocus, onComplete, hideSomeday, fieldClassName }: DateInputProps) {
   const [active, setActive] = useState(false)
   const [text, setText] = useState('')
   const [highlightIndex, setHighlightIndex] = useState(0)
@@ -64,7 +68,8 @@ export function DateInput({ value, evening, onChange, variant, autoFocus, onComp
   const containerRef = useRef<HTMLDivElement>(null)
 
   const suggestions: Suggestion[] = (() => {
-    const defaults = getDefaultSuggestions(variant)
+    let defaults = getDefaultSuggestions(variant)
+    if (hideSomeday) defaults = defaults.filter((s) => s.date !== 'someday')
     const query = text.trim().toLowerCase()
     if (!query) return defaults
 
@@ -155,7 +160,7 @@ export function DateInput({ value, evening, onChange, variant, autoFocus, onComp
           setActive(true)
           requestAnimationFrame(() => inputRef.current?.focus())
         }}
-        className="rounded-md border border-neutral-200 bg-white px-2 py-1 text-left text-sm dark:border-neutral-600 dark:bg-neutral-800 dark:text-neutral-100"
+        className={`w-full rounded-md border px-2 py-1 text-left text-sm ${fieldClassName ?? 'border-neutral-200 bg-white dark:border-neutral-600 dark:bg-neutral-800 dark:text-neutral-100'}`}
       >
         {formatRelativeDate(value, evening)}
       </button>

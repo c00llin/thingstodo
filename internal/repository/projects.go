@@ -131,7 +131,9 @@ func (r *ProjectRepository) GetByID(id string) (*model.ProjectDetail, error) {
 			CASE WHEN t.notes != '' THEN 1 ELSE 0 END,
 			CASE WHEN EXISTS(SELECT 1 FROM attachments WHERE task_id = t.id AND type = 'link') THEN 1 ELSE 0 END,
 			CASE WHEN EXISTS(SELECT 1 FROM attachments WHERE task_id = t.id AND type = 'file') THEN 1 ELSE 0 END,
-			CASE WHEN EXISTS(SELECT 1 FROM repeat_rules WHERE task_id = t.id) THEN 1 ELSE 0 END
+			CASE WHEN EXISTS(SELECT 1 FROM repeat_rules WHERE task_id = t.id) THEN 1 ELSE 0 END,
+			(SELECT start_time FROM task_schedules WHERE task_id = t.id ORDER BY sort_order ASC LIMIT 1),
+			(SELECT end_time FROM task_schedules WHERE task_id = t.id ORDER BY sort_order ASC LIMIT 1)
 		FROM tasks t
 		WHERE t.project_id = ?
 			AND t.status IN ('completed', 'canceled', 'wont_do')
@@ -307,7 +309,9 @@ func getTaskListItems(db *sql.DB, filterCol, filterVal string) []model.TaskListI
 			CASE WHEN t.notes != '' THEN 1 ELSE 0 END,
 			CASE WHEN EXISTS(SELECT 1 FROM attachments WHERE task_id = t.id AND type = 'link') THEN 1 ELSE 0 END,
 			CASE WHEN EXISTS(SELECT 1 FROM attachments WHERE task_id = t.id AND type = 'file') THEN 1 ELSE 0 END,
-			CASE WHEN EXISTS(SELECT 1 FROM repeat_rules WHERE task_id = t.id) THEN 1 ELSE 0 END
+			CASE WHEN EXISTS(SELECT 1 FROM repeat_rules WHERE task_id = t.id) THEN 1 ELSE 0 END,
+			(SELECT start_time FROM task_schedules WHERE task_id = t.id ORDER BY sort_order ASC LIMIT 1),
+			(SELECT end_time FROM task_schedules WHERE task_id = t.id ORDER BY sort_order ASC LIMIT 1)
 		FROM tasks t WHERE t.`+filterCol+` = ? AND t.status = 'open' AND t.deleted_at IS NULL
 		ORDER BY t.sort_order_project ASC`, filterVal)
 	if err != nil {
@@ -328,7 +332,9 @@ func getTaskListItemsNoHeading(db *sql.DB, projectID string) []model.TaskListIte
 			CASE WHEN t.notes != '' THEN 1 ELSE 0 END,
 			CASE WHEN EXISTS(SELECT 1 FROM attachments WHERE task_id = t.id AND type = 'link') THEN 1 ELSE 0 END,
 			CASE WHEN EXISTS(SELECT 1 FROM attachments WHERE task_id = t.id AND type = 'file') THEN 1 ELSE 0 END,
-			CASE WHEN EXISTS(SELECT 1 FROM repeat_rules WHERE task_id = t.id) THEN 1 ELSE 0 END
+			CASE WHEN EXISTS(SELECT 1 FROM repeat_rules WHERE task_id = t.id) THEN 1 ELSE 0 END,
+			(SELECT start_time FROM task_schedules WHERE task_id = t.id ORDER BY sort_order ASC LIMIT 1),
+			(SELECT end_time FROM task_schedules WHERE task_id = t.id ORDER BY sort_order ASC LIMIT 1)
 		FROM tasks t WHERE t.project_id = ? AND t.heading_id IS NULL AND t.status = 'open' AND t.deleted_at IS NULL
 		ORDER BY t.sort_order_project ASC`, projectID)
 	if err != nil {
@@ -350,6 +356,7 @@ func scanTaskListItems(db *sql.DB, rows *sql.Rows) []model.TaskListItem {
 			&t.CompletedAt, &t.CanceledAt, &t.DeletedAt, &t.CreatedAt, &t.UpdatedAt,
 			&t.ChecklistCount, &t.ChecklistDone,
 			&hasNotes, &hasLinks, &hasFiles, &hasRepeat,
+			&t.FirstScheduleTime, &t.FirstScheduleEndTime,
 		)
 		t.WhenEvening = whenEvening == 1
 		t.HighPriority = highPriority == 1

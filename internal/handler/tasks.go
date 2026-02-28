@@ -148,6 +148,10 @@ func (h *TaskHandler) Update(w http.ResponseWriter, r *http.Request) {
 
 	task, err := h.repo.Update(id, input)
 	if err != nil {
+		if strings.Contains(err.Error(), "duplicate timeless date") {
+			writeError(w, http.StatusBadRequest, "a schedule for this date already exists without a time", "VALIDATION")
+			return
+		}
 		writeError(w, http.StatusInternalServerError, err.Error(), "INTERNAL")
 		return
 	}

@@ -19,7 +19,8 @@ func TestHealthEndpoint(t *testing.T) {
 	ruleRepo := repository.NewRepeatRuleRepository(db)
 	checklistRepo := repository.NewChecklistRepository(db)
 	attachRepo := repository.NewAttachmentRepository(db)
-	sched := scheduler.New(db, taskRepo, ruleRepo, checklistRepo, attachRepo)
+	scheduleRepo := repository.NewScheduleRepository(db)
+	sched := scheduler.New(db, taskRepo, ruleRepo, checklistRepo, attachRepo, scheduleRepo)
 
 	handler := router.New(db, cfg, broker, sched)
 	client := testutil.NewTestClient(t, handler)

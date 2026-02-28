@@ -1,5 +1,7 @@
 import { useState } from 'react'
 import { useSettings, useUpdateSettings } from '../hooks/queries'
+import { parseTime } from '../lib/time-parser'
+import { formatTime } from '../lib/format-time'
 
 function SettingsCheckbox({
   label,
@@ -81,6 +83,78 @@ function ReviewSetting({
   )
 }
 
+function EveningTimeSetting({
+  value,
+  timeFormat,
+  onChange,
+}: {
+  value: string
+  timeFormat: '12h' | '24h'
+  onChange: (v: string) => void
+}) {
+  const [draft, setDraft] = useState(formatTime(value, timeFormat))
+
+  return (
+    <div className="flex items-center gap-3 py-1.5">
+      <span className="text-sm text-neutral-700 dark:text-neutral-300">Evening starts at</span>
+      <input
+        type="text"
+        value={draft}
+        onChange={(e) => setDraft(e.target.value)}
+        onBlur={() => {
+          const parsed = parseTime(draft)
+          if (parsed) {
+            onChange(parsed)
+            setDraft(formatTime(parsed, timeFormat))
+          } else {
+            setDraft(formatTime(value, timeFormat))
+          }
+        }}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter') e.currentTarget.blur()
+        }}
+        className="w-20 rounded border border-neutral-300 bg-transparent px-2 py-1 text-center text-sm text-neutral-900 dark:border-neutral-600 dark:text-neutral-100"
+      />
+    </div>
+  )
+}
+
+function TimeGapSetting({
+  value,
+  onChange,
+}: {
+  value: number
+  onChange: (v: number) => void
+}) {
+  const [draft, setDraft] = useState(String(value))
+
+  return (
+    <div className="flex items-center gap-3 py-1.5">
+      <span className="text-sm text-neutral-700 dark:text-neutral-300">Default time duration</span>
+      <input
+        type="number"
+        min={10}
+        max={480}
+        value={draft}
+        onChange={(e) => setDraft(e.target.value)}
+        onBlur={() => {
+          const mins = parseInt(draft, 10)
+          if (mins >= 10 && mins <= 480) {
+            onChange(mins)
+          } else {
+            setDraft(String(value))
+          }
+        }}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter') e.currentTarget.blur()
+        }}
+        className="w-16 rounded border border-neutral-300 bg-transparent px-2 py-1 text-center text-sm text-neutral-900 dark:border-neutral-600 dark:text-neutral-100"
+      />
+      <span className="text-sm text-neutral-400">min</span>
+    </div>
+  )
+}
+
 export function SettingsView() {
   const { data: settings } = useSettings()
   const updateSettings = useUpdateSettings()
@@ -110,6 +184,39 @@ export function SettingsView() {
           value={settings.review_after_days}
           onChange={(v) => updateSettings.mutate({ review_after_days: v })}
         />
+      </section>
+
+      <section className="mb-8">
+        <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-neutral-500 dark:text-neutral-400">
+          Scheduling
+        </h2>
+        <div className="space-y-3">
+          <div className="flex items-center gap-3 py-1.5">
+            <span className="text-sm text-neutral-700 dark:text-neutral-300">Time format</span>
+            <select
+              value={settings.time_format}
+              onChange={(e) => updateSettings.mutate({ time_format: e.target.value as '12h' | '24h' })}
+              className="rounded border border-neutral-300 bg-transparent px-2 py-1 text-sm text-neutral-900 dark:border-neutral-600 dark:text-neutral-100"
+            >
+              <option value="12h">12-hour</option>
+              <option value="24h">24-hour</option>
+            </select>
+          </div>
+          <EveningTimeSetting
+            value={settings.evening_starts_at}
+            timeFormat={settings.time_format}
+            onChange={(v) => updateSettings.mutate({ evening_starts_at: v })}
+          />
+          <TimeGapSetting
+            value={settings.default_time_gap}
+            onChange={(v) => updateSettings.mutate({ default_time_gap: v })}
+          />
+          <SettingsCheckbox
+            label="Show time in task lists"
+            checked={settings.show_time_badge}
+            onChange={(v) => updateSettings.mutate({ show_time_badge: v })}
+          />
+        </div>
       </section>
 
       <section>

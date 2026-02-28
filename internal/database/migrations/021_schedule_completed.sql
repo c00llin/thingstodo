@@ -1,0 +1,1 @@
+ALTER TABLE task_schedules ADD COLUMN completed INTEGER NOT NULL DEFAULT 0;

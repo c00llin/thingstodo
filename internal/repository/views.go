@@ -27,7 +27,9 @@ func (r *ViewRepository) Inbox(reviewAfterDays *int) (*model.InboxView, error) {
 			CASE WHEN t.notes != '' THEN 1 ELSE 0 END,
 			CASE WHEN EXISTS(SELECT 1 FROM attachments WHERE task_id = t.id AND type = 'link') THEN 1 ELSE 0 END,
 			CASE WHEN EXISTS(SELECT 1 FROM attachments WHERE task_id = t.id AND type = 'file') THEN 1 ELSE 0 END,
-			CASE WHEN EXISTS(SELECT 1 FROM repeat_rules WHERE task_id = t.id) THEN 1 ELSE 0 END
+			CASE WHEN EXISTS(SELECT 1 FROM repeat_rules WHERE task_id = t.id) THEN 1 ELSE 0 END,
+			(SELECT start_time FROM task_schedules WHERE task_id = t.id ORDER BY sort_order ASC LIMIT 1),
+			(SELECT end_time FROM task_schedules WHERE task_id = t.id ORDER BY sort_order ASC LIMIT 1)
 		FROM tasks t
 		WHERE t.project_id IS NULL AND t.area_id IS NULL
 			AND t.status = 'open' AND t.when_date IS NULL AND t.deleted_at IS NULL
@@ -81,10 +83,13 @@ func (r *ViewRepository) Inbox(reviewAfterDays *int) (*model.InboxView, error) {
 	return &model.InboxView{Tasks: inboxTasks, Review: reviewTasks}, nil
 }
 
-func (r *ViewRepository) Today() (*model.TodayView, error) {
+func (r *ViewRepository) Today(eveningStartsAt string) (*model.TodayView, error) {
 	today := time.Now().Format("2006-01-02")
 
-	// Today tasks (not evening)
+	// Today tasks: JOIN task_schedules so multi-schedule entries for today each appear.
+	// Includes tasks where ANY schedule entry matches today (not just when_date).
+	// Excludes evening entries (start_time >= eveningStartsAt) and when_evening tasks.
+	// Tasks without any schedule entry for today (e.g. deadline-only) use LEFT JOIN.
 	todayRows, err := r.db.Query(`
 		SELECT t.id, t.title, t.notes, t.status, t.when_date, t.when_evening, t.high_priority,
 			t.deadline, t.project_id, t.area_id, t.heading_id,
@@ -95,18 +100,25 @@ func (r *ViewRepository) Today() (*model.TodayView, error) {
 			CASE WHEN t.notes != '' THEN 1 ELSE 0 END,
 			CASE WHEN EXISTS(SELECT 1 FROM attachments WHERE task_id = t.id AND type = 'link') THEN 1 ELSE 0 END,
 			CASE WHEN EXISTS(SELECT 1 FROM attachments WHERE task_id = t.id AND type = 'file') THEN 1 ELSE 0 END,
-			CASE WHEN EXISTS(SELECT 1 FROM repeat_rules WHERE task_id = t.id) THEN 1 ELSE 0 END
+			CASE WHEN EXISTS(SELECT 1 FROM repeat_rules WHERE task_id = t.id) THEN 1 ELSE 0 END,
+			ts.start_time,
+			ts.end_time,
+			ts.id AS schedule_entry_id
 		FROM tasks t
+		LEFT JOIN task_schedules ts ON ts.task_id = t.id AND ts.when_date = ?
 		WHERE t.status = 'open' AND t.when_evening = 0
-			AND (t.when_date = ? OR t.deadline = ?) AND t.deleted_at IS NULL
-		ORDER BY t.sort_order_today ASC`, today, today)
+			AND (t.when_date = ? OR t.deadline = ?
+				OR EXISTS(SELECT 1 FROM task_schedules WHERE task_id = t.id AND when_date = ?))
+			AND t.deleted_at IS NULL
+			AND (ts.start_time IS NULL OR ts.start_time < ?)
+		ORDER BY t.sort_order_today ASC, ts.start_time ASC`, today, today, today, today, eveningStartsAt)
 	if err != nil {
 		return nil, err
 	}
 	defer todayRows.Close()
-	todayTasks := scanTaskListItems(r.db, todayRows)
+	todayTasks := scanTodayTaskListItems(r.db, todayRows)
 
-	// Evening tasks
+	// Evening tasks: either when_evening=1 OR schedule entry's start_time >= eveningStartsAt
 	eveningRows, err := r.db.Query(`
 		SELECT t.id, t.title, t.notes, t.status, t.when_date, t.when_evening, t.high_priority,
 			t.deadline, t.project_id, t.area_id, t.heading_id,
@@ -117,16 +129,26 @@ func (r *ViewRepository) Today() (*model.TodayView, error) {
 			CASE WHEN t.notes != '' THEN 1 ELSE 0 END,
 			CASE WHEN EXISTS(SELECT 1 FROM attachments WHERE task_id = t.id AND type = 'link') THEN 1 ELSE 0 END,
 			CASE WHEN EXISTS(SELECT 1 FROM attachments WHERE task_id = t.id AND type = 'file') THEN 1 ELSE 0 END,
-			CASE WHEN EXISTS(SELECT 1 FROM repeat_rules WHERE task_id = t.id) THEN 1 ELSE 0 END
+			CASE WHEN EXISTS(SELECT 1 FROM repeat_rules WHERE task_id = t.id) THEN 1 ELSE 0 END,
+			ts.start_time,
+			ts.end_time,
+			ts.id AS schedule_entry_id
 		FROM tasks t
-		WHERE t.status = 'open' AND t.when_evening = 1
-			AND (t.when_date = ? OR t.deadline = ?) AND t.deleted_at IS NULL
-		ORDER BY t.sort_order_today ASC`, today, today)
+		LEFT JOIN task_schedules ts ON ts.task_id = t.id AND ts.when_date = ?
+		WHERE t.status = 'open'
+			AND (t.when_date = ? OR t.deadline = ?
+				OR EXISTS(SELECT 1 FROM task_schedules WHERE task_id = t.id AND when_date = ?))
+			AND t.deleted_at IS NULL
+			AND (
+				t.when_evening = 1
+				OR (ts.start_time IS NOT NULL AND ts.start_time >= ?)
+			)
+		ORDER BY t.sort_order_today ASC, ts.start_time ASC`, today, today, today, today, eveningStartsAt)
 	if err != nil {
 		return nil, err
 	}
 	defer eveningRows.Close()
-	eveningTasks := scanTaskListItems(r.db, eveningRows)
+	eveningTasks := scanTodayTaskListItems(r.db, eveningRows)
 
 	// Overdue
 	overdueRows, err := r.db.Query(`
@@ -139,7 +161,9 @@ func (r *ViewRepository) Today() (*model.TodayView, error) {
 			CASE WHEN t.notes != '' THEN 1 ELSE 0 END,
 			CASE WHEN EXISTS(SELECT 1 FROM attachments WHERE task_id = t.id AND type = 'link') THEN 1 ELSE 0 END,
 			CASE WHEN EXISTS(SELECT 1 FROM attachments WHERE task_id = t.id AND type = 'file') THEN 1 ELSE 0 END,
-			CASE WHEN EXISTS(SELECT 1 FROM repeat_rules WHERE task_id = t.id) THEN 1 ELSE 0 END
+			CASE WHEN EXISTS(SELECT 1 FROM repeat_rules WHERE task_id = t.id) THEN 1 ELSE 0 END,
+			(SELECT start_time FROM task_schedules WHERE task_id = t.id ORDER BY sort_order ASC LIMIT 1),
+			(SELECT end_time FROM task_schedules WHERE task_id = t.id ORDER BY sort_order ASC LIMIT 1)
 		FROM tasks t
 		WHERE t.status = 'open' AND t.deadline < ? AND t.deleted_at IS NULL
 		ORDER BY t.deadline ASC`, today)
@@ -150,6 +174,7 @@ func (r *ViewRepository) Today() (*model.TodayView, error) {
 	overdueTasks := scanTaskListItems(r.db, overdueRows)
 
 	// Earlier: tasks with when_date before today, but not overdue (no overdue deadline)
+	// Only include tasks that have at least one uncompleted past schedule entry
 	earlierRows, err := r.db.Query(`
 		SELECT t.id, t.title, t.notes, t.status, t.when_date, t.when_evening, t.high_priority,
 			t.deadline, t.project_id, t.area_id, t.heading_id,
@@ -160,18 +185,23 @@ func (r *ViewRepository) Today() (*model.TodayView, error) {
 			CASE WHEN t.notes != '' THEN 1 ELSE 0 END,
 			CASE WHEN EXISTS(SELECT 1 FROM attachments WHERE task_id = t.id AND type = 'link') THEN 1 ELSE 0 END,
 			CASE WHEN EXISTS(SELECT 1 FROM attachments WHERE task_id = t.id AND type = 'file') THEN 1 ELSE 0 END,
-			CASE WHEN EXISTS(SELECT 1 FROM repeat_rules WHERE task_id = t.id) THEN 1 ELSE 0 END
+			CASE WHEN EXISTS(SELECT 1 FROM repeat_rules WHERE task_id = t.id) THEN 1 ELSE 0 END,
+			(SELECT start_time FROM task_schedules WHERE task_id = t.id AND when_date < ? AND when_date != 'someday' AND completed = 0 ORDER BY sort_order ASC LIMIT 1),
+			(SELECT end_time FROM task_schedules WHERE task_id = t.id AND when_date < ? AND when_date != 'someday' AND completed = 0 ORDER BY sort_order ASC LIMIT 1),
+			(SELECT id FROM task_schedules WHERE task_id = t.id AND when_date < ? AND when_date != 'someday' AND completed = 0 ORDER BY sort_order ASC LIMIT 1)
 		FROM tasks t
 		WHERE t.status = 'open'
 			AND t.when_date < ? AND t.when_date != 'someday'
 			AND (t.deadline IS NULL OR t.deadline >= ?)
 			AND t.deleted_at IS NULL
-		ORDER BY t.when_date ASC, t.sort_order_today ASC`, today, today)
+			AND EXISTS(SELECT 1 FROM task_schedules WHERE task_id = t.id AND when_date < ? AND when_date != 'someday' AND completed = 0)
+		ORDER BY t.when_date ASC, t.sort_order_today ASC`, today, today, today, today, today, today)
 	if err != nil {
 		return nil, err
 	}
 	defer earlierRows.Close()
-	earlierTasks := scanTaskListItems(r.db, earlierRows)
+	earlierTasks := scanTodayTaskListItems(r.db, earlierRows)
+	populatePastScheduleCounts(r.db, earlierTasks, today)
 
 	// Completed today
 	completedRows, err := r.db.Query(`
@@ -184,7 +214,9 @@ func (r *ViewRepository) Today() (*model.TodayView, error) {
 			CASE WHEN t.notes != '' THEN 1 ELSE 0 END,
 			CASE WHEN EXISTS(SELECT 1 FROM attachments WHERE task_id = t.id AND type = 'link') THEN 1 ELSE 0 END,
 			CASE WHEN EXISTS(SELECT 1 FROM attachments WHERE task_id = t.id AND type = 'file') THEN 1 ELSE 0 END,
-			CASE WHEN EXISTS(SELECT 1 FROM repeat_rules WHERE task_id = t.id) THEN 1 ELSE 0 END
+			CASE WHEN EXISTS(SELECT 1 FROM repeat_rules WHERE task_id = t.id) THEN 1 ELSE 0 END,
+			(SELECT start_time FROM task_schedules WHERE task_id = t.id ORDER BY sort_order ASC LIMIT 1),
+			(SELECT end_time FROM task_schedules WHERE task_id = t.id ORDER BY sort_order ASC LIMIT 1)
 		FROM tasks t
 		WHERE t.status IN ('completed', 'canceled', 'wont_do')
 			AND COALESCE(t.completed_at, t.canceled_at, t.updated_at) >= ?
@@ -211,6 +243,7 @@ func (r *ViewRepository) Upcoming(from string, days int) (*model.UpcomingView, e
 	if from == "" {
 		from = time.Now().Format("2006-01-02")
 	}
+	// JOIN task_schedules so a task with multiple schedule dates appears once per date
 	rows, err := r.db.Query(`
 		SELECT t.id, t.title, t.notes, t.status, t.when_date, t.when_evening, t.high_priority,
 			t.deadline, t.project_id, t.area_id, t.heading_id,
@@ -221,29 +254,31 @@ func (r *ViewRepository) Upcoming(from string, days int) (*model.UpcomingView, e
 			CASE WHEN t.notes != '' THEN 1 ELSE 0 END,
 			CASE WHEN EXISTS(SELECT 1 FROM attachments WHERE task_id = t.id AND type = 'link') THEN 1 ELSE 0 END,
 			CASE WHEN EXISTS(SELECT 1 FROM attachments WHERE task_id = t.id AND type = 'file') THEN 1 ELSE 0 END,
-			CASE WHEN EXISTS(SELECT 1 FROM repeat_rules WHERE task_id = t.id) THEN 1 ELSE 0 END
+			CASE WHEN EXISTS(SELECT 1 FROM repeat_rules WHERE task_id = t.id) THEN 1 ELSE 0 END,
+			ts.start_time,
+			ts.end_time,
+			ts.id AS schedule_entry_id,
+			ts.when_date AS schedule_date
 		FROM tasks t
-		WHERE t.status = 'open' AND t.when_date >= ? AND t.when_date != 'someday' AND t.deleted_at IS NULL
-		ORDER BY t.when_date ASC, t.sort_order_today ASC`, from)
+		JOIN task_schedules ts ON ts.task_id = t.id
+		WHERE t.status = 'open' AND ts.when_date >= ? AND ts.when_date != 'someday' AND t.deleted_at IS NULL
+		ORDER BY ts.when_date ASC, ts.start_time ASC, t.sort_order_today ASC`, from)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
 
-	tasks := scanTaskListItems(r.db, rows)
+	tasks := scanUpcomingTaskListItems(r.db, rows)
 
-	// Group by date
+	// Group by schedule_date (which may differ from t.when_date for multi-date tasks)
 	dateMap := make(map[string][]model.TaskListItem)
 	var dateOrder []string
-	for _, t := range tasks {
-		if t.WhenDate == nil {
-			continue
-		}
-		d := *t.WhenDate
+	for _, item := range tasks {
+		d := item.date
 		if _, ok := dateMap[d]; !ok {
 			dateOrder = append(dateOrder, d)
 		}
-		dateMap[d] = append(dateMap[d], t)
+		dateMap[d] = append(dateMap[d], item.task)
 	}
 
 	var dates []model.DateGroup
@@ -265,7 +300,9 @@ func (r *ViewRepository) Upcoming(from string, days int) (*model.UpcomingView, e
 			CASE WHEN t.notes != '' THEN 1 ELSE 0 END,
 			CASE WHEN EXISTS(SELECT 1 FROM attachments WHERE task_id = t.id AND type = 'link') THEN 1 ELSE 0 END,
 			CASE WHEN EXISTS(SELECT 1 FROM attachments WHERE task_id = t.id AND type = 'file') THEN 1 ELSE 0 END,
-			CASE WHEN EXISTS(SELECT 1 FROM repeat_rules WHERE task_id = t.id) THEN 1 ELSE 0 END
+			CASE WHEN EXISTS(SELECT 1 FROM repeat_rules WHERE task_id = t.id) THEN 1 ELSE 0 END,
+			(SELECT start_time FROM task_schedules WHERE task_id = t.id ORDER BY sort_order ASC LIMIT 1),
+			(SELECT end_time FROM task_schedules WHERE task_id = t.id ORDER BY sort_order ASC LIMIT 1)
 		FROM tasks t
 		WHERE t.status = 'open' AND t.deadline < ? AND t.deleted_at IS NULL
 		ORDER BY t.deadline ASC`, from)
@@ -276,6 +313,7 @@ func (r *ViewRepository) Upcoming(from string, days int) (*model.UpcomingView, e
 	overdueTasks := scanTaskListItems(r.db, overdueRows)
 
 	// Earlier: tasks with when_date before the from date, not someday, not overdue
+	// Only include tasks that have at least one uncompleted past schedule entry
 	earlierRows, err := r.db.Query(`
 		SELECT t.id, t.title, t.notes, t.status, t.when_date, t.when_evening, t.high_priority,
 			t.deadline, t.project_id, t.area_id, t.heading_id,
@@ -286,18 +324,23 @@ func (r *ViewRepository) Upcoming(from string, days int) (*model.UpcomingView, e
 			CASE WHEN t.notes != '' THEN 1 ELSE 0 END,
 			CASE WHEN EXISTS(SELECT 1 FROM attachments WHERE task_id = t.id AND type = 'link') THEN 1 ELSE 0 END,
 			CASE WHEN EXISTS(SELECT 1 FROM attachments WHERE task_id = t.id AND type = 'file') THEN 1 ELSE 0 END,
-			CASE WHEN EXISTS(SELECT 1 FROM repeat_rules WHERE task_id = t.id) THEN 1 ELSE 0 END
+			CASE WHEN EXISTS(SELECT 1 FROM repeat_rules WHERE task_id = t.id) THEN 1 ELSE 0 END,
+			(SELECT start_time FROM task_schedules WHERE task_id = t.id AND when_date < ? AND when_date != 'someday' AND completed = 0 ORDER BY sort_order ASC LIMIT 1),
+			(SELECT end_time FROM task_schedules WHERE task_id = t.id AND when_date < ? AND when_date != 'someday' AND completed = 0 ORDER BY sort_order ASC LIMIT 1),
+			(SELECT id FROM task_schedules WHERE task_id = t.id AND when_date < ? AND when_date != 'someday' AND completed = 0 ORDER BY sort_order ASC LIMIT 1)
 		FROM tasks t
 		WHERE t.status = 'open'
 			AND t.when_date < ? AND t.when_date != 'someday'
 			AND (t.deadline IS NULL OR t.deadline >= ?)
 			AND t.deleted_at IS NULL
-		ORDER BY t.when_date ASC, t.sort_order_today ASC`, from, from)
+			AND EXISTS(SELECT 1 FROM task_schedules WHERE task_id = t.id AND when_date < ? AND when_date != 'someday' AND completed = 0)
+		ORDER BY t.when_date ASC, t.sort_order_today ASC`, from, from, from, from, from, from)
 	if err != nil {
 		return nil, err
 	}
 	defer earlierRows.Close()
-	earlierTasks := scanTaskListItems(r.db, earlierRows)
+	earlierTasks := scanTodayTaskListItems(r.db, earlierRows)
+	populatePastScheduleCounts(r.db, earlierTasks, from)
 
 	return &model.UpcomingView{Overdue: overdueTasks, Dates: dates, Earlier: earlierTasks}, nil
 }
@@ -399,7 +442,9 @@ func (r *ViewRepository) getAnytimeTasks(projectID, areaID *string, byProject, s
 			CASE WHEN t.notes != '' THEN 1 ELSE 0 END,
 			CASE WHEN EXISTS(SELECT 1 FROM attachments WHERE task_id = t.id AND type = 'link') THEN 1 ELSE 0 END,
 			CASE WHEN EXISTS(SELECT 1 FROM attachments WHERE task_id = t.id AND type = 'file') THEN 1 ELSE 0 END,
-			CASE WHEN EXISTS(SELECT 1 FROM repeat_rules WHERE task_id = t.id) THEN 1 ELSE 0 END
+			CASE WHEN EXISTS(SELECT 1 FROM repeat_rules WHERE task_id = t.id) THEN 1 ELSE 0 END,
+			(SELECT start_time FROM task_schedules WHERE task_id = t.id ORDER BY sort_order ASC LIMIT 1),
+			(SELECT end_time FROM task_schedules WHERE task_id = t.id ORDER BY sort_order ASC LIMIT 1)
 		FROM tasks t WHERE t.status = 'open' AND t.deleted_at IS NULL`
 
 	if byProject && projectID != nil {
@@ -441,7 +486,9 @@ func (r *ViewRepository) getAnytimeStandaloneNoArea(somedayOnly bool) []model.Ta
 			CASE WHEN t.notes != '' THEN 1 ELSE 0 END,
 			CASE WHEN EXISTS(SELECT 1 FROM attachments WHERE task_id = t.id AND type = 'link') THEN 1 ELSE 0 END,
 			CASE WHEN EXISTS(SELECT 1 FROM attachments WHERE task_id = t.id AND type = 'file') THEN 1 ELSE 0 END,
-			CASE WHEN EXISTS(SELECT 1 FROM repeat_rules WHERE task_id = t.id) THEN 1 ELSE 0 END
+			CASE WHEN EXISTS(SELECT 1 FROM repeat_rules WHERE task_id = t.id) THEN 1 ELSE 0 END,
+			(SELECT start_time FROM task_schedules WHERE task_id = t.id ORDER BY sort_order ASC LIMIT 1),
+			(SELECT end_time FROM task_schedules WHERE task_id = t.id ORDER BY sort_order ASC LIMIT 1)
 		FROM tasks t
 		WHERE t.status = 'open' AND t.project_id IS NULL AND t.area_id IS NULL AND t.deleted_at IS NULL`
 
@@ -479,7 +526,9 @@ func (r *ViewRepository) Logbook(limit, offset int) (*model.LogbookView, error) 
 			CASE WHEN t.notes != '' THEN 1 ELSE 0 END,
 			CASE WHEN EXISTS(SELECT 1 FROM attachments WHERE task_id = t.id AND type = 'link') THEN 1 ELSE 0 END,
 			CASE WHEN EXISTS(SELECT 1 FROM attachments WHERE task_id = t.id AND type = 'file') THEN 1 ELSE 0 END,
-			CASE WHEN EXISTS(SELECT 1 FROM repeat_rules WHERE task_id = t.id) THEN 1 ELSE 0 END
+			CASE WHEN EXISTS(SELECT 1 FROM repeat_rules WHERE task_id = t.id) THEN 1 ELSE 0 END,
+			(SELECT start_time FROM task_schedules WHERE task_id = t.id ORDER BY sort_order ASC LIMIT 1),
+			(SELECT end_time FROM task_schedules WHERE task_id = t.id ORDER BY sort_order ASC LIMIT 1)
 		FROM tasks t
 		WHERE t.status IN ('completed', 'canceled', 'wont_do') AND t.deleted_at IS NULL
 		ORDER BY COALESCE(t.completed_at, t.canceled_at, t.updated_at) DESC
@@ -538,7 +587,9 @@ func (r *ViewRepository) Trash(limit, offset int) (*model.LogbookView, error) {
 			CASE WHEN t.notes != '' THEN 1 ELSE 0 END,
 			CASE WHEN EXISTS(SELECT 1 FROM attachments WHERE task_id = t.id AND type = 'link') THEN 1 ELSE 0 END,
 			CASE WHEN EXISTS(SELECT 1 FROM attachments WHERE task_id = t.id AND type = 'file') THEN 1 ELSE 0 END,
-			CASE WHEN EXISTS(SELECT 1 FROM repeat_rules WHERE task_id = t.id) THEN 1 ELSE 0 END
+			CASE WHEN EXISTS(SELECT 1 FROM repeat_rules WHERE task_id = t.id) THEN 1 ELSE 0 END,
+			(SELECT start_time FROM task_schedules WHERE task_id = t.id ORDER BY sort_order ASC LIMIT 1),
+			(SELECT end_time FROM task_schedules WHERE task_id = t.id ORDER BY sort_order ASC LIMIT 1)
 		FROM tasks t
 		WHERE t.deleted_at IS NOT NULL
 		ORDER BY t.deleted_at DESC
@@ -573,6 +624,133 @@ func (r *ViewRepository) Trash(limit, offset int) (*model.LogbookView, error) {
 	}
 
 	return &model.LogbookView{Groups: groups, Total: total}, nil
+}
+
+type upcomingItem struct {
+	task model.TaskListItem
+	date string // the schedule_date for grouping
+}
+
+func scanUpcomingTaskListItems(db *sql.DB, rows *sql.Rows) []upcomingItem {
+	var items []upcomingItem
+	for rows.Next() {
+		var t model.TaskListItem
+		var whenEvening, highPriority, hasNotes, hasLinks, hasFiles, hasRepeat int
+		var scheduleDate string
+		_ = rows.Scan(
+			&t.ID, &t.Title, &t.Notes, &t.Status, &t.WhenDate, &whenEvening, &highPriority,
+			&t.Deadline, &t.ProjectID, &t.AreaID, &t.HeadingID,
+			&t.SortOrderToday, &t.SortOrderProject, &t.SortOrderHeading,
+			&t.CompletedAt, &t.CanceledAt, &t.DeletedAt, &t.CreatedAt, &t.UpdatedAt,
+			&t.ChecklistCount, &t.ChecklistDone,
+			&hasNotes, &hasLinks, &hasFiles, &hasRepeat,
+			&t.FirstScheduleTime, &t.FirstScheduleEndTime,
+			&t.ScheduleEntryID,
+			&scheduleDate,
+		)
+		t.WhenEvening = whenEvening == 1
+		t.HighPriority = highPriority == 1
+		t.HasNotes = hasNotes == 1
+		t.HasLinks = hasLinks == 1
+		t.HasFiles = hasFiles == 1
+		t.HasRepeatRule = hasRepeat == 1
+		// Get tags
+		tagRows, _ := db.Query(
+			"SELECT t.id, t.title, t.color FROM tags t JOIN task_tags tt ON t.id = tt.tag_id WHERE tt.task_id = ?", t.ID)
+		if tagRows != nil {
+			var tags []model.TagRef
+			for tagRows.Next() {
+				var tag model.TagRef
+				_ = tagRows.Scan(&tag.ID, &tag.Title, &tag.Color)
+				tags = append(tags, tag)
+			}
+			tagRows.Close()
+			if tags == nil {
+				tags = []model.TagRef{}
+			}
+			t.Tags = tags
+		} else {
+			t.Tags = []model.TagRef{}
+		}
+		// Resolve project/area names
+		if t.ProjectID != nil {
+			var name string
+			if err := db.QueryRow("SELECT title FROM projects WHERE id = ?", *t.ProjectID).Scan(&name); err == nil {
+				t.ProjectName = &name
+			}
+		}
+		if t.AreaID != nil {
+			var name string
+			if err := db.QueryRow("SELECT title FROM areas WHERE id = ?", *t.AreaID).Scan(&name); err == nil {
+				t.AreaName = &name
+			}
+		}
+		items = append(items, upcomingItem{task: t, date: scheduleDate})
+	}
+	return items
+}
+
+// scanTodayTaskListItems scans rows that include ts.start_time, ts.end_time,
+// and ts.id (schedule_entry_id) from a LEFT JOIN on task_schedules.
+// Unlike scanUpcomingTaskListItems, there is no extra schedule_date grouping column.
+func scanTodayTaskListItems(db *sql.DB, rows *sql.Rows) []model.TaskListItem {
+	var tasks []model.TaskListItem
+	for rows.Next() {
+		var t model.TaskListItem
+		var whenEvening, highPriority, hasNotes, hasLinks, hasFiles, hasRepeat int
+		_ = rows.Scan(
+			&t.ID, &t.Title, &t.Notes, &t.Status, &t.WhenDate, &whenEvening, &highPriority,
+			&t.Deadline, &t.ProjectID, &t.AreaID, &t.HeadingID,
+			&t.SortOrderToday, &t.SortOrderProject, &t.SortOrderHeading,
+			&t.CompletedAt, &t.CanceledAt, &t.DeletedAt, &t.CreatedAt, &t.UpdatedAt,
+			&t.ChecklistCount, &t.ChecklistDone,
+			&hasNotes, &hasLinks, &hasFiles, &hasRepeat,
+			&t.FirstScheduleTime, &t.FirstScheduleEndTime,
+			&t.ScheduleEntryID,
+		)
+		t.WhenEvening = whenEvening == 1
+		t.HighPriority = highPriority == 1
+		t.HasNotes = hasNotes == 1
+		t.HasLinks = hasLinks == 1
+		t.HasFiles = hasFiles == 1
+		t.HasRepeatRule = hasRepeat == 1
+		// Get tags
+		tagRows, _ := db.Query(
+			"SELECT t.id, t.title, t.color FROM tags t JOIN task_tags tt ON t.id = tt.tag_id WHERE tt.task_id = ?", t.ID)
+		if tagRows != nil {
+			var tags []model.TagRef
+			for tagRows.Next() {
+				var tag model.TagRef
+				_ = tagRows.Scan(&tag.ID, &tag.Title, &tag.Color)
+				tags = append(tags, tag)
+			}
+			tagRows.Close()
+			if tags == nil {
+				tags = []model.TagRef{}
+			}
+			t.Tags = tags
+		} else {
+			t.Tags = []model.TagRef{}
+		}
+		// Resolve project/area names
+		if t.ProjectID != nil {
+			var name string
+			if err := db.QueryRow("SELECT title FROM projects WHERE id = ?", *t.ProjectID).Scan(&name); err == nil {
+				t.ProjectName = &name
+			}
+		}
+		if t.AreaID != nil {
+			var name string
+			if err := db.QueryRow("SELECT title FROM areas WHERE id = ?", *t.AreaID).Scan(&name); err == nil {
+				t.AreaName = &name
+			}
+		}
+		tasks = append(tasks, t)
+	}
+	if tasks == nil {
+		tasks = []model.TaskListItem{}
+	}
+	return tasks
 }
 
 func groupByProject(db *sql.DB, tasks []model.TaskListItem) []model.TaskGroup {
@@ -645,4 +823,22 @@ func ParseIntDefault(s string, def int) int {
 		return def
 	}
 	return n
+}
+
+// populatePastScheduleCounts sets PastScheduleCount on each task that has
+// schedule entries with when_date before the given date.
+func populatePastScheduleCounts(db *sql.DB, tasks []model.TaskListItem, before string) {
+	if len(tasks) == 0 {
+		return
+	}
+	for i, t := range tasks {
+		var count int
+		err := db.QueryRow(
+			`SELECT COUNT(*) FROM task_schedules WHERE task_id = ? AND when_date < ? AND when_date != 'someday' AND completed = 0`,
+			t.ID, before,
+		).Scan(&count)
+		if err == nil {
+			tasks[i].PastScheduleCount = count
+		}
+	}
 }
