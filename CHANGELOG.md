@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.9.1] - 2026-02-28
+
+### Added
+- Reschedule button for past schedule entries on recurring tasks — moves the date to today while keeping the time frame
+
+### Fixed
+- Schedule entries now cleaned up when completing, canceling, or marking a task as won't do (past entries marked completed, future entries removed)
+- Unused test helper causing CI lint failure
+
 ## [0.9.0] - 2026-02-28
 
 ### Added
