@@ -1,5 +1,30 @@
 # Changelog
 
+## [0.9.2] - 2026-02-28
+
+### Security
+- Sanitize FTS5 search snippets to prevent XSS via dangerouslySetInnerHTML
+- Reject empty JWT_SECRET at startup when AUTH_MODE is builtin/oidc
+- Move SSE /api/events endpoint inside auth middleware group
+- Add SQL column/table name whitelists to prevent injection in dynamic queries
+- Run Docker container as non-root user
+
+### Fixed
+- Remove duplicate schedule entry creation in scheduler
+- Add safe type assertions in saved_filters and user_settings handlers
+- Fix schedule handler SSE events to include full task payload
+- Remove unused `days` parameter from Upcoming view
+- setTaskTags/setProjectTags now use transactions and return errors
+- Schedule/heading/tag/attachment repo Update methods check all DB errors
+- Add .catch() to async DnD operations to roll back stale optimistic updates
+- Move isSequencePending from module-level to useRef (prevents HMR/strict mode issues)
+- Split SortableTaskList registry effect to avoid unregister/register race during drag
+
+### Changed
+- Makefile build target depends on build-frontend, adds CGO_ENABLED=0
+- Add TypeScript type-check step to CI lint-frontend job
+- Pin golangci-lint to v1.64 for reproducible CI
+
 ## [0.9.1] - 2026-02-28
 
 ### Added
