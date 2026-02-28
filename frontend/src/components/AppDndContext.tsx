@@ -365,7 +365,11 @@ function AppDndContextInner({ children }: AppDndContextProps) {
               queryClient.invalidateQueries({ queryKey: ['tags'] })
             }, 800)
           }
-          doComplete()
+          doComplete().catch(() => {
+            queryClient.invalidateQueries({ queryKey: ['views'] })
+            queryClient.invalidateQueries({ queryKey: ['projects'] })
+            queryClient.invalidateQueries({ queryKey: ['areas'] })
+          })
           return
         }
 
@@ -465,7 +469,12 @@ function AppDndContextInner({ children }: AppDndContextProps) {
             queryClient.invalidateQueries({ queryKey: ['areas'] })
           }
         }
-        sidebarDrop()
+        sidebarDrop().catch(() => {
+          queryClient.invalidateQueries({ queryKey: ['views'] })
+          queryClient.invalidateQueries({ queryKey: ['projects'] })
+          queryClient.invalidateQueries({ queryKey: ['areas'] })
+          queryClient.invalidateQueries({ queryKey: ['tags'] })
+        })
         return
       }
 

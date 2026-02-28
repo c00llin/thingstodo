@@ -1,6 +1,7 @@
 package config
 
 import (
+	"log"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -28,7 +29,7 @@ type Config struct {
 func Load() Config {
 	dbPath := envStr("DB_PATH", "./data/thingstodo.db")
 	dataDir := filepath.Dir(dbPath)
-	return Config{
+	cfg := Config{
 		Port:            envInt("PORT", 2999),
 		DBPath:          dbPath,
 		AuthMode:        envStr("AUTH_MODE", "builtin"),
@@ -45,6 +46,12 @@ func Load() Config {
 		OIDCClientSecret: envStr("OIDC_CLIENT_SECRET", ""),
 		OIDCRedirectURI:  envStr("OIDC_REDIRECT_URI", ""),
 	}
+
+	if (cfg.AuthMode == "builtin" || cfg.AuthMode == "oidc") && cfg.JWTSecret == "" {
+		log.Fatal("JWT_SECRET must be set when AUTH_MODE is builtin or oidc")
+	}
+
+	return cfg
 }
 
 func envStr(key, fallback string) string {

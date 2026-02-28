@@ -20,11 +20,15 @@ export function SortableTaskList({ tasks, sortField, showProject, hideWhenDate }
   const listId = useId()
   const registry = useSortableListRegistry()
 
-  // Register this list with the registry so AppDndContext can find tasks
+  // Register this list with the registry so AppDndContext can find tasks.
+  // Re-register when tasks change to keep data fresh, but only unregister on unmount.
   useEffect(() => {
     registry.register(listId, tasks, sortField)
+  }, [registry, listId, tasks, sortField])
+
+  useEffect(() => {
     return () => registry.unregister(listId)
-  })
+  }, [registry, listId])
 
   // Use schedule_entry_id as sortable ID when available (multi-date tasks),
   // falling back to task.id for tasks without schedule entries.

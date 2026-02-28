@@ -242,7 +242,7 @@ func (r *ViewRepository) Today(eveningStartsAt string) (*model.TodayView, error)
 	}, nil
 }
 
-func (r *ViewRepository) Upcoming(from string, days int) (*model.UpcomingView, error) {
+func (r *ViewRepository) Upcoming(from string) (*model.UpcomingView, error) {
 	if from == "" {
 		from = time.Now().Format("2006-01-02")
 	}

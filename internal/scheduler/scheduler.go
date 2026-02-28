@@ -128,10 +128,7 @@ func (s *Scheduler) createNextInstance(originalTaskID string, rule *model.Repeat
 		return
 	}
 
-	// Create first schedule entry for the new task
-	if err := s.scheduleRepo.CreateFirstEntry(newTask.ID, nextDate); err != nil {
-		log.Printf("scheduler: create schedule entry for task %s: %v", newTask.ID, err)
-	}
+	// Note: first schedule entry is created by taskRepo.Create via syncFirstScheduleDate
 
 	// Copy checklist items (unchecked)
 	for _, item := range original.Checklist {

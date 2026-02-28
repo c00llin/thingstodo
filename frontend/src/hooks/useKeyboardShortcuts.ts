@@ -12,15 +12,13 @@ const VIEW_ROUTES = ['/inbox', '/today', '/upcoming', '/anytime', '/someday', '/
 /** Timeout in ms for the second key in a sequence (g + key). */
 const SEQUENCE_TIMEOUT = 500
 
-/** Whether a key sequence (g + …) is currently pending. */
-let isSequencePending = false
-
 /**
  * Hook for "g + <key>" navigation sequences.
  * If 'g' was pressed recently, the next key is matched against the map.
  */
 function useKeySequences(sequences: Record<string, () => void>) {
   const timerRef = useRef<ReturnType<typeof setTimeout>>(undefined)
+  const pendingRef = useRef(false)
 
   const handler = useCallback(
     (e: KeyboardEvent) => {
@@ -33,12 +31,12 @@ function useKeySequences(sequences: Record<string, () => void>) {
         e.metaKey ||
         e.altKey
       ) {
-        isSequencePending = false
+        pendingRef.current = false
         return
       }
 
-      if (isSequencePending) {
-        isSequencePending = false
+      if (pendingRef.current) {
+        pendingRef.current = false
         clearTimeout(timerRef.current)
         const action = sequences[e.key]
         if (action) {
@@ -49,10 +47,10 @@ function useKeySequences(sequences: Record<string, () => void>) {
       }
 
       if (e.key === 'g') {
-        isSequencePending = true
+        pendingRef.current = true
         clearTimeout(timerRef.current)
         timerRef.current = setTimeout(() => {
-          isSequencePending = false
+          pendingRef.current = false
         }, SEQUENCE_TIMEOUT)
       }
     },

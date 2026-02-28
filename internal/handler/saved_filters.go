@@ -30,7 +30,11 @@ func NewSavedFilterHandler(repo *repository.SavedFilterRepository, broker *sse.B
 
 // List handles GET /api/saved-filters?view=today
 func (h *SavedFilterHandler) List(w http.ResponseWriter, r *http.Request) {
-	userID := r.Context().Value(mw.UserIDKey).(string)
+	userID, ok := r.Context().Value(mw.UserIDKey).(string)
+	if !ok || userID == "" {
+		writeError(w, http.StatusUnauthorized, "unauthorized", "UNAUTHORIZED")
+		return
+	}
 	view := r.URL.Query().Get("view")
 	if view == "" {
 		writeError(w, http.StatusBadRequest, "view query param is required", "BAD_REQUEST")
@@ -47,7 +51,11 @@ func (h *SavedFilterHandler) List(w http.ResponseWriter, r *http.Request) {
 
 // Create handles POST /api/saved-filters
 func (h *SavedFilterHandler) Create(w http.ResponseWriter, r *http.Request) {
-	userID := r.Context().Value(mw.UserIDKey).(string)
+	userID, ok := r.Context().Value(mw.UserIDKey).(string)
+	if !ok || userID == "" {
+		writeError(w, http.StatusUnauthorized, "unauthorized", "UNAUTHORIZED")
+		return
+	}
 	var input model.CreateSavedFilterInput
 	if err := decodeJSON(r, &input); err != nil {
 		writeError(w, http.StatusBadRequest, "invalid JSON", "BAD_REQUEST")
@@ -77,7 +85,11 @@ func (h *SavedFilterHandler) Create(w http.ResponseWriter, r *http.Request) {
 
 // Delete handles DELETE /api/saved-filters/{id}
 func (h *SavedFilterHandler) Delete(w http.ResponseWriter, r *http.Request) {
-	userID := r.Context().Value(mw.UserIDKey).(string)
+	userID, ok := r.Context().Value(mw.UserIDKey).(string)
+	if !ok || userID == "" {
+		writeError(w, http.StatusUnauthorized, "unauthorized", "UNAUTHORIZED")
+		return
+	}
 	id := chi.URLParam(r, "id")
 
 	// Fetch the view before deleting so we can broadcast the correct SSE event

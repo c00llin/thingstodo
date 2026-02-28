@@ -11,12 +11,22 @@ import (
 )
 
 type ScheduleHandler struct {
-	repo   *repository.ScheduleRepository
-	broker *sse.Broker
+	repo     *repository.ScheduleRepository
+	taskRepo *repository.TaskRepository
+	broker   *sse.Broker
 }
 
-func NewScheduleHandler(repo *repository.ScheduleRepository, broker *sse.Broker) *ScheduleHandler {
-	return &ScheduleHandler{repo: repo, broker: broker}
+func NewScheduleHandler(repo *repository.ScheduleRepository, taskRepo *repository.TaskRepository, broker *sse.Broker) *ScheduleHandler {
+	return &ScheduleHandler{repo: repo, taskRepo: taskRepo, broker: broker}
+}
+
+func (h *ScheduleHandler) broadcastTaskUpdated(taskID string) {
+	task, err := h.taskRepo.GetByID(taskID)
+	if err != nil || task == nil {
+		h.broker.BroadcastJSON("task_updated", map[string]interface{}{"id": taskID})
+		return
+	}
+	h.broker.BroadcastJSON("task_updated", map[string]interface{}{"id": taskID, "task": task})
 }
 
 func (h *ScheduleHandler) List(w http.ResponseWriter, r *http.Request) {
@@ -87,7 +97,7 @@ func (h *ScheduleHandler) Create(w http.ResponseWriter, r *http.Request) {
 		log.Printf("WARN schedules.Create syncPrimary: %v", err)
 	}
 
-	h.broker.BroadcastJSON("task_updated", map[string]interface{}{"id": taskID})
+	h.broadcastTaskUpdated(taskID)
 	writeJSON(w, http.StatusCreated, item)
 }
 
@@ -148,7 +158,7 @@ func (h *ScheduleHandler) Update(w http.ResponseWriter, r *http.Request) {
 		log.Printf("WARN schedules.Update syncPrimary: %v", err)
 	}
 
-	h.broker.BroadcastJSON("task_updated", map[string]interface{}{"id": item.TaskID})
+	h.broadcastTaskUpdated(item.TaskID)
 	writeJSON(w, http.StatusOK, item)
 }
 
@@ -170,7 +180,7 @@ func (h *ScheduleHandler) Delete(w http.ResponseWriter, r *http.Request) {
 		log.Printf("WARN schedules.Delete syncPrimary: %v", err)
 	}
 
-	h.broker.BroadcastJSON("task_updated", map[string]interface{}{"id": taskID})
+	h.broadcastTaskUpdated(taskID)
 	w.WriteHeader(http.StatusNoContent)
 }
 
@@ -190,6 +200,6 @@ func (h *ScheduleHandler) Reorder(w http.ResponseWriter, r *http.Request) {
 		log.Printf("WARN schedules.Reorder syncPrimary: %v", err)
 	}
 
-	h.broker.BroadcastJSON("task_updated", map[string]interface{}{"id": taskID})
+	h.broadcastTaskUpdated(taskID)
 	w.WriteHeader(http.StatusNoContent)
 }

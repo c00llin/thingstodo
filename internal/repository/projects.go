@@ -164,7 +164,9 @@ func (r *ProjectRepository) Create(input model.CreateProjectInput) (*model.Proje
 		return nil, fmt.Errorf("create project: %w", err)
 	}
 	if len(input.TagIDs) > 0 {
-		setProjectTags(r.db, id, input.TagIDs)
+		if err := setProjectTags(r.db, id, input.TagIDs); err != nil {
+			return nil, fmt.Errorf("set project tags: %w", err)
+		}
 	}
 	return r.GetByID(id)
 }
@@ -210,7 +212,9 @@ func (r *ProjectRepository) Update(id string, input model.UpdateProjectInput) (*
 		}
 	}
 	if input.TagIDs != nil {
-		setProjectTags(r.db, id, input.TagIDs)
+		if err := setProjectTags(r.db, id, input.TagIDs); err != nil {
+			return nil, fmt.Errorf("set project tags: %w", err)
+		}
 	}
 	return r.GetByID(id)
 }
@@ -263,7 +267,12 @@ func (r *ProjectRepository) Reorder(items []model.SimpleReorderItem) error {
 
 // --- shared helpers ---
 
+var validRefTables = map[string]bool{"projects": true, "areas": true, "headings": true}
+
 func getRef(db *sql.DB, table, id string) *model.Ref {
+	if !validRefTables[table] {
+		return nil
+	}
 	var ref model.Ref
 	err := db.QueryRow("SELECT id, title FROM "+table+" WHERE id = ?", id).Scan(&ref.ID, &ref.Title)
 	if err != nil {
@@ -291,14 +300,30 @@ func getProjectTags(db *sql.DB, projectID string) []model.TagRef {
 	return tags
 }
 
-func setProjectTags(db *sql.DB, projectID string, tagIDs []string) {
-	_, _ = db.Exec("DELETE FROM project_tags WHERE project_id = ?", projectID)
-	for _, tagID := range tagIDs {
-		_, _ = db.Exec("INSERT OR IGNORE INTO project_tags (project_id, tag_id) VALUES (?, ?)", projectID, tagID)
+func setProjectTags(db *sql.DB, projectID string, tagIDs []string) error {
+	tx, err := db.Begin()
+	if err != nil {
+		return err
 	}
+	defer func() { _ = tx.Rollback() }()
+
+	if _, err := tx.Exec("DELETE FROM project_tags WHERE project_id = ?", projectID); err != nil {
+		return fmt.Errorf("delete project tags: %w", err)
+	}
+	for _, tagID := range tagIDs {
+		if _, err := tx.Exec("INSERT OR IGNORE INTO project_tags (project_id, tag_id) VALUES (?, ?)", projectID, tagID); err != nil {
+			return fmt.Errorf("insert project tag: %w", err)
+		}
+	}
+	return tx.Commit()
 }
 
+var validFilterCols = map[string]bool{"heading_id": true, "project_id": true, "area_id": true}
+
 func getTaskListItems(db *sql.DB, filterCol, filterVal string) []model.TaskListItem {
+	if !validFilterCols[filterCol] {
+		return []model.TaskListItem{}
+	}
 	rows, err := db.Query(`
 		SELECT t.id, t.title, t.notes, t.status, t.when_date, t.when_evening, t.high_priority,
 			t.deadline, t.project_id, t.area_id, t.heading_id,

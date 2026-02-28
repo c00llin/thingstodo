@@ -144,7 +144,7 @@ function SearchOverlayInner() {
                 <span
                   className="text-sm text-neutral-700 dark:text-neutral-300 [&_mark]:bg-yellow-200 [&_mark]:text-neutral-900 dark:[&_mark]:bg-yellow-500/40 dark:[&_mark]:text-neutral-100"
                   dangerouslySetInnerHTML={{
-                    __html: result.title_snippet || escapeHtml(result.task.title),
+                    __html: sanitizeSnippet(result.title_snippet) || escapeHtml(result.task.title),
                   }}
                 />
                 {getTaskContext(result.task) && (
@@ -155,7 +155,7 @@ function SearchOverlayInner() {
                 {result.notes_snippet && (
                   <span
                     className="line-clamp-1 text-xs text-neutral-500 dark:text-neutral-400 [&_mark]:bg-yellow-200 [&_mark]:text-neutral-700 dark:[&_mark]:bg-yellow-500/40 dark:[&_mark]:text-neutral-300"
-                    dangerouslySetInnerHTML={{ __html: result.notes_snippet }}
+                    dangerouslySetInnerHTML={{ __html: sanitizeSnippet(result.notes_snippet) }}
                   />
                 )}
               </button>
@@ -178,4 +178,28 @@ function escapeHtml(str: string): string {
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;')
+}
+
+/** Sanitize FTS5 snippet HTML — only allow <mark> tags, escape everything else. */
+function sanitizeSnippet(snippet: string): string {
+  // Split on <mark> and </mark>, escape each text segment, reassemble
+  const parts: string[] = []
+  let remaining = snippet
+  while (remaining.length > 0) {
+    const openIdx = remaining.indexOf('<mark>')
+    if (openIdx === -1) {
+      parts.push(escapeHtml(remaining))
+      break
+    }
+    parts.push(escapeHtml(remaining.slice(0, openIdx)))
+    remaining = remaining.slice(openIdx + 6)
+    const closeIdx = remaining.indexOf('</mark>')
+    if (closeIdx === -1) {
+      parts.push(escapeHtml(remaining))
+      break
+    }
+    parts.push('<mark>' + escapeHtml(remaining.slice(0, closeIdx)) + '</mark>')
+    remaining = remaining.slice(closeIdx + 7)
+  }
+  return parts.join('')
 }

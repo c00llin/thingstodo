@@ -68,10 +68,14 @@ func (r *AttachmentRepository) Create(taskID string, input model.CreateAttachmen
 
 func (r *AttachmentRepository) Update(id string, input model.UpdateAttachmentInput) (*model.Attachment, error) {
 	if input.Title != nil {
-		_, _ = r.db.Exec("UPDATE attachments SET title = ? WHERE id = ?", *input.Title, id)
+		if _, err := r.db.Exec("UPDATE attachments SET title = ? WHERE id = ?", *input.Title, id); err != nil {
+			return nil, fmt.Errorf("update attachment title: %w", err)
+		}
 	}
 	if input.SortOrder != nil {
-		_, _ = r.db.Exec("UPDATE attachments SET sort_order = ? WHERE id = ?", *input.SortOrder, id)
+		if _, err := r.db.Exec("UPDATE attachments SET sort_order = ? WHERE id = ?", *input.SortOrder, id); err != nil {
+			return nil, fmt.Errorf("update attachment sort_order: %w", err)
+		}
 	}
 	return r.GetByID(id)
 }

@@ -58,7 +58,7 @@ func New(db *sql.DB, cfg config.Config, broker *sse.Broker, sched *scheduler.Sch
 	authH := handler.NewAuthHandler(userRepo, cfg)
 	settingsH := handler.NewUserSettingsHandler(settingsRepo)
 	savedFilterH := handler.NewSavedFilterHandler(savedFilterRepo, broker)
-	scheduleH := handler.NewScheduleHandler(scheduleRepo, broker)
+	scheduleH := handler.NewScheduleHandler(scheduleRepo, taskRepo, broker)
 	eventH := handler.NewEventHandler(broker)
 
 	var oidcH *handler.OIDCHandler
@@ -89,9 +89,6 @@ func New(db *sql.DB, cfg config.Config, broker *sse.Broker, sched *scheduler.Sch
 			r.Get("/auth/oidc/callback", oidcH.Callback)
 		}
 
-		// SSE events (before auth middleware so it can connect)
-		r.Get("/events", eventH.Stream)
-
 		// Protected routes
 		r.Group(func(r chi.Router) {
 			r.Use(mw.Auth(cfg, func() (string, error) {
@@ -104,6 +101,9 @@ func New(db *sql.DB, cfg config.Config, broker *sse.Broker, sched *scheduler.Sch
 				}
 				return u.ID, nil
 			}))
+
+			// SSE events
+			r.Get("/events", eventH.Stream)
 
 			// Auth
 			r.Get("/auth/me", authH.Me)

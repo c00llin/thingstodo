@@ -18,10 +18,9 @@ export function getToday() {
   return api.get<TodayView>('/views/today')
 }
 
-export function getUpcoming(params?: { from?: string; days?: number }) {
+export function getUpcoming(params?: { from?: string }) {
   const search = new URLSearchParams()
   if (params?.from) search.set('from', params.from)
-  if (params?.days) search.set('days', String(params.days))
   const qs = search.toString()
   return api.get<UpcomingView>(`/views/upcoming${qs ? `?${qs}` : ''}`)
 }

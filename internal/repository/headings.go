@@ -56,10 +56,14 @@ func (r *HeadingRepository) Create(projectID string, input model.CreateHeadingIn
 
 func (r *HeadingRepository) Update(id string, input model.UpdateHeadingInput) (*model.Heading, error) {
 	if input.Title != nil {
-		_, _ = r.db.Exec("UPDATE headings SET title = ? WHERE id = ?", *input.Title, id)
+		if _, err := r.db.Exec("UPDATE headings SET title = ? WHERE id = ?", *input.Title, id); err != nil {
+			return nil, fmt.Errorf("update heading title: %w", err)
+		}
 	}
 	if input.SortOrder != nil {
-		_, _ = r.db.Exec("UPDATE headings SET sort_order = ? WHERE id = ?", *input.SortOrder, id)
+		if _, err := r.db.Exec("UPDATE headings SET sort_order = ? WHERE id = ?", *input.SortOrder, id); err != nil {
+			return nil, fmt.Errorf("update heading sort_order: %w", err)
+		}
 	}
 
 	var h model.Heading

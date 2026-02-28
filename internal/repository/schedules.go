@@ -57,23 +57,33 @@ func (r *ScheduleRepository) Create(taskID string, input model.CreateTaskSchedul
 
 func (r *ScheduleRepository) Update(id string, input model.UpdateTaskScheduleInput) (*model.TaskSchedule, error) {
 	if input.WhenDate != nil {
-		_, _ = r.db.Exec("UPDATE task_schedules SET when_date = ? WHERE id = ?", *input.WhenDate, id)
+		if _, err := r.db.Exec("UPDATE task_schedules SET when_date = ? WHERE id = ?", *input.WhenDate, id); err != nil {
+			return nil, fmt.Errorf("update schedule when_date: %w", err)
+		}
 	}
 	if _, ok := input.Raw["start_time"]; ok {
-		_, _ = r.db.Exec("UPDATE task_schedules SET start_time = ? WHERE id = ?", input.StartTime, id)
+		if _, err := r.db.Exec("UPDATE task_schedules SET start_time = ? WHERE id = ?", input.StartTime, id); err != nil {
+			return nil, fmt.Errorf("update schedule start_time: %w", err)
+		}
 	}
 	if _, ok := input.Raw["end_time"]; ok {
-		_, _ = r.db.Exec("UPDATE task_schedules SET end_time = ? WHERE id = ?", input.EndTime, id)
+		if _, err := r.db.Exec("UPDATE task_schedules SET end_time = ? WHERE id = ?", input.EndTime, id); err != nil {
+			return nil, fmt.Errorf("update schedule end_time: %w", err)
+		}
 	}
 	if input.SortOrder != nil {
-		_, _ = r.db.Exec("UPDATE task_schedules SET sort_order = ? WHERE id = ?", *input.SortOrder, id)
+		if _, err := r.db.Exec("UPDATE task_schedules SET sort_order = ? WHERE id = ?", *input.SortOrder, id); err != nil {
+			return nil, fmt.Errorf("update schedule sort_order: %w", err)
+		}
 	}
 	if input.Completed != nil {
 		v := 0
 		if *input.Completed {
 			v = 1
 		}
-		_, _ = r.db.Exec("UPDATE task_schedules SET completed = ? WHERE id = ?", v, id)
+		if _, err := r.db.Exec("UPDATE task_schedules SET completed = ? WHERE id = ?", v, id); err != nil {
+			return nil, fmt.Errorf("update schedule completed: %w", err)
+		}
 	}
 
 	var s model.TaskSchedule

@@ -61,10 +61,8 @@ func (h *ViewHandler) Today(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *ViewHandler) Upcoming(w http.ResponseWriter, r *http.Request) {
-	q := r.URL.Query()
-	from := q.Get("from")
-	days := repository.ParseIntDefault(q.Get("days"), 30)
-	view, err := h.repo.Upcoming(from, days)
+	from := r.URL.Query().Get("from")
+	view, err := h.repo.Upcoming(from)
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, err.Error(), "INTERNAL")
 		return

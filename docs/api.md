@@ -910,7 +910,7 @@ Tasks with no project, no area, no when_date, status=open.
 ```
 
 ### GET /api/views/upcoming
-Query params: `from` (ISO date, default today), `days` (default 30)
+Query params: `from` (ISO date, default today)
 
 Tasks with multiple schedule entries appear once per date. Each task in the response includes a `schedule_date` field indicating which date it appears under.
 

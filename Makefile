@@ -1,10 +1,13 @@
-.PHONY: run build test dev typecheck
+.PHONY: run build build-frontend test dev typecheck
 
 run:
 	go run ./cmd/server
 
-build:
-	go build -ldflags="-s -w -X main.Version=$$(jq -r .version frontend/package.json) -X main.Commit=$$(git rev-parse --short HEAD)" -o bin/thingstodo ./cmd/server
+build-frontend:
+	cd frontend && npm run build
+
+build: build-frontend
+	CGO_ENABLED=0 go build -ldflags="-s -w -X main.Version=$$(jq -r .version frontend/package.json) -X main.Commit=$$(git rev-parse --short HEAD)" -o bin/thingstodo ./cmd/server
 
 test:
 	go test ./...

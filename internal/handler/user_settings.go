@@ -18,7 +18,11 @@ func NewUserSettingsHandler(repo *repository.UserSettingsRepository) *UserSettin
 }
 
 func (h *UserSettingsHandler) Get(w http.ResponseWriter, r *http.Request) {
-	userID := r.Context().Value(mw.UserIDKey).(string)
+	userID, ok := r.Context().Value(mw.UserIDKey).(string)
+	if !ok || userID == "" {
+		writeError(w, http.StatusUnauthorized, "unauthorized", "UNAUTHORIZED")
+		return
+	}
 	settings, err := h.repo.GetOrCreate(userID)
 	if err != nil {
 		log.Printf("ERROR user_settings.Get userID=%s: %v", userID, err)
@@ -29,7 +33,11 @@ func (h *UserSettingsHandler) Get(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *UserSettingsHandler) Update(w http.ResponseWriter, r *http.Request) {
-	userID := r.Context().Value(mw.UserIDKey).(string)
+	userID, ok := r.Context().Value(mw.UserIDKey).(string)
+	if !ok || userID == "" {
+		writeError(w, http.StatusUnauthorized, "unauthorized", "UNAUTHORIZED")
+		return
+	}
 	var input model.UpdateUserSettingsInput
 	raw, err := decodeJSONWithRaw(r, &input)
 	if err != nil {

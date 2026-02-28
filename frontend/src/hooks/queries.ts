@@ -70,7 +70,7 @@ export const queryKeys = {
   views: {
     inbox: ['views', 'inbox'] as const,
     today: ['views', 'today'] as const,
-    upcoming: (from?: string, days?: number) => ['views', 'upcoming', from, days] as const,
+    upcoming: (from?: string) => ['views', 'upcoming', from] as const,
     anytime: ['views', 'anytime'] as const,
     someday: ['views', 'someday'] as const,
     logbook: (limit?: number, offset?: number) => ['views', 'logbook', limit, offset] as const,
@@ -101,10 +101,10 @@ export function useToday() {
   })
 }
 
-export function useUpcoming(from?: string, days?: number) {
+export function useUpcoming(from?: string) {
   return useQuery({
-    queryKey: queryKeys.views.upcoming(from, days),
-    queryFn: () => viewsApi.getUpcoming({ from, days }),
+    queryKey: queryKeys.views.upcoming(from),
+    queryFn: () => viewsApi.getUpcoming({ from }),
   })
 }
 

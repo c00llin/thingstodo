@@ -69,13 +69,19 @@ func (r *TagRepository) Update(id string, input model.UpdateTagInput) (*model.Ta
 		}
 	}
 	if _, ok := input.Raw["color"]; ok {
-		_, _ = r.db.Exec("UPDATE tags SET color = ? WHERE id = ?", input.Color, id)
+		if _, err := r.db.Exec("UPDATE tags SET color = ? WHERE id = ?", input.Color, id); err != nil {
+			return nil, fmt.Errorf("update tag color: %w", err)
+		}
 	}
 	if _, ok := input.Raw["parent_tag_id"]; ok {
-		_, _ = r.db.Exec("UPDATE tags SET parent_tag_id = ? WHERE id = ?", input.ParentTagID, id)
+		if _, err := r.db.Exec("UPDATE tags SET parent_tag_id = ? WHERE id = ?", input.ParentTagID, id); err != nil {
+			return nil, fmt.Errorf("update tag parent: %w", err)
+		}
 	}
 	if input.SortOrder != nil {
-		_, _ = r.db.Exec("UPDATE tags SET sort_order = ? WHERE id = ?", *input.SortOrder, id)
+		if _, err := r.db.Exec("UPDATE tags SET sort_order = ? WHERE id = ?", *input.SortOrder, id); err != nil {
+			return nil, fmt.Errorf("update tag sort_order: %w", err)
+		}
 	}
 
 	var t model.Tag

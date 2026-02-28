@@ -191,7 +191,9 @@ func (r *TaskRepository) Create(input model.CreateTaskInput) (*model.TaskDetail,
 	}
 
 	if len(input.TagIDs) > 0 {
-		r.setTaskTags(id, input.TagIDs)
+		if err := r.setTaskTags(id, input.TagIDs); err != nil {
+			return nil, fmt.Errorf("set task tags: %w", err)
+		}
 	}
 
 	// Create first schedule entry if when_date is set
@@ -250,7 +252,9 @@ func (r *TaskRepository) Update(id string, input model.UpdateTaskInput) (*model.
 	}
 
 	if input.TagIDs != nil {
-		r.setTaskTags(id, input.TagIDs)
+		if err := r.setTaskTags(id, input.TagIDs); err != nil {
+			return nil, fmt.Errorf("set task tags: %w", err)
+		}
 	}
 
 	// Sync first schedule entry when when_date changes
@@ -393,11 +397,22 @@ func (r *TaskRepository) getTaskTags(taskID string) ([]model.TagRef, error) {
 	return tags, nil
 }
 
-func (r *TaskRepository) setTaskTags(taskID string, tagIDs []string) {
-	_, _ = r.db.Exec("DELETE FROM task_tags WHERE task_id = ?", taskID)
-	for _, tagID := range tagIDs {
-		_, _ = r.db.Exec("INSERT OR IGNORE INTO task_tags (task_id, tag_id) VALUES (?, ?)", taskID, tagID)
+func (r *TaskRepository) setTaskTags(taskID string, tagIDs []string) error {
+	tx, err := r.db.Begin()
+	if err != nil {
+		return err
 	}
+	defer func() { _ = tx.Rollback() }()
+
+	if _, err := tx.Exec("DELETE FROM task_tags WHERE task_id = ?", taskID); err != nil {
+		return fmt.Errorf("delete task tags: %w", err)
+	}
+	for _, tagID := range tagIDs {
+		if _, err := tx.Exec("INSERT OR IGNORE INTO task_tags (task_id, tag_id) VALUES (?, ?)", taskID, tagID); err != nil {
+			return fmt.Errorf("insert task tag: %w", err)
+		}
+	}
+	return tx.Commit()
 }
 
 func (r *TaskRepository) getChecklist(taskID string) ([]model.ChecklistItem, error) {
@@ -547,6 +562,9 @@ func patternToFrequency(pt model.PatternType) string {
 }
 
 func (r *TaskRepository) getRef(table, id string) *model.Ref {
+	if !validRefTables[table] {
+		return nil
+	}
 	var ref model.Ref
 	err := r.db.QueryRow("SELECT id, title FROM "+table+" WHERE id = ?", id).Scan(&ref.ID, &ref.Title)
 	if err != nil {
