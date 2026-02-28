@@ -1,5 +1,5 @@
 import { useRef, useState, useEffect, useLayoutEffect, useMemo } from 'react'
-import { Calendar, Plus, Trash2, X, Clock, Check } from 'lucide-react'
+import { Calendar, Plus, Trash2, X, Clock, Check, RotateCcw } from 'lucide-react'
 import { DateInput } from './DateInput'
 import { TimeInput, type TimeInputHandle } from './TimeInput'
 import {
@@ -398,7 +398,7 @@ export function ScheduleEditor({
                 </button>
               )}
 
-              {/* Past entry actions: checkmark to mark complete, trash to delete, plus to add */}
+              {/* Past entry actions: checkmark, trash, reschedule, plus */}
               {isPast && (
                 <>
                   <button
@@ -422,6 +422,19 @@ export function ScheduleEditor({
                   >
                     <Trash2 size={14} />
                   </button>
+                  {hasRepeatRule && !isCompleted && (
+                    <button
+                      onClick={() => updateSchedule.mutate({
+                        id: entry.id,
+                        data: { when_date: today, completed: false },
+                      })}
+                      className="flex items-center gap-1 rounded px-1.5 py-0.5 text-xs font-medium text-red-600 transition-colors hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/30"
+                      aria-label="Reschedule to today"
+                    >
+                      <RotateCcw size={12} />
+                      Reschedule
+                    </button>
+                  )}
                   {isLast && canAdd && (
                     <button
                       onClick={handleAddEntry}
