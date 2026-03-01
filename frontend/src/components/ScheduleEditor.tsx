@@ -422,7 +422,7 @@ export function ScheduleEditor({
                   >
                     <Trash2 size={14} />
                   </button>
-                  {hasRepeatRule && !isCompleted && (
+                  {(hasRepeatRule || schedules.length === 1) && !isCompleted && (
                     <button
                       onClick={() => updateSchedule.mutate({
                         id: entry.id,
