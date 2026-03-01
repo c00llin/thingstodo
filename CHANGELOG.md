@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.9.3] - 2026-03-01
+
+### Fixed
+- Fix review tasks showing empty data in Inbox (missing schedule columns in review query)
+- Fix `make dev` not loading .env file (backend failed with missing JWT_SECRET)
+
 ## [0.9.2] - 2026-02-28
 
 ### Security

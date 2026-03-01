@@ -59,7 +59,9 @@ func (r *ViewRepository) Inbox(reviewAfterDays *int) (*model.InboxView, error) {
 				CASE WHEN t.notes != '' THEN 1 ELSE 0 END,
 				CASE WHEN EXISTS(SELECT 1 FROM attachments WHERE task_id = t.id AND type = 'link') THEN 1 ELSE 0 END,
 				CASE WHEN EXISTS(SELECT 1 FROM attachments WHERE task_id = t.id AND type = 'file') THEN 1 ELSE 0 END,
-				CASE WHEN EXISTS(SELECT 1 FROM repeat_rules WHERE task_id = t.id) THEN 1 ELSE 0 END
+				CASE WHEN EXISTS(SELECT 1 FROM repeat_rules WHERE task_id = t.id) THEN 1 ELSE 0 END,
+				(SELECT start_time FROM task_schedules WHERE task_id = t.id ORDER BY sort_order ASC LIMIT 1),
+				(SELECT end_time FROM task_schedules WHERE task_id = t.id ORDER BY sort_order ASC LIMIT 1)
 			FROM tasks t
 			WHERE t.status = 'open' AND t.deleted_at IS NULL
 				AND date(t.updated_at) < date('now', '-' || ? || ' days')

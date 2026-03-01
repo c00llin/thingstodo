@@ -14,7 +14,8 @@ test:
 
 dev:
 	@echo "Starting backend and frontend dev servers..."
-	@trap 'kill 0' EXIT; \
+	@set -a; [ -f .env ] && . ./.env; set +a; \
+		trap 'kill 0' EXIT; \
 		go run ./cmd/server & \
 		cd frontend && npm run dev & \
 		wait
