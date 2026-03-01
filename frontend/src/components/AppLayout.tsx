@@ -1,6 +1,6 @@
 import { lazy, Suspense, useEffect, useRef } from 'react'
 import { Outlet, Navigate, useLocation } from 'react-router'
-import { Menu, RefreshCw } from 'lucide-react'
+import { Menu, Plus, RefreshCw } from 'lucide-react'
 import { Sidebar } from './Sidebar'
 import { ShortcutsHelp } from './ShortcutsHelp'
 import { AppDndContext } from './AppDndContext'
@@ -21,6 +21,7 @@ export function AppLayout() {
   const location = useLocation()
   const expandTask = useAppStore((s) => s.expandTask)
   const openMobileSidebar = useAppStore((s) => s.openMobileSidebar)
+  const openQuickEntry = useAppStore((s) => s.openQuickEntry)
   const closeMobileSidebar = useAppStore((s) => s.closeMobileSidebar)
   const mainRef = useRef<HTMLElement>(null)
   const { pullDistance, isRefreshing } = usePullToRefresh(mainRef)
@@ -93,6 +94,14 @@ export function AppLayout() {
             <Menu size={20} />
           </button>
           <Outlet />
+          <button
+            onClick={() => openQuickEntry()}
+            className="fixed bottom-6 right-6 z-30 flex h-14 w-14 items-center justify-center rounded-full bg-red-500 text-white shadow-lg active:bg-red-600 md:hidden"
+            style={{ bottom: 'calc(1.5rem + env(safe-area-inset-bottom, 0px))' }}
+            aria-label="New task"
+          >
+            <Plus size={28} strokeWidth={2.5} />
+          </button>
         </main>
         <ShortcutsHelp />
         <Suspense>
