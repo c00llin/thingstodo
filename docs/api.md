@@ -841,7 +841,8 @@ Response (200):
   "evening_starts_at": "18:00",
   "default_time_gap": 60,
   "show_time_badge": true,
-  "time_format": "12h"
+  "time_format": "12h",
+  "font_size": 16
 }
 ```
 
@@ -859,7 +860,8 @@ Request: Partial update (any subset of fields)
   "evening_starts_at": "HH:MM (24h, default 18:00)",
   "default_time_gap": "integer (minutes, default 60)",
   "show_time_badge": "boolean (default true)",
-  "time_format": "12h|24h (default 12h)"
+  "time_format": "12h|24h (default 12h)",
+  "font_size": "integer (12|14|16|18|20, default 16)"
 }
 ```
 

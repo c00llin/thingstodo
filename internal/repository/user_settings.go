@@ -19,9 +19,9 @@ func NewUserSettingsRepository(db *sql.DB) *UserSettingsRepository {
 func (r *UserSettingsRepository) GetOrCreate(userID string) (*model.UserSettings, error) {
 	var s model.UserSettings
 	err := r.db.QueryRow(
-		"SELECT play_complete_sound, show_count_main, show_count_projects, show_count_tags, review_after_days, sort_areas, sort_tags, evening_starts_at, default_time_gap, show_time_badge, time_format FROM user_settings WHERE user_id = ?",
+		"SELECT play_complete_sound, show_count_main, show_count_projects, show_count_tags, review_after_days, sort_areas, sort_tags, evening_starts_at, default_time_gap, show_time_badge, time_format, font_size FROM user_settings WHERE user_id = ?",
 		userID,
-	).Scan(&s.PlayCompleteSound, &s.ShowCountMain, &s.ShowCountProjects, &s.ShowCountTags, &s.ReviewAfterDays, &s.SortAreas, &s.SortTags, &s.EveningStartsAt, &s.DefaultTimeGap, &s.ShowTimeBadge, &s.TimeFormat)
+	).Scan(&s.PlayCompleteSound, &s.ShowCountMain, &s.ShowCountProjects, &s.ShowCountTags, &s.ReviewAfterDays, &s.SortAreas, &s.SortTags, &s.EveningStartsAt, &s.DefaultTimeGap, &s.ShowTimeBadge, &s.TimeFormat, &s.FontSize)
 	if err == sql.ErrNoRows {
 		_, err = r.db.Exec(
 			"INSERT INTO user_settings (user_id) VALUES (?)", userID,
@@ -42,6 +42,7 @@ func (r *UserSettingsRepository) GetOrCreate(userID string) (*model.UserSettings
 			DefaultTimeGap:    60,
 			ShowTimeBadge:     true,
 			TimeFormat:        "12h",
+			FontSize:          16,
 		}
 		return &s, nil
 	}
@@ -102,6 +103,10 @@ func (r *UserSettingsRepository) Update(userID string, input model.UpdateUserSet
 	if input.TimeFormat != nil {
 		setClauses = append(setClauses, "time_format = ?")
 		args = append(args, *input.TimeFormat)
+	}
+	if input.FontSize != nil {
+		setClauses = append(setClauses, "font_size = ?")
+		args = append(args, *input.FontSize)
 	}
 
 	if len(setClauses) > 0 {

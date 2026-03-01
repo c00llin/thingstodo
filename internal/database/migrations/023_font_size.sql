@@ -1,0 +1,1 @@
+ALTER TABLE user_settings ADD COLUMN font_size INTEGER NOT NULL DEFAULT 16;

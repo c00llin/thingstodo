@@ -514,6 +514,7 @@ export interface UserSettings {
   default_time_gap: number
   show_time_badge: boolean
   time_format: '12h' | '24h'
+  font_size: number
 }
 
 // Saved Filters

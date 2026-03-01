@@ -7,7 +7,7 @@ import { AppDndContext } from './AppDndContext'
 import { useGlobalShortcuts, useTaskShortcuts } from '../hooks/useKeyboardShortcuts'
 import { useTheme } from '../hooks/useTheme'
 import { useSSE } from '../hooks/useSSE'
-import { useMe, useFlushPendingInvalidation } from '../hooks/queries'
+import { useMe, useSettings, useFlushPendingInvalidation } from '../hooks/queries'
 import { usePullToRefresh } from '../hooks/usePullToRefresh'
 import { useAppStore } from '../stores/app'
 import { useFilterStore } from '../stores/filters'
@@ -24,11 +24,23 @@ export function AppLayout() {
   const closeMobileSidebar = useAppStore((s) => s.closeMobileSidebar)
   const mainRef = useRef<HTMLElement>(null)
   const { pullDistance, isRefreshing } = usePullToRefresh(mainRef)
+  const { data: settings } = useSettings()
   useGlobalShortcuts()
   useTaskShortcuts()
   useTheme()
   useSSE()
   useFlushPendingInvalidation()
+
+  // Apply font size setting to document root
+  const fontSize = settings?.font_size
+  useEffect(() => {
+    if (fontSize != null) {
+      document.documentElement.style.fontSize = fontSize + 'px'
+    }
+    return () => {
+      document.documentElement.style.fontSize = ''
+    }
+  }, [fontSize])
 
   // Close task detail panel, filter bar, and reset filters when navigating to a different page
   useEffect(() => {

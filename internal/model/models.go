@@ -211,6 +211,7 @@ type UserSettings struct {
 	DefaultTimeGap    int    `json:"default_time_gap"`
 	ShowTimeBadge     bool   `json:"show_time_badge"`
 	TimeFormat        string `json:"time_format"`
+	FontSize          int    `json:"font_size"`
 }
 
 type UpdateUserSettingsInput struct {
@@ -225,6 +226,7 @@ type UpdateUserSettingsInput struct {
 	DefaultTimeGap    *int    `json:"default_time_gap"`
 	ShowTimeBadge     *bool   `json:"show_time_badge"`
 	TimeFormat        *string `json:"time_format"`
+	FontSize          *int    `json:"font_size"`
 	Raw               map[string]json.RawMessage `json:"-"`
 }
 

@@ -221,6 +221,26 @@ export function SettingsView() {
         </div>
       </section>
 
+      <section className="mb-8">
+        <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-neutral-500 dark:text-neutral-400">
+          Appearance
+        </h2>
+        <div className="flex items-center gap-3 py-1.5">
+          <span className="text-sm text-neutral-700 dark:text-neutral-300">Font size</span>
+          <input
+            type="range"
+            min={14}
+            max={18}
+            step={1}
+            defaultValue={settings.font_size}
+            onMouseUp={(e) => updateSettings.mutate({ font_size: Number(e.currentTarget.value) })}
+            onTouchEnd={(e) => updateSettings.mutate({ font_size: Number(e.currentTarget.value) })}
+            className="w-32 accent-red-500"
+          />
+          <span className="w-10 text-sm text-neutral-500 dark:text-neutral-400">{settings.font_size}px</span>
+        </div>
+      </section>
+
       <section>
         <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-neutral-500 dark:text-neutral-400">
           Show task count for
