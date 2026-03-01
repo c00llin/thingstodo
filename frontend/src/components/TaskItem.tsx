@@ -410,7 +410,7 @@ export function TaskItem({ task, showProject = true, hideWhenDate = false, showR
               {taskContext && settings?.show_time_badge !== false && task.first_schedule_time && ' — '}
               {settings?.show_time_badge !== false && task.first_schedule_time && (
                 task.past_schedule_count && task.past_schedule_count > 1
-                  ? 'multiple time frames'
+                  ? 'multiple time blocks'
                   : task.first_schedule_end_time
                     ? formatTimeRange(task.first_schedule_time, task.first_schedule_end_time, settings?.time_format ?? '12h')
                     : formatTime(task.first_schedule_time, settings?.time_format ?? '12h')
