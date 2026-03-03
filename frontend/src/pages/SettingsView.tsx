@@ -324,6 +324,7 @@ export function SettingsView() {
 function PushNotificationToggle() {
   const [subscribed, setSubscribed] = useState(false)
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
   const supported = 'PushManager' in window && 'serviceWorker' in navigator
 
   useEffect(() => {
@@ -340,9 +341,11 @@ function PushNotificationToggle() {
 
   async function handleToggle(enable: boolean) {
     setLoading(true)
+    setError(null)
     if (enable) {
-      const ok = await registerPushSubscription()
-      setSubscribed(ok)
+      const result = await registerPushSubscription()
+      setSubscribed(result.ok)
+      if (!result.ok && result.error) setError(result.error)
     } else {
       await unregisterPushSubscription()
       setSubscribed(false)
@@ -351,17 +354,22 @@ function PushNotificationToggle() {
   }
 
   return (
-    <label className="flex cursor-pointer items-center gap-3 py-1.5">
-      <input
-        type="checkbox"
-        checked={subscribed}
-        disabled={loading}
-        onChange={(e) => handleToggle(e.target.checked)}
-        className="h-4 w-4 rounded border-neutral-300 accent-red-500 dark:border-neutral-600"
-      />
-      <span className="text-sm text-neutral-700 dark:text-neutral-300">
-        Enable push notifications{loading ? '...' : ''}
-      </span>
-    </label>
+    <div>
+      <label className="flex cursor-pointer items-center gap-3 py-1.5">
+        <input
+          type="checkbox"
+          checked={subscribed}
+          disabled={loading}
+          onChange={(e) => handleToggle(e.target.checked)}
+          className="h-4 w-4 rounded border-neutral-300 accent-red-500 dark:border-neutral-600"
+        />
+        <span className="text-sm text-neutral-700 dark:text-neutral-300">
+          Enable push notifications{loading ? '...' : ''}
+        </span>
+      </label>
+      {error && (
+        <p className="mt-1 text-xs text-red-500 dark:text-red-400">{error}</p>
+      )}
+    </div>
   )
 }

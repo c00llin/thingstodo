@@ -1,28 +1,21 @@
 import { getVapidKey, subscribePush, unsubscribePush } from '../api/push'
 
-export async function registerPushSubscription(): Promise<boolean> {
+export async function registerPushSubscription(): Promise<{ ok: boolean; error?: string }> {
   if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
-    console.warn('Push notifications not supported')
-    return false
+    return { ok: false, error: 'Push notifications are not supported in this browser' }
   }
 
   const permission = await Notification.requestPermission()
   if (permission !== 'granted') {
-    return false
+    return { ok: false, error: 'Notification permission was denied' }
   }
 
   try {
     const { public_key } = await getVapidKey()
     if (!public_key) {
-      console.error('Push registration failed: no VAPID public key configured')
-      return false
+      return { ok: false, error: 'Push not configured on server — set VAPID_PUBLIC_KEY and VAPID_PRIVATE_KEY env vars' }
     }
-    const registration = await navigator.serviceWorker.getRegistration()
-    if (!registration) {
-      console.error('Push registration failed: no service worker registered')
-      return false
-    }
-
+    const registration = await navigator.serviceWorker.ready
     const subscription = await registration.pushManager.subscribe({
       userVisibleOnly: true,
       applicationServerKey: urlBase64ToUint8Array(public_key) as BufferSource,
@@ -35,10 +28,10 @@ export async function registerPushSubscription(): Promise<boolean> {
       auth: json.keys?.auth ?? '',
     })
 
-    return true
+    return { ok: true }
   } catch (err) {
     console.error('Push registration failed:', err)
-    return false
+    return { ok: false, error: err instanceof Error ? err.message : 'Unknown error during push registration' }
   }
 }
 
@@ -60,8 +53,7 @@ export async function unregisterPushSubscription(): Promise<void> {
 export async function isPushSubscribed(): Promise<boolean> {
   if (!('serviceWorker' in navigator) || !('PushManager' in window)) return false
   try {
-    const registration = await navigator.serviceWorker.getRegistration()
-    if (!registration) return false
+    const registration = await navigator.serviceWorker.ready
     const subscription = await registration.pushManager.getSubscription()
     return subscription !== null
   } catch {
