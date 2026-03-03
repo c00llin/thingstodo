@@ -48,6 +48,10 @@ func (r *SearchRepository) Search(query string, limit int) ([]model.SearchResult
 			CASE WHEN EXISTS(SELECT 1 FROM attachments WHERE task_id = t.id AND type = 'link') THEN 1 ELSE 0 END,
 			CASE WHEN EXISTS(SELECT 1 FROM attachments WHERE task_id = t.id AND type = 'file') THEN 1 ELSE 0 END,
 			CASE WHEN EXISTS(SELECT 1 FROM repeat_rules WHERE task_id = t.id) THEN 1 ELSE 0 END,
+			CASE WHEN EXISTS(SELECT 1 FROM reminders WHERE task_id = t.id) THEN 1 ELSE 0 END,
+			(SELECT type FROM reminders WHERE task_id = t.id ORDER BY created_at LIMIT 1),
+			(SELECT value FROM reminders WHERE task_id = t.id ORDER BY created_at LIMIT 1),
+			(SELECT exact_at FROM reminders WHERE task_id = t.id ORDER BY created_at LIMIT 1),
 			snippet(tasks_fts, 0, '<mark>', '</mark>', '...', 32),
 			snippet(tasks_fts, 1, '<mark>', '</mark>', '...', 32),
 			rank
@@ -65,14 +69,15 @@ func (r *SearchRepository) Search(query string, limit int) ([]model.SearchResult
 	for rows.Next() {
 		var sr model.SearchResult
 		var t model.TaskListItem
-		var whenEvening, highPriority, hasNotes, hasLinks, hasFiles, hasRepeat int
+		var whenEvening, highPriority, hasNotes, hasLinks, hasFiles, hasRepeat, hasReminders int
 		if err := rows.Scan(
 			&t.ID, &t.Title, &t.Notes, &t.Status, &t.WhenDate, &whenEvening, &highPriority,
 			&t.Deadline, &t.ProjectID, &t.AreaID, &t.HeadingID,
 			&t.SortOrderToday, &t.SortOrderProject, &t.SortOrderHeading,
 			&t.CompletedAt, &t.CanceledAt, &t.DeletedAt, &t.CreatedAt, &t.UpdatedAt,
 			&t.ChecklistCount, &t.ChecklistDone,
-			&hasNotes, &hasLinks, &hasFiles, &hasRepeat,
+			&hasNotes, &hasLinks, &hasFiles, &hasRepeat, &hasReminders,
+			&t.FirstReminderType, &t.FirstReminderValue, &t.FirstReminderExactAt,
 			&sr.TitleSnippet, &sr.NotesSnippet, &sr.Rank,
 		); err != nil {
 			return nil, err
@@ -83,6 +88,7 @@ func (r *SearchRepository) Search(query string, limit int) ([]model.SearchResult
 		t.HasLinks = hasLinks == 1
 		t.HasFiles = hasFiles == 1
 		t.HasRepeatRule = hasRepeat == 1
+		t.HasReminders = hasReminders == 1
 		t.Tags = []model.TagRef{}
 		if t.ProjectID != nil {
 			_ = r.db.QueryRow("SELECT title FROM projects WHERE id = ?", *t.ProjectID).Scan(&t.ProjectName)

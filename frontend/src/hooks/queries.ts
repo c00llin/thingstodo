@@ -13,6 +13,7 @@ import * as searchApi from '../api/search'
 import * as authApi from '../api/auth'
 import * as settingsApi from '../api/settings'
 import * as schedulesApi from '../api/schedules'
+import * as remindersApi from '../api/reminders'
 import * as savedFiltersApi from '../api/savedFilters'
 import { playCompleteSound, playReviewSound } from '../lib/sounds'
 import type {
@@ -51,6 +52,7 @@ export const queryKeys = {
     detail: (id: string) => ['tasks', id] as const,
     checklist: (id: string) => ['tasks', id, 'checklist'] as const,
     attachments: (id: string) => ['tasks', id, 'attachments'] as const,
+    reminders: (id: string) => ['tasks', id, 'reminders'] as const,
     schedules: (id: string) => ['tasks', id, 'schedules'] as const,
   },
   projects: {
@@ -835,6 +837,31 @@ export function useDeleteChecklistItem(taskId: string) {
     mutationFn: (id: string) => checklistApi.deleteChecklistItem(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.tasks.checklist(taskId) })
+      queryClient.invalidateQueries({ queryKey: queryKeys.tasks.detail(taskId) })
+    },
+  })
+}
+
+// --- Reminder Hooks ---
+
+export function useCreateReminder(taskId: string) {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (data: import('../api/types').CreateReminderRequest) =>
+      remindersApi.createReminder(taskId, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.tasks.reminders(taskId) })
+      queryClient.invalidateQueries({ queryKey: queryKeys.tasks.detail(taskId) })
+    },
+  })
+}
+
+export function useDeleteReminder(taskId: string) {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (id: string) => remindersApi.deleteReminder(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.tasks.reminders(taskId) })
       queryClient.invalidateQueries({ queryKey: queryKeys.tasks.detail(taskId) })
     },
   })

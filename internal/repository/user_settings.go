@@ -19,9 +19,9 @@ func NewUserSettingsRepository(db *sql.DB) *UserSettingsRepository {
 func (r *UserSettingsRepository) GetOrCreate(userID string) (*model.UserSettings, error) {
 	var s model.UserSettings
 	err := r.db.QueryRow(
-		"SELECT play_complete_sound, show_count_main, show_count_projects, show_count_tags, review_after_days, sort_areas, sort_tags, evening_starts_at, default_time_gap, show_time_badge, time_format, font_size FROM user_settings WHERE user_id = ?",
+		"SELECT play_complete_sound, show_count_main, show_count_projects, show_count_tags, review_after_days, sort_areas, sort_tags, evening_starts_at, default_time_gap, show_time_badge, time_format, font_size, default_reminder_type, default_reminder_value, copy_reminders_to_recurring FROM user_settings WHERE user_id = ?",
 		userID,
-	).Scan(&s.PlayCompleteSound, &s.ShowCountMain, &s.ShowCountProjects, &s.ShowCountTags, &s.ReviewAfterDays, &s.SortAreas, &s.SortTags, &s.EveningStartsAt, &s.DefaultTimeGap, &s.ShowTimeBadge, &s.TimeFormat, &s.FontSize)
+	).Scan(&s.PlayCompleteSound, &s.ShowCountMain, &s.ShowCountProjects, &s.ShowCountTags, &s.ReviewAfterDays, &s.SortAreas, &s.SortTags, &s.EveningStartsAt, &s.DefaultTimeGap, &s.ShowTimeBadge, &s.TimeFormat, &s.FontSize, &s.DefaultReminderType, &s.DefaultReminderValue, &s.CopyRemindersToRecurring)
 	if err == sql.ErrNoRows {
 		_, err = r.db.Exec(
 			"INSERT INTO user_settings (user_id) VALUES (?)", userID,
@@ -31,18 +31,19 @@ func (r *UserSettingsRepository) GetOrCreate(userID string) (*model.UserSettings
 		}
 		defaultDays := 7
 		s = model.UserSettings{
-			PlayCompleteSound: true,
-			ShowCountMain:     true,
-			ShowCountProjects: true,
-			ShowCountTags:     true,
-			ReviewAfterDays:   &defaultDays,
-			SortAreas:         "manual",
-			SortTags:          "manual",
-			EveningStartsAt:   "18:00",
-			DefaultTimeGap:    60,
-			ShowTimeBadge:     true,
-			TimeFormat:        "12h",
-			FontSize:          16,
+			PlayCompleteSound:        true,
+			ShowCountMain:            true,
+			ShowCountProjects:        true,
+			ShowCountTags:            true,
+			ReviewAfterDays:          &defaultDays,
+			SortAreas:                "manual",
+			SortTags:                 "manual",
+			EveningStartsAt:          "18:00",
+			DefaultTimeGap:           60,
+			ShowTimeBadge:            true,
+			TimeFormat:               "12h",
+			FontSize:                 16,
+			CopyRemindersToRecurring: true,
 		}
 		return &s, nil
 	}
@@ -107,6 +108,22 @@ func (r *UserSettingsRepository) Update(userID string, input model.UpdateUserSet
 	if input.FontSize != nil {
 		setClauses = append(setClauses, "font_size = ?")
 		args = append(args, *input.FontSize)
+	}
+	if _, ok := input.Raw["default_reminder_type"]; ok {
+		setClauses = append(setClauses, "default_reminder_type = ?")
+		if input.DefaultReminderType != nil {
+			args = append(args, *input.DefaultReminderType)
+		} else {
+			args = append(args, nil)
+		}
+	}
+	if input.DefaultReminderValue != nil {
+		setClauses = append(setClauses, "default_reminder_value = ?")
+		args = append(args, *input.DefaultReminderValue)
+	}
+	if input.CopyRemindersToRecurring != nil {
+		setClauses = append(setClauses, "copy_reminders_to_recurring = ?")
+		args = append(args, boolToInt(*input.CopyRemindersToRecurring))
 	}
 
 	if len(setClauses) > 0 {

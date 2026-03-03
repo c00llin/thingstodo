@@ -1,0 +1,67 @@
+package handler
+
+import (
+	"net/http"
+
+	"github.com/collinjanssen/thingstodo/internal/config"
+	mw "github.com/collinjanssen/thingstodo/internal/middleware"
+	"github.com/collinjanssen/thingstodo/internal/model"
+	"github.com/collinjanssen/thingstodo/internal/repository"
+)
+
+type PushSubscriptionHandler struct {
+	repo *repository.PushSubscriptionRepository
+	cfg  config.Config
+}
+
+func NewPushSubscriptionHandler(repo *repository.PushSubscriptionRepository, cfg config.Config) *PushSubscriptionHandler {
+	return &PushSubscriptionHandler{repo: repo, cfg: cfg}
+}
+
+func (h *PushSubscriptionHandler) Subscribe(w http.ResponseWriter, r *http.Request) {
+	userID, ok := r.Context().Value(mw.UserIDKey).(string)
+	if !ok || userID == "" {
+		writeError(w, http.StatusUnauthorized, "unauthorized", "UNAUTHORIZED")
+		return
+	}
+	var input model.CreatePushSubscriptionInput
+	if err := decodeJSON(r, &input); err != nil {
+		writeError(w, http.StatusBadRequest, "invalid JSON", "BAD_REQUEST")
+		return
+	}
+	if input.Endpoint == "" || input.P256dh == "" || input.Auth == "" {
+		writeError(w, http.StatusBadRequest, "endpoint, p256dh, and auth are required", "VALIDATION")
+		return
+	}
+	sub, err := h.repo.Upsert(userID, input)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, err.Error(), "INTERNAL")
+		return
+	}
+	writeJSON(w, http.StatusCreated, sub)
+}
+
+func (h *PushSubscriptionHandler) Unsubscribe(w http.ResponseWriter, r *http.Request) {
+	var input struct {
+		Endpoint string `json:"endpoint"`
+	}
+	if err := decodeJSON(r, &input); err != nil {
+		writeError(w, http.StatusBadRequest, "invalid JSON", "BAD_REQUEST")
+		return
+	}
+	if input.Endpoint == "" {
+		writeError(w, http.StatusBadRequest, "endpoint is required", "VALIDATION")
+		return
+	}
+	if err := h.repo.DeleteByEndpoint(input.Endpoint); err != nil {
+		writeError(w, http.StatusInternalServerError, err.Error(), "INTERNAL")
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
+}
+
+func (h *PushSubscriptionHandler) VAPIDKey(w http.ResponseWriter, r *http.Request) {
+	writeJSON(w, http.StatusOK, map[string]string{
+		"public_key": h.cfg.VAPIDPublicKey,
+	})
+}

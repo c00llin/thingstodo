@@ -157,6 +157,23 @@ export interface RepeatRule {
   day_constraints?: DayConstraint[]
 }
 
+// Reminders
+export type ReminderType = 'at_start' | 'on_day' | 'minutes_before' | 'hours_before' | 'days_before' | 'exact'
+
+export interface Reminder {
+  id: string
+  type: ReminderType
+  value: number
+  exact_at: string | null
+  created_at: string
+}
+
+export interface CreateReminderRequest {
+  type: ReminderType
+  value?: number
+  exact_at?: string
+}
+
 // Schedules
 export interface TaskSchedule {
   id: string
@@ -212,6 +229,10 @@ export interface Task {
   has_links: boolean
   has_files: boolean
   has_repeat_rule: boolean
+  has_reminders: boolean
+  first_reminder_type: ReminderType | null
+  first_reminder_value: number | null
+  first_reminder_exact_at: string | null
   project_name: string | null
   area_name: string | null
   first_schedule_time: string | null
@@ -229,6 +250,7 @@ export interface TaskDetail extends Task {
   attachments: Attachment[]
   repeat_rule: RepeatRule | null
   schedules: TaskSchedule[]
+  reminders: Reminder[]
 }
 
 export interface CreateTaskRequest {
@@ -515,6 +537,9 @@ export interface UserSettings {
   show_time_badge: boolean
   time_format: '12h' | '24h'
   font_size: number
+  default_reminder_type: ReminderType | null
+  default_reminder_value: number
+  copy_reminders_to_recurring: boolean
 }
 
 // Saved Filters

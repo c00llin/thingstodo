@@ -6,6 +6,7 @@ import (
 	"strings"
 	"time"
 
+	mw "github.com/collinjanssen/thingstodo/internal/middleware"
 	"github.com/collinjanssen/thingstodo/internal/model"
 	"github.com/collinjanssen/thingstodo/internal/repository"
 	"github.com/collinjanssen/thingstodo/internal/scheduler"
@@ -16,12 +17,14 @@ import (
 type TaskHandler struct {
 	repo         *repository.TaskRepository
 	scheduleRepo *repository.ScheduleRepository
+	reminderRepo *repository.ReminderRepository
+	settingsRepo *repository.UserSettingsRepository
 	broker       *sse.Broker
 	scheduler    *scheduler.Scheduler
 }
 
-func NewTaskHandler(repo *repository.TaskRepository, scheduleRepo *repository.ScheduleRepository, broker *sse.Broker, sched *scheduler.Scheduler) *TaskHandler {
-	return &TaskHandler{repo: repo, scheduleRepo: scheduleRepo, broker: broker, scheduler: sched}
+func NewTaskHandler(repo *repository.TaskRepository, scheduleRepo *repository.ScheduleRepository, reminderRepo *repository.ReminderRepository, settingsRepo *repository.UserSettingsRepository, broker *sse.Broker, sched *scheduler.Scheduler) *TaskHandler {
+	return &TaskHandler{repo: repo, scheduleRepo: scheduleRepo, reminderRepo: reminderRepo, settingsRepo: settingsRepo, broker: broker, scheduler: sched}
 }
 
 func (h *TaskHandler) List(w http.ResponseWriter, r *http.Request) {
@@ -101,6 +104,22 @@ func (h *TaskHandler) Create(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusInternalServerError, err.Error(), "INTERNAL")
 		return
 	}
+
+	// Auto-apply default reminder if configured
+	userID, _ := r.Context().Value(mw.UserIDKey).(string)
+	if settings, err := h.settingsRepo.GetOrCreate(userID); err == nil && settings.DefaultReminderType != nil {
+		_, err := h.reminderRepo.Create(task.ID, model.CreateReminderInput{
+			Type:  model.ReminderType(*settings.DefaultReminderType),
+			Value: settings.DefaultReminderValue,
+		})
+		if err != nil {
+			log.Printf("warning: failed to create default reminder for task %s: %v", task.ID, err)
+		} else {
+			// Re-fetch to include the new reminder in the response
+			task, _ = h.repo.GetByID(task.ID)
+		}
+	}
+
 	h.broker.BroadcastJSON("task_created", map[string]interface{}{"id": task.ID, "task": task})
 	writeJSON(w, http.StatusCreated, task)
 }

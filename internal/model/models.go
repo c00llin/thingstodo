@@ -108,6 +108,10 @@ type TaskListItem struct {
 	HasLinks             bool     `json:"has_links"`
 	HasFiles             bool     `json:"has_files"`
 	HasRepeatRule        bool     `json:"has_repeat_rule"`
+	HasReminders         bool     `json:"has_reminders"`
+	FirstReminderType    *string  `json:"first_reminder_type"`
+	FirstReminderValue   *int     `json:"first_reminder_value"`
+	FirstReminderExactAt *string  `json:"first_reminder_exact_at"`
 	FirstScheduleTime    *string  `json:"first_schedule_time"`
 	FirstScheduleEndTime *string  `json:"first_schedule_end_time"`
 	ScheduleEntryID      *string  `json:"schedule_entry_id"`
@@ -127,6 +131,7 @@ type TaskDetail struct {
 	Attachments []Attachment     `json:"attachments"`
 	RepeatRule  *RepeatRule      `json:"repeat_rule"`
 	Schedules   []TaskSchedule   `json:"schedules"`
+	Reminders   []Reminder       `json:"reminders"`
 }
 
 type ChecklistItem struct {
@@ -200,34 +205,40 @@ type User struct {
 }
 
 type UserSettings struct {
-	PlayCompleteSound bool   `json:"play_complete_sound"`
-	ShowCountMain     bool   `json:"show_count_main"`
-	ShowCountProjects bool   `json:"show_count_projects"`
-	ShowCountTags     bool   `json:"show_count_tags"`
-	ReviewAfterDays   *int   `json:"review_after_days"`
-	SortAreas         string `json:"sort_areas"`
-	SortTags          string `json:"sort_tags"`
-	EveningStartsAt   string `json:"evening_starts_at"`
-	DefaultTimeGap    int    `json:"default_time_gap"`
-	ShowTimeBadge     bool   `json:"show_time_badge"`
-	TimeFormat        string `json:"time_format"`
-	FontSize          int    `json:"font_size"`
+	PlayCompleteSound       bool    `json:"play_complete_sound"`
+	ShowCountMain           bool    `json:"show_count_main"`
+	ShowCountProjects       bool    `json:"show_count_projects"`
+	ShowCountTags           bool    `json:"show_count_tags"`
+	ReviewAfterDays         *int    `json:"review_after_days"`
+	SortAreas               string  `json:"sort_areas"`
+	SortTags                string  `json:"sort_tags"`
+	EveningStartsAt         string  `json:"evening_starts_at"`
+	DefaultTimeGap          int     `json:"default_time_gap"`
+	ShowTimeBadge           bool    `json:"show_time_badge"`
+	TimeFormat              string  `json:"time_format"`
+	FontSize                int     `json:"font_size"`
+	DefaultReminderType     *string `json:"default_reminder_type"`
+	DefaultReminderValue    int     `json:"default_reminder_value"`
+	CopyRemindersToRecurring bool   `json:"copy_reminders_to_recurring"`
 }
 
 type UpdateUserSettingsInput struct {
-	PlayCompleteSound *bool   `json:"play_complete_sound"`
-	ShowCountMain     *bool   `json:"show_count_main"`
-	ShowCountProjects *bool   `json:"show_count_projects"`
-	ShowCountTags     *bool   `json:"show_count_tags"`
-	ReviewAfterDays   *int    `json:"review_after_days"`
-	SortAreas         *string `json:"sort_areas"`
-	SortTags          *string `json:"sort_tags"`
-	EveningStartsAt   *string `json:"evening_starts_at"`
-	DefaultTimeGap    *int    `json:"default_time_gap"`
-	ShowTimeBadge     *bool   `json:"show_time_badge"`
-	TimeFormat        *string `json:"time_format"`
-	FontSize          *int    `json:"font_size"`
-	Raw               map[string]json.RawMessage `json:"-"`
+	PlayCompleteSound        *bool   `json:"play_complete_sound"`
+	ShowCountMain            *bool   `json:"show_count_main"`
+	ShowCountProjects        *bool   `json:"show_count_projects"`
+	ShowCountTags            *bool   `json:"show_count_tags"`
+	ReviewAfterDays          *int    `json:"review_after_days"`
+	SortAreas                *string `json:"sort_areas"`
+	SortTags                 *string `json:"sort_tags"`
+	EveningStartsAt          *string `json:"evening_starts_at"`
+	DefaultTimeGap           *int    `json:"default_time_gap"`
+	ShowTimeBadge            *bool   `json:"show_time_badge"`
+	TimeFormat               *string `json:"time_format"`
+	FontSize                 *int    `json:"font_size"`
+	DefaultReminderType      *string `json:"default_reminder_type"`
+	DefaultReminderValue     *int    `json:"default_reminder_value"`
+	CopyRemindersToRecurring *bool   `json:"copy_reminders_to_recurring"`
+	Raw                      map[string]json.RawMessage `json:"-"`
 }
 
 // --- Input types ---

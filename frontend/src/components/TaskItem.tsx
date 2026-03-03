@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from 'react'
 import { useDraggable } from '@dnd-kit/core'
 import { motion } from 'framer-motion'
 import * as Checkbox from '@radix-ui/react-checkbox'
-import { Check, Calendar, Flag, GripVertical, X, ListChecks, StickyNote, Link, Paperclip, RefreshCw } from 'lucide-react'
+import { Check, Calendar, Flag, GripVertical, X, ListChecks, StickyNote, Link, Paperclip, RefreshCw, Bell } from 'lucide-react'
 import type { Task } from '../api/types'
 import { useCompleteTask, useReopenTask, useUpdateTask, useReviewTask } from '../hooks/queries'
 import { getTaskContext } from '../hooks/useTaskContext'
@@ -12,6 +12,7 @@ import { ConfirmDialog } from './ConfirmDialog'
 import { useResolveTags } from '../hooks/useResolveTags'
 import { formatRelativeDate } from '../lib/format-date'
 import { formatTime, formatTimeRange } from '../lib/format-time'
+import { formatReminderShort } from '../lib/format-reminder'
 import { useSettings } from '../hooks/queries'
 import { getTagPillClasses, getTagIconClass } from '../lib/tag-colors'
 import { isSiYuanTag } from '../lib/siyuan'
@@ -404,16 +405,24 @@ export function TaskItem({ task, showProject = true, hideWhenDate = false, showR
               </div>
             )}
           </div>
-          {!editing && (taskContext || (settings?.show_time_badge !== false && task.first_schedule_time)) && showProject && (
-            <p className="mt-0.5 text-[10px] leading-tight text-neutral-400">
-              {taskContext}
-              {taskContext && settings?.show_time_badge !== false && task.first_schedule_time && ' — '}
+          {!editing && (taskContext || (settings?.show_time_badge !== false && task.first_schedule_time) || task.has_reminders) && showProject && (
+            <p className="mt-0.5 flex items-center gap-1 text-[10px] leading-tight text-neutral-400">
+              {taskContext && <span>{taskContext}</span>}
               {settings?.show_time_badge !== false && task.first_schedule_time && (
-                task.past_schedule_count && task.past_schedule_count > 1
-                  ? 'multiple time blocks'
-                  : task.first_schedule_end_time
-                    ? formatTimeRange(task.first_schedule_time, task.first_schedule_end_time, settings?.time_format ?? '12h')
-                    : formatTime(task.first_schedule_time, settings?.time_format ?? '12h')
+                <span className="inline-flex items-center gap-0.5">
+                  <Calendar size={10} className="shrink-0" />
+                  {task.past_schedule_count && task.past_schedule_count > 1
+                    ? 'multiple time blocks'
+                    : task.first_schedule_end_time
+                      ? formatTimeRange(task.first_schedule_time, task.first_schedule_end_time, settings?.time_format ?? '12h')
+                      : formatTime(task.first_schedule_time, settings?.time_format ?? '12h')}
+                </span>
+              )}
+              {task.has_reminders && task.first_reminder_type && (
+                <span className="inline-flex items-center gap-0.5">
+                  <Bell size={10} className="shrink-0" />
+                  {formatReminderShort(task.first_reminder_type, task.first_reminder_value ?? 0, settings?.time_format ?? '12h', task.first_reminder_exact_at)}
+                </span>
               )}
             </p>
           )}

@@ -1,6 +1,53 @@
 import { useEffect, useRef } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import { queryKeys, invalidateViewQueries } from './queries'
+import { useAppStore } from '../stores/app'
+
+function showReminderToast(title: string, description: string, taskId?: string) {
+  const container = document.getElementById('reminder-toast-container') ?? createToastContainer()
+  const toast = document.createElement('div')
+  toast.className = 'flex items-start gap-3 rounded-lg border border-neutral-200 bg-white px-4 py-3 shadow-lg dark:border-neutral-700 dark:bg-neutral-800 animate-in slide-in-from-top-2 cursor-pointer'
+  toast.style.cssText = 'animation: toast-in 0.2s ease-out; max-width: 360px; width: 100%;'
+  toast.innerHTML = `
+    <div class="flex-1 min-w-0">
+      <div class="text-sm font-medium text-neutral-900 dark:text-neutral-100 truncate">${escapeHtml(title)}</div>
+      ${description ? `<div class="text-xs text-neutral-500 dark:text-neutral-400 mt-0.5 truncate">${escapeHtml(description)}</div>` : ''}
+    </div>
+  `
+  if (taskId) {
+    toast.addEventListener('click', () => {
+      useAppStore.getState().expandTask(taskId)
+      toast.remove()
+    })
+  }
+  container.appendChild(toast)
+  setTimeout(() => {
+    toast.style.animation = 'toast-out 0.2s ease-in forwards'
+    setTimeout(() => toast.remove(), 200)
+  }, 5000)
+}
+
+function createToastContainer(): HTMLElement {
+  const el = document.createElement('div')
+  el.id = 'reminder-toast-container'
+  el.className = 'fixed top-4 right-4 z-50 flex flex-col gap-2 items-end'
+  document.body.appendChild(el)
+  // Inject animation keyframes once
+  if (!document.getElementById('toast-keyframes')) {
+    const style = document.createElement('style')
+    style.id = 'toast-keyframes'
+    style.textContent = `
+      @keyframes toast-in { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: translateY(0); } }
+      @keyframes toast-out { from { opacity: 1; transform: translateY(0); } to { opacity: 0; transform: translateY(-8px); } }
+    `
+    document.head.appendChild(style)
+  }
+  return el
+}
+
+function escapeHtml(s: string): string {
+  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
+}
 
 type SSEEventType =
   | 'task_created'
@@ -11,6 +58,7 @@ type SSEEventType =
   | 'tag_updated'
   | 'bulk_change'
   | 'saved_filter_changed'
+  | 'reminder_fired'
 
 interface SSEPayload {
   id?: string
@@ -106,6 +154,14 @@ export function useSSE() {
             }
             break
           }
+
+          case 'reminder_fired': {
+            const p = payload as { task_id?: string; task_title?: string; description?: string }
+            if (p.task_title) {
+              showReminderToast(p.task_title, p.description ?? '', p.task_id)
+            }
+            break
+          }
         }
       }
 
@@ -118,6 +174,7 @@ export function useSSE() {
         'tag_updated',
         'bulk_change',
         'saved_filter_changed',
+        'reminder_fired',
       ]
 
       for (const type of eventTypes) {

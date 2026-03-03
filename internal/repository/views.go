@@ -28,6 +28,10 @@ func (r *ViewRepository) Inbox(reviewAfterDays *int) (*model.InboxView, error) {
 			CASE WHEN EXISTS(SELECT 1 FROM attachments WHERE task_id = t.id AND type = 'link') THEN 1 ELSE 0 END,
 			CASE WHEN EXISTS(SELECT 1 FROM attachments WHERE task_id = t.id AND type = 'file') THEN 1 ELSE 0 END,
 			CASE WHEN EXISTS(SELECT 1 FROM repeat_rules WHERE task_id = t.id) THEN 1 ELSE 0 END,
+			CASE WHEN EXISTS(SELECT 1 FROM reminders WHERE task_id = t.id) THEN 1 ELSE 0 END,
+			(SELECT type FROM reminders WHERE task_id = t.id ORDER BY created_at LIMIT 1),
+			(SELECT value FROM reminders WHERE task_id = t.id ORDER BY created_at LIMIT 1),
+			(SELECT exact_at FROM reminders WHERE task_id = t.id ORDER BY created_at LIMIT 1),
 			(SELECT start_time FROM task_schedules WHERE task_id = t.id ORDER BY sort_order ASC LIMIT 1),
 			(SELECT end_time FROM task_schedules WHERE task_id = t.id ORDER BY sort_order ASC LIMIT 1)
 		FROM tasks t
@@ -60,6 +64,10 @@ func (r *ViewRepository) Inbox(reviewAfterDays *int) (*model.InboxView, error) {
 				CASE WHEN EXISTS(SELECT 1 FROM attachments WHERE task_id = t.id AND type = 'link') THEN 1 ELSE 0 END,
 				CASE WHEN EXISTS(SELECT 1 FROM attachments WHERE task_id = t.id AND type = 'file') THEN 1 ELSE 0 END,
 				CASE WHEN EXISTS(SELECT 1 FROM repeat_rules WHERE task_id = t.id) THEN 1 ELSE 0 END,
+			CASE WHEN EXISTS(SELECT 1 FROM reminders WHERE task_id = t.id) THEN 1 ELSE 0 END,
+				(SELECT type FROM reminders WHERE task_id = t.id ORDER BY created_at LIMIT 1),
+				(SELECT value FROM reminders WHERE task_id = t.id ORDER BY created_at LIMIT 1),
+			(SELECT exact_at FROM reminders WHERE task_id = t.id ORDER BY created_at LIMIT 1),
 				(SELECT start_time FROM task_schedules WHERE task_id = t.id ORDER BY sort_order ASC LIMIT 1),
 				(SELECT end_time FROM task_schedules WHERE task_id = t.id ORDER BY sort_order ASC LIMIT 1)
 			FROM tasks t
@@ -105,6 +113,10 @@ func (r *ViewRepository) Today(eveningStartsAt string) (*model.TodayView, error)
 			CASE WHEN EXISTS(SELECT 1 FROM attachments WHERE task_id = t.id AND type = 'link') THEN 1 ELSE 0 END,
 			CASE WHEN EXISTS(SELECT 1 FROM attachments WHERE task_id = t.id AND type = 'file') THEN 1 ELSE 0 END,
 			CASE WHEN EXISTS(SELECT 1 FROM repeat_rules WHERE task_id = t.id) THEN 1 ELSE 0 END,
+			CASE WHEN EXISTS(SELECT 1 FROM reminders WHERE task_id = t.id) THEN 1 ELSE 0 END,
+			(SELECT type FROM reminders WHERE task_id = t.id ORDER BY created_at LIMIT 1),
+			(SELECT value FROM reminders WHERE task_id = t.id ORDER BY created_at LIMIT 1),
+			(SELECT exact_at FROM reminders WHERE task_id = t.id ORDER BY created_at LIMIT 1),
 			ts.start_time,
 			ts.end_time,
 			ts.id AS schedule_entry_id
@@ -135,6 +147,10 @@ func (r *ViewRepository) Today(eveningStartsAt string) (*model.TodayView, error)
 			CASE WHEN EXISTS(SELECT 1 FROM attachments WHERE task_id = t.id AND type = 'link') THEN 1 ELSE 0 END,
 			CASE WHEN EXISTS(SELECT 1 FROM attachments WHERE task_id = t.id AND type = 'file') THEN 1 ELSE 0 END,
 			CASE WHEN EXISTS(SELECT 1 FROM repeat_rules WHERE task_id = t.id) THEN 1 ELSE 0 END,
+			CASE WHEN EXISTS(SELECT 1 FROM reminders WHERE task_id = t.id) THEN 1 ELSE 0 END,
+			(SELECT type FROM reminders WHERE task_id = t.id ORDER BY created_at LIMIT 1),
+			(SELECT value FROM reminders WHERE task_id = t.id ORDER BY created_at LIMIT 1),
+			(SELECT exact_at FROM reminders WHERE task_id = t.id ORDER BY created_at LIMIT 1),
 			ts.start_time,
 			ts.end_time,
 			ts.id AS schedule_entry_id
@@ -165,6 +181,10 @@ func (r *ViewRepository) Today(eveningStartsAt string) (*model.TodayView, error)
 			CASE WHEN EXISTS(SELECT 1 FROM attachments WHERE task_id = t.id AND type = 'link') THEN 1 ELSE 0 END,
 			CASE WHEN EXISTS(SELECT 1 FROM attachments WHERE task_id = t.id AND type = 'file') THEN 1 ELSE 0 END,
 			CASE WHEN EXISTS(SELECT 1 FROM repeat_rules WHERE task_id = t.id) THEN 1 ELSE 0 END,
+			CASE WHEN EXISTS(SELECT 1 FROM reminders WHERE task_id = t.id) THEN 1 ELSE 0 END,
+			(SELECT type FROM reminders WHERE task_id = t.id ORDER BY created_at LIMIT 1),
+			(SELECT value FROM reminders WHERE task_id = t.id ORDER BY created_at LIMIT 1),
+			(SELECT exact_at FROM reminders WHERE task_id = t.id ORDER BY created_at LIMIT 1),
 			(SELECT start_time FROM task_schedules WHERE task_id = t.id ORDER BY sort_order ASC LIMIT 1),
 			(SELECT end_time FROM task_schedules WHERE task_id = t.id ORDER BY sort_order ASC LIMIT 1)
 		FROM tasks t
@@ -190,6 +210,10 @@ func (r *ViewRepository) Today(eveningStartsAt string) (*model.TodayView, error)
 			CASE WHEN EXISTS(SELECT 1 FROM attachments WHERE task_id = t.id AND type = 'link') THEN 1 ELSE 0 END,
 			CASE WHEN EXISTS(SELECT 1 FROM attachments WHERE task_id = t.id AND type = 'file') THEN 1 ELSE 0 END,
 			CASE WHEN EXISTS(SELECT 1 FROM repeat_rules WHERE task_id = t.id) THEN 1 ELSE 0 END,
+			CASE WHEN EXISTS(SELECT 1 FROM reminders WHERE task_id = t.id) THEN 1 ELSE 0 END,
+			(SELECT type FROM reminders WHERE task_id = t.id ORDER BY created_at LIMIT 1),
+			(SELECT value FROM reminders WHERE task_id = t.id ORDER BY created_at LIMIT 1),
+			(SELECT exact_at FROM reminders WHERE task_id = t.id ORDER BY created_at LIMIT 1),
 			(SELECT start_time FROM task_schedules WHERE task_id = t.id AND when_date < ? AND when_date != 'someday' AND completed = 0 ORDER BY sort_order ASC LIMIT 1),
 			(SELECT end_time FROM task_schedules WHERE task_id = t.id AND when_date < ? AND when_date != 'someday' AND completed = 0 ORDER BY sort_order ASC LIMIT 1),
 			(SELECT id FROM task_schedules WHERE task_id = t.id AND when_date < ? AND when_date != 'someday' AND completed = 0 ORDER BY sort_order ASC LIMIT 1)
@@ -220,6 +244,10 @@ func (r *ViewRepository) Today(eveningStartsAt string) (*model.TodayView, error)
 			CASE WHEN EXISTS(SELECT 1 FROM attachments WHERE task_id = t.id AND type = 'link') THEN 1 ELSE 0 END,
 			CASE WHEN EXISTS(SELECT 1 FROM attachments WHERE task_id = t.id AND type = 'file') THEN 1 ELSE 0 END,
 			CASE WHEN EXISTS(SELECT 1 FROM repeat_rules WHERE task_id = t.id) THEN 1 ELSE 0 END,
+			CASE WHEN EXISTS(SELECT 1 FROM reminders WHERE task_id = t.id) THEN 1 ELSE 0 END,
+			(SELECT type FROM reminders WHERE task_id = t.id ORDER BY created_at LIMIT 1),
+			(SELECT value FROM reminders WHERE task_id = t.id ORDER BY created_at LIMIT 1),
+			(SELECT exact_at FROM reminders WHERE task_id = t.id ORDER BY created_at LIMIT 1),
 			(SELECT start_time FROM task_schedules WHERE task_id = t.id ORDER BY sort_order ASC LIMIT 1),
 			(SELECT end_time FROM task_schedules WHERE task_id = t.id ORDER BY sort_order ASC LIMIT 1)
 		FROM tasks t
@@ -260,6 +288,10 @@ func (r *ViewRepository) Upcoming(from string) (*model.UpcomingView, error) {
 			CASE WHEN EXISTS(SELECT 1 FROM attachments WHERE task_id = t.id AND type = 'link') THEN 1 ELSE 0 END,
 			CASE WHEN EXISTS(SELECT 1 FROM attachments WHERE task_id = t.id AND type = 'file') THEN 1 ELSE 0 END,
 			CASE WHEN EXISTS(SELECT 1 FROM repeat_rules WHERE task_id = t.id) THEN 1 ELSE 0 END,
+			CASE WHEN EXISTS(SELECT 1 FROM reminders WHERE task_id = t.id) THEN 1 ELSE 0 END,
+			(SELECT type FROM reminders WHERE task_id = t.id ORDER BY created_at LIMIT 1),
+			(SELECT value FROM reminders WHERE task_id = t.id ORDER BY created_at LIMIT 1),
+			(SELECT exact_at FROM reminders WHERE task_id = t.id ORDER BY created_at LIMIT 1),
 			ts.start_time,
 			ts.end_time,
 			ts.id AS schedule_entry_id,
@@ -308,6 +340,10 @@ func (r *ViewRepository) Upcoming(from string) (*model.UpcomingView, error) {
 			CASE WHEN EXISTS(SELECT 1 FROM attachments WHERE task_id = t.id AND type = 'link') THEN 1 ELSE 0 END,
 			CASE WHEN EXISTS(SELECT 1 FROM attachments WHERE task_id = t.id AND type = 'file') THEN 1 ELSE 0 END,
 			CASE WHEN EXISTS(SELECT 1 FROM repeat_rules WHERE task_id = t.id) THEN 1 ELSE 0 END,
+			CASE WHEN EXISTS(SELECT 1 FROM reminders WHERE task_id = t.id) THEN 1 ELSE 0 END,
+			(SELECT type FROM reminders WHERE task_id = t.id ORDER BY created_at LIMIT 1),
+			(SELECT value FROM reminders WHERE task_id = t.id ORDER BY created_at LIMIT 1),
+			(SELECT exact_at FROM reminders WHERE task_id = t.id ORDER BY created_at LIMIT 1),
 			(SELECT start_time FROM task_schedules WHERE task_id = t.id ORDER BY sort_order ASC LIMIT 1),
 			(SELECT end_time FROM task_schedules WHERE task_id = t.id ORDER BY sort_order ASC LIMIT 1)
 		FROM tasks t
@@ -333,6 +369,10 @@ func (r *ViewRepository) Upcoming(from string) (*model.UpcomingView, error) {
 			CASE WHEN EXISTS(SELECT 1 FROM attachments WHERE task_id = t.id AND type = 'link') THEN 1 ELSE 0 END,
 			CASE WHEN EXISTS(SELECT 1 FROM attachments WHERE task_id = t.id AND type = 'file') THEN 1 ELSE 0 END,
 			CASE WHEN EXISTS(SELECT 1 FROM repeat_rules WHERE task_id = t.id) THEN 1 ELSE 0 END,
+			CASE WHEN EXISTS(SELECT 1 FROM reminders WHERE task_id = t.id) THEN 1 ELSE 0 END,
+			(SELECT type FROM reminders WHERE task_id = t.id ORDER BY created_at LIMIT 1),
+			(SELECT value FROM reminders WHERE task_id = t.id ORDER BY created_at LIMIT 1),
+			(SELECT exact_at FROM reminders WHERE task_id = t.id ORDER BY created_at LIMIT 1),
 			(SELECT start_time FROM task_schedules WHERE task_id = t.id AND when_date < ? AND when_date != 'someday' AND completed = 0 ORDER BY sort_order ASC LIMIT 1),
 			(SELECT end_time FROM task_schedules WHERE task_id = t.id AND when_date < ? AND when_date != 'someday' AND completed = 0 ORDER BY sort_order ASC LIMIT 1),
 			(SELECT id FROM task_schedules WHERE task_id = t.id AND when_date < ? AND when_date != 'someday' AND completed = 0 ORDER BY sort_order ASC LIMIT 1)
@@ -452,6 +492,10 @@ func (r *ViewRepository) getAnytimeTasks(projectID, areaID *string, byProject, s
 			CASE WHEN EXISTS(SELECT 1 FROM attachments WHERE task_id = t.id AND type = 'link') THEN 1 ELSE 0 END,
 			CASE WHEN EXISTS(SELECT 1 FROM attachments WHERE task_id = t.id AND type = 'file') THEN 1 ELSE 0 END,
 			CASE WHEN EXISTS(SELECT 1 FROM repeat_rules WHERE task_id = t.id) THEN 1 ELSE 0 END,
+			CASE WHEN EXISTS(SELECT 1 FROM reminders WHERE task_id = t.id) THEN 1 ELSE 0 END,
+			(SELECT type FROM reminders WHERE task_id = t.id ORDER BY created_at LIMIT 1),
+			(SELECT value FROM reminders WHERE task_id = t.id ORDER BY created_at LIMIT 1),
+			(SELECT exact_at FROM reminders WHERE task_id = t.id ORDER BY created_at LIMIT 1),
 			(SELECT start_time FROM task_schedules WHERE task_id = t.id ORDER BY sort_order ASC LIMIT 1),
 			(SELECT end_time FROM task_schedules WHERE task_id = t.id ORDER BY sort_order ASC LIMIT 1)
 		FROM tasks t WHERE t.status = 'open' AND t.deleted_at IS NULL`
@@ -498,6 +542,10 @@ func (r *ViewRepository) getAnytimeStandaloneNoArea(somedayOnly bool) []model.Ta
 			CASE WHEN EXISTS(SELECT 1 FROM attachments WHERE task_id = t.id AND type = 'link') THEN 1 ELSE 0 END,
 			CASE WHEN EXISTS(SELECT 1 FROM attachments WHERE task_id = t.id AND type = 'file') THEN 1 ELSE 0 END,
 			CASE WHEN EXISTS(SELECT 1 FROM repeat_rules WHERE task_id = t.id) THEN 1 ELSE 0 END,
+			CASE WHEN EXISTS(SELECT 1 FROM reminders WHERE task_id = t.id) THEN 1 ELSE 0 END,
+			(SELECT type FROM reminders WHERE task_id = t.id ORDER BY created_at LIMIT 1),
+			(SELECT value FROM reminders WHERE task_id = t.id ORDER BY created_at LIMIT 1),
+			(SELECT exact_at FROM reminders WHERE task_id = t.id ORDER BY created_at LIMIT 1),
 			(SELECT start_time FROM task_schedules WHERE task_id = t.id ORDER BY sort_order ASC LIMIT 1),
 			(SELECT end_time FROM task_schedules WHERE task_id = t.id ORDER BY sort_order ASC LIMIT 1)
 		FROM tasks t
@@ -540,6 +588,10 @@ func (r *ViewRepository) Logbook(limit, offset int) (*model.LogbookView, error) 
 			CASE WHEN EXISTS(SELECT 1 FROM attachments WHERE task_id = t.id AND type = 'link') THEN 1 ELSE 0 END,
 			CASE WHEN EXISTS(SELECT 1 FROM attachments WHERE task_id = t.id AND type = 'file') THEN 1 ELSE 0 END,
 			CASE WHEN EXISTS(SELECT 1 FROM repeat_rules WHERE task_id = t.id) THEN 1 ELSE 0 END,
+			CASE WHEN EXISTS(SELECT 1 FROM reminders WHERE task_id = t.id) THEN 1 ELSE 0 END,
+			(SELECT type FROM reminders WHERE task_id = t.id ORDER BY created_at LIMIT 1),
+			(SELECT value FROM reminders WHERE task_id = t.id ORDER BY created_at LIMIT 1),
+			(SELECT exact_at FROM reminders WHERE task_id = t.id ORDER BY created_at LIMIT 1),
 			(SELECT start_time FROM task_schedules WHERE task_id = t.id ORDER BY sort_order ASC LIMIT 1),
 			(SELECT end_time FROM task_schedules WHERE task_id = t.id ORDER BY sort_order ASC LIMIT 1)
 		FROM tasks t
@@ -601,6 +653,10 @@ func (r *ViewRepository) Trash(limit, offset int) (*model.LogbookView, error) {
 			CASE WHEN EXISTS(SELECT 1 FROM attachments WHERE task_id = t.id AND type = 'link') THEN 1 ELSE 0 END,
 			CASE WHEN EXISTS(SELECT 1 FROM attachments WHERE task_id = t.id AND type = 'file') THEN 1 ELSE 0 END,
 			CASE WHEN EXISTS(SELECT 1 FROM repeat_rules WHERE task_id = t.id) THEN 1 ELSE 0 END,
+			CASE WHEN EXISTS(SELECT 1 FROM reminders WHERE task_id = t.id) THEN 1 ELSE 0 END,
+			(SELECT type FROM reminders WHERE task_id = t.id ORDER BY created_at LIMIT 1),
+			(SELECT value FROM reminders WHERE task_id = t.id ORDER BY created_at LIMIT 1),
+			(SELECT exact_at FROM reminders WHERE task_id = t.id ORDER BY created_at LIMIT 1),
 			(SELECT start_time FROM task_schedules WHERE task_id = t.id ORDER BY sort_order ASC LIMIT 1),
 			(SELECT end_time FROM task_schedules WHERE task_id = t.id ORDER BY sort_order ASC LIMIT 1)
 		FROM tasks t
@@ -648,7 +704,7 @@ func scanUpcomingTaskListItems(db *sql.DB, rows *sql.Rows) []upcomingItem {
 	var items []upcomingItem
 	for rows.Next() {
 		var t model.TaskListItem
-		var whenEvening, highPriority, hasNotes, hasLinks, hasFiles, hasRepeat int
+		var whenEvening, highPriority, hasNotes, hasLinks, hasFiles, hasRepeat, hasReminders int
 		var scheduleDate string
 		_ = rows.Scan(
 			&t.ID, &t.Title, &t.Notes, &t.Status, &t.WhenDate, &whenEvening, &highPriority,
@@ -656,7 +712,8 @@ func scanUpcomingTaskListItems(db *sql.DB, rows *sql.Rows) []upcomingItem {
 			&t.SortOrderToday, &t.SortOrderProject, &t.SortOrderHeading,
 			&t.CompletedAt, &t.CanceledAt, &t.DeletedAt, &t.CreatedAt, &t.UpdatedAt,
 			&t.ChecklistCount, &t.ChecklistDone,
-			&hasNotes, &hasLinks, &hasFiles, &hasRepeat,
+			&hasNotes, &hasLinks, &hasFiles, &hasRepeat, &hasReminders,
+			&t.FirstReminderType, &t.FirstReminderValue, &t.FirstReminderExactAt,
 			&t.FirstScheduleTime, &t.FirstScheduleEndTime,
 			&t.ScheduleEntryID,
 			&scheduleDate,
@@ -667,6 +724,7 @@ func scanUpcomingTaskListItems(db *sql.DB, rows *sql.Rows) []upcomingItem {
 		t.HasLinks = hasLinks == 1
 		t.HasFiles = hasFiles == 1
 		t.HasRepeatRule = hasRepeat == 1
+		t.HasReminders = hasReminders == 1
 		// Get tags
 		tagRows, _ := db.Query(
 			"SELECT t.id, t.title, t.color FROM tags t JOIN task_tags tt ON t.id = tt.tag_id WHERE tt.task_id = ?", t.ID)
@@ -710,14 +768,15 @@ func scanTodayTaskListItems(db *sql.DB, rows *sql.Rows) []model.TaskListItem {
 	var tasks []model.TaskListItem
 	for rows.Next() {
 		var t model.TaskListItem
-		var whenEvening, highPriority, hasNotes, hasLinks, hasFiles, hasRepeat int
+		var whenEvening, highPriority, hasNotes, hasLinks, hasFiles, hasRepeat, hasReminders int
 		_ = rows.Scan(
 			&t.ID, &t.Title, &t.Notes, &t.Status, &t.WhenDate, &whenEvening, &highPriority,
 			&t.Deadline, &t.ProjectID, &t.AreaID, &t.HeadingID,
 			&t.SortOrderToday, &t.SortOrderProject, &t.SortOrderHeading,
 			&t.CompletedAt, &t.CanceledAt, &t.DeletedAt, &t.CreatedAt, &t.UpdatedAt,
 			&t.ChecklistCount, &t.ChecklistDone,
-			&hasNotes, &hasLinks, &hasFiles, &hasRepeat,
+			&hasNotes, &hasLinks, &hasFiles, &hasRepeat, &hasReminders,
+			&t.FirstReminderType, &t.FirstReminderValue, &t.FirstReminderExactAt,
 			&t.FirstScheduleTime, &t.FirstScheduleEndTime,
 			&t.ScheduleEntryID,
 		)
@@ -727,6 +786,7 @@ func scanTodayTaskListItems(db *sql.DB, rows *sql.Rows) []model.TaskListItem {
 		t.HasLinks = hasLinks == 1
 		t.HasFiles = hasFiles == 1
 		t.HasRepeatRule = hasRepeat == 1
+		t.HasReminders = hasReminders == 1
 		// Get tags
 		tagRows, _ := db.Query(
 			"SELECT t.id, t.title, t.color FROM tags t JOIN task_tags tt ON t.id = tt.tag_id WHERE tt.task_id = ?", t.ID)

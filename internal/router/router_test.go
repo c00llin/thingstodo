@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/collinjanssen/thingstodo/internal/config"
+	"github.com/collinjanssen/thingstodo/internal/push"
 	"github.com/collinjanssen/thingstodo/internal/repository"
 	"github.com/collinjanssen/thingstodo/internal/router"
 	"github.com/collinjanssen/thingstodo/internal/scheduler"
@@ -20,7 +21,12 @@ func TestHealthEndpoint(t *testing.T) {
 	checklistRepo := repository.NewChecklistRepository(db)
 	attachRepo := repository.NewAttachmentRepository(db)
 	scheduleRepo := repository.NewScheduleRepository(db)
-	sched := scheduler.New(db, taskRepo, ruleRepo, checklistRepo, attachRepo, scheduleRepo)
+	reminderRepo := repository.NewReminderRepository(db)
+	settingsRepo := repository.NewUserSettingsRepository(db)
+	userRepo := repository.NewUserRepository(db)
+	pushSubRepo := repository.NewPushSubscriptionRepository(db)
+	pushSender := push.NewSender(pushSubRepo, "", "", "")
+	sched := scheduler.New(db, taskRepo, ruleRepo, checklistRepo, attachRepo, scheduleRepo, reminderRepo, settingsRepo, userRepo, pushSender, broker)
 
 	handler := router.New(db, cfg, broker, sched)
 	client := testutil.NewTestClient(t, handler)

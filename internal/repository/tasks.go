@@ -29,6 +29,10 @@ func (r *TaskRepository) List(f model.TaskFilters) ([]model.TaskListItem, error)
 			CASE WHEN EXISTS(SELECT 1 FROM attachments WHERE task_id = t.id AND type = 'link') THEN 1 ELSE 0 END,
 			CASE WHEN EXISTS(SELECT 1 FROM attachments WHERE task_id = t.id AND type = 'file') THEN 1 ELSE 0 END,
 			CASE WHEN EXISTS(SELECT 1 FROM repeat_rules WHERE task_id = t.id) THEN 1 ELSE 0 END,
+			CASE WHEN EXISTS(SELECT 1 FROM reminders WHERE task_id = t.id) THEN 1 ELSE 0 END,
+			(SELECT type FROM reminders WHERE task_id = t.id ORDER BY created_at LIMIT 1),
+			(SELECT value FROM reminders WHERE task_id = t.id ORDER BY created_at LIMIT 1),
+			(SELECT exact_at FROM reminders WHERE task_id = t.id ORDER BY created_at LIMIT 1),
 			(SELECT start_time FROM task_schedules WHERE task_id = t.id ORDER BY sort_order ASC LIMIT 1),
 			(SELECT end_time FROM task_schedules WHERE task_id = t.id ORDER BY sort_order ASC LIMIT 1)
 		FROM tasks t`
@@ -102,14 +106,15 @@ func (r *TaskRepository) List(f model.TaskFilters) ([]model.TaskListItem, error)
 	var tasks []model.TaskListItem
 	for rows.Next() {
 		var t model.TaskListItem
-		var whenEvening, highPriority, hasNotes, hasLinks, hasFiles, hasRepeat int
+		var whenEvening, highPriority, hasNotes, hasLinks, hasFiles, hasRepeat, hasReminders int
 		if err := rows.Scan(
 			&t.ID, &t.Title, &t.Notes, &t.Status, &t.WhenDate, &whenEvening, &highPriority,
 			&t.Deadline, &t.ProjectID, &t.AreaID, &t.HeadingID,
 			&t.SortOrderToday, &t.SortOrderProject, &t.SortOrderHeading,
 			&t.CompletedAt, &t.CanceledAt, &t.DeletedAt, &t.CreatedAt, &t.UpdatedAt,
 			&t.ChecklistCount, &t.ChecklistDone,
-			&hasNotes, &hasLinks, &hasFiles, &hasRepeat,
+			&hasNotes, &hasLinks, &hasFiles, &hasRepeat, &hasReminders,
+			&t.FirstReminderType, &t.FirstReminderValue, &t.FirstReminderExactAt,
 			&t.FirstScheduleTime, &t.FirstScheduleEndTime,
 		); err != nil {
 			return nil, fmt.Errorf("scan task: %w", err)
@@ -120,6 +125,7 @@ func (r *TaskRepository) List(f model.TaskFilters) ([]model.TaskListItem, error)
 		t.HasLinks = hasLinks == 1
 		t.HasFiles = hasFiles == 1
 		t.HasRepeatRule = hasRepeat == 1
+		t.HasReminders = hasReminders == 1
 		t.Tags, _ = r.getTaskTags(t.ID)
 		tasks = append(tasks, t)
 	}
@@ -168,6 +174,7 @@ func (r *TaskRepository) GetByID(id string) (*model.TaskDetail, error) {
 	t.Attachments, _ = r.getAttachments(id)
 	t.RepeatRule, _ = r.getRepeatRule(id)
 	t.Schedules, _ = r.getSchedules(id)
+	t.Reminders, _ = r.getReminders(id)
 
 	return &t, nil
 }
@@ -432,6 +439,25 @@ func (r *TaskRepository) getChecklist(taskID string) ([]model.ChecklistItem, err
 	}
 	if items == nil {
 		items = []model.ChecklistItem{}
+	}
+	return items, nil
+}
+
+func (r *TaskRepository) getReminders(taskID string) ([]model.Reminder, error) {
+	rows, err := r.db.Query(
+		"SELECT id, type, value, exact_at, created_at FROM reminders WHERE task_id = ? ORDER BY created_at", taskID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []model.Reminder
+	for rows.Next() {
+		var rm model.Reminder
+		_ = rows.Scan(&rm.ID, &rm.Type, &rm.Value, &rm.ExactAt, &rm.CreatedAt)
+		items = append(items, rm)
+	}
+	if items == nil {
+		items = []model.Reminder{}
 	}
 	return items, nil
 }

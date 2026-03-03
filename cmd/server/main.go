@@ -8,6 +8,7 @@ import (
 
 	"github.com/collinjanssen/thingstodo/internal/config"
 	"github.com/collinjanssen/thingstodo/internal/database"
+	"github.com/collinjanssen/thingstodo/internal/push"
 	"github.com/collinjanssen/thingstodo/internal/repository"
 	"github.com/collinjanssen/thingstodo/internal/router"
 	"github.com/collinjanssen/thingstodo/internal/scheduler"
@@ -60,13 +61,18 @@ func main() {
 		}
 	}
 
-	// Start scheduler for repeating tasks
+	// Start scheduler for repeating tasks + reminders
 	taskRepo := repository.NewTaskRepository(db)
 	ruleRepo := repository.NewRepeatRuleRepository(db)
 	checklistRepo := repository.NewChecklistRepository(db)
 	attachRepo := repository.NewAttachmentRepository(db)
 	scheduleRepo := repository.NewScheduleRepository(db)
-	sched := scheduler.New(db, taskRepo, ruleRepo, checklistRepo, attachRepo, scheduleRepo)
+	reminderRepo := repository.NewReminderRepository(db)
+	settingsRepo := repository.NewUserSettingsRepository(db)
+	userRepo := repository.NewUserRepository(db)
+	pushSubRepo := repository.NewPushSubscriptionRepository(db)
+	pushSender := push.NewSender(pushSubRepo, cfg.VAPIDPrivateKey, cfg.VAPIDPublicKey, cfg.VAPIDContact)
+	sched := scheduler.New(db, taskRepo, ruleRepo, checklistRepo, attachRepo, scheduleRepo, reminderRepo, settingsRepo, userRepo, pushSender, broker)
 	sched.Start()
 	defer sched.Stop()
 

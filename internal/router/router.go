@@ -43,9 +43,11 @@ func New(db *sql.DB, cfg config.Config, broker *sse.Broker, sched *scheduler.Sch
 	settingsRepo := repository.NewUserSettingsRepository(db)
 	savedFilterRepo := repository.NewSavedFilterRepository(db)
 	scheduleRepo := repository.NewScheduleRepository(db)
+	reminderRepo := repository.NewReminderRepository(db)
+	pushSubRepo := repository.NewPushSubscriptionRepository(db)
 
 	// Handlers
-	taskH := handler.NewTaskHandler(taskRepo, scheduleRepo, broker, sched)
+	taskH := handler.NewTaskHandler(taskRepo, scheduleRepo, reminderRepo, settingsRepo, broker, sched)
 	projectH := handler.NewProjectHandler(projectRepo, broker)
 	areaH := handler.NewAreaHandler(areaRepo, broker)
 	tagH := handler.NewTagHandler(tagRepo, broker)
@@ -59,6 +61,8 @@ func New(db *sql.DB, cfg config.Config, broker *sse.Broker, sched *scheduler.Sch
 	settingsH := handler.NewUserSettingsHandler(settingsRepo)
 	savedFilterH := handler.NewSavedFilterHandler(savedFilterRepo, broker)
 	scheduleH := handler.NewScheduleHandler(scheduleRepo, taskRepo, broker)
+	reminderH := handler.NewReminderHandler(reminderRepo, broker)
+	pushSubH := handler.NewPushSubscriptionHandler(pushSubRepo, cfg)
 	eventH := handler.NewEventHandler(broker)
 
 	var oidcH *handler.OIDCHandler
@@ -148,6 +152,16 @@ func New(db *sql.DB, cfg config.Config, broker *sse.Broker, sched *scheduler.Sch
 			r.Patch("/tasks/{id}/schedules/reorder", scheduleH.Reorder)
 			r.Patch("/schedules/{id}", scheduleH.Update)
 			r.Delete("/schedules/{id}", scheduleH.Delete)
+
+			// Reminders
+			r.Get("/tasks/{id}/reminders", reminderH.List)
+			r.Post("/tasks/{id}/reminders", reminderH.Create)
+			r.Delete("/reminders/{id}", reminderH.Delete)
+
+			// Push subscriptions
+			r.Post("/push/subscribe", pushSubH.Subscribe)
+			r.Delete("/push/subscribe", pushSubH.Unsubscribe)
+			r.Get("/push/vapid-key", pushSubH.VAPIDKey)
 
 			// Projects
 			r.Get("/projects", projectH.List)

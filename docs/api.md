@@ -392,6 +392,81 @@ Response: Binary file stream with appropriate Content-Type
 
 ---
 
+## Reminders
+
+### GET /api/tasks/:id/reminders
+Response (200):
+```json
+{
+  "items": [
+    {
+      "id": "string",
+      "task_id": "string",
+      "type": "at_start|on_day|minutes_before|hours_before|days_before|exact",
+      "value": 0,
+      "exact_at": "2025-03-15T14:30:00Z or null",
+      "created_at": "datetime"
+    }
+  ]
+}
+```
+
+Type+value encoding:
+| type | value | exact_at | meaning |
+|------|-------|----------|---------|
+| `at_start` | 0 | null | At schedule start_time |
+| `on_day` | 0 | null | Morning of when_date |
+| `minutes_before` | 0-99 | null | N min before start_time |
+| `hours_before` | 0-99 | null | N hours before start_time |
+| `days_before` | 0-99 | null | N days before when_date at morning time |
+| `exact` | 0 | ISO datetime | Fires at the exact specified date/time |
+
+### POST /api/tasks/:id/reminders
+Request:
+```json
+{
+  "type": "minutes_before",
+  "value": 15,
+  "exact_at": "optional, for exact type only"
+}
+```
+Response (201): Created reminder object
+
+### DELETE /api/reminders/:id
+Response (204): No content
+
+---
+
+## Push Subscriptions
+
+### GET /api/push/vapid-key
+Response (200):
+```json
+{ "key": "base64url-encoded VAPID public key" }
+```
+
+### POST /api/push/subscribe
+Request:
+```json
+{
+  "endpoint": "https://push-service.example.com/...",
+  "p256dh": "base64url key",
+  "auth": "base64url key"
+}
+```
+Response (201): Created subscription object
+
+### DELETE /api/push/subscribe
+Request:
+```json
+{
+  "endpoint": "https://push-service.example.com/..."
+}
+```
+Response (204): No content
+
+---
+
 ## Projects
 
 ### GET /api/projects
@@ -842,7 +917,10 @@ Response (200):
   "default_time_gap": 60,
   "show_time_badge": true,
   "time_format": "12h",
-  "font_size": 16
+  "font_size": 16,
+  "default_reminder_type": "minutes_before",
+  "default_reminder_value": 15,
+  "copy_reminders_to_recurring": true
 }
 ```
 
@@ -861,7 +939,10 @@ Request: Partial update (any subset of fields)
   "default_time_gap": "integer (minutes, default 60)",
   "show_time_badge": "boolean (default true)",
   "time_format": "12h|24h (default 12h)",
-  "font_size": "integer (12|14|16|18|20, default 16)"
+  "font_size": "integer (12|14|16|18|20, default 16)",
+  "default_reminder_type": "at_start|on_day|minutes_before|hours_before|days_before|null (default null)",
+  "default_reminder_value": "integer 0-99 (default 0)",
+  "copy_reminders_to_recurring": "boolean (default true)"
 }
 ```
 
@@ -1056,6 +1137,9 @@ data: {"id": "string", "tag": {/* tag object */}}
 
 event: bulk_change
 data: {"type": "reorder|move|delete", "entity": "task|project|heading|area|tag", "ids": ["string"]}
+
+event: reminder_fired
+data: {"task_id": "string", "task_title": "string", "reminder_type": "string", "description": "string"}
 ```
 
 ---

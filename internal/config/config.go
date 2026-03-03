@@ -24,6 +24,11 @@ type Config struct {
 	OIDCClientID     string
 	OIDCClientSecret string
 	OIDCRedirectURI  string
+
+	// VAPID (Web Push)
+	VAPIDPrivateKey string
+	VAPIDPublicKey  string
+	VAPIDContact    string
 }
 
 func Load() Config {
@@ -45,6 +50,10 @@ func Load() Config {
 		OIDCClientID:     envStr("OIDC_CLIENT_ID", ""),
 		OIDCClientSecret: envStr("OIDC_CLIENT_SECRET", ""),
 		OIDCRedirectURI:  envStr("OIDC_REDIRECT_URI", ""),
+
+		VAPIDPrivateKey: envStr("VAPID_PRIVATE_KEY", ""),
+		VAPIDPublicKey:  envStr("VAPID_PUBLIC_KEY", ""),
+		VAPIDContact:    envStr("VAPID_CONTACT", ""),
 	}
 
 	if (cfg.AuthMode == "builtin" || cfg.AuthMode == "oidc") && cfg.JWTSecret == "" {

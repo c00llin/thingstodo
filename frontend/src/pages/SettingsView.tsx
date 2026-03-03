@@ -1,7 +1,9 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useSettings, useUpdateSettings } from '../hooks/queries'
 import { parseTime } from '../lib/time-parser'
 import { formatTime } from '../lib/format-time'
+import { registerPushSubscription, unregisterPushSubscription, isPushSubscribed } from '../lib/push-registration'
+import type { UserSettings } from '../api/types'
 
 function SettingsCheckbox({
   label,
@@ -241,6 +243,54 @@ export function SettingsView() {
         </div>
       </section>
 
+      <section className="mb-8">
+        <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-neutral-500 dark:text-neutral-400">
+          Reminders
+        </h2>
+        <div className="space-y-3">
+          <div>
+            <label className="mb-1 block text-sm text-neutral-700 dark:text-neutral-300">Default reminder for new tasks</label>
+            <div className="flex items-center gap-2">
+              <select
+                value={settings.default_reminder_type ?? ''}
+                onChange={(e) => {
+                  const val = e.target.value
+                  if (val === '') {
+                    updateSettings.mutate({ default_reminder_type: null, default_reminder_value: 0 })
+                  } else {
+                    updateSettings.mutate({ default_reminder_type: val as UserSettings['default_reminder_type'], default_reminder_value: settings.default_reminder_value || 15 })
+                  }
+                }}
+                className="rounded border border-neutral-200 bg-white px-2 py-1 text-sm dark:border-neutral-600 dark:bg-neutral-800 dark:text-neutral-200"
+              >
+                <option value="">None</option>
+                <option value="at_start">At start of time block</option>
+                <option value="on_day">On day of time block</option>
+                <option value="minutes_before">Minutes before</option>
+                <option value="hours_before">Hours before</option>
+                <option value="days_before">Days before</option>
+              </select>
+              {(settings.default_reminder_type === 'minutes_before' || settings.default_reminder_type === 'hours_before' || settings.default_reminder_type === 'days_before') && (
+                <input
+                  type="number"
+                  min={0}
+                  max={99}
+                  value={settings.default_reminder_value}
+                  onChange={(e) => updateSettings.mutate({ default_reminder_value: Math.min(99, Math.max(0, Number(e.target.value))) })}
+                  className="w-16 rounded border border-neutral-200 bg-white px-2 py-1 text-sm dark:border-neutral-600 dark:bg-neutral-800 dark:text-neutral-200"
+                />
+              )}
+            </div>
+          </div>
+          <SettingsCheckbox
+            label="Copy reminders to recurring task instances"
+            checked={settings.copy_reminders_to_recurring}
+            onChange={(v) => updateSettings.mutate({ copy_reminders_to_recurring: v })}
+          />
+          <PushNotificationToggle />
+        </div>
+      </section>
+
       <section>
         <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-neutral-500 dark:text-neutral-400">
           Show task count for
@@ -268,5 +318,50 @@ export function SettingsView() {
         ThingsToDo v{__APP_VERSION__}{__BUILD_SHA__ !== 'dev' ? ` (${__BUILD_SHA__})` : ''}
       </p>
     </div>
+  )
+}
+
+function PushNotificationToggle() {
+  const [subscribed, setSubscribed] = useState(false)
+  const [loading, setLoading] = useState(true)
+  const supported = 'PushManager' in window && 'serviceWorker' in navigator
+
+  useEffect(() => {
+    isPushSubscribed().then((v) => { setSubscribed(v); setLoading(false) })
+  }, [])
+
+  if (!supported) {
+    return (
+      <div className="py-1.5 text-sm text-neutral-400 dark:text-neutral-500">
+        Push notifications not supported in this browser
+      </div>
+    )
+  }
+
+  async function handleToggle(enable: boolean) {
+    setLoading(true)
+    if (enable) {
+      const ok = await registerPushSubscription()
+      setSubscribed(ok)
+    } else {
+      await unregisterPushSubscription()
+      setSubscribed(false)
+    }
+    setLoading(false)
+  }
+
+  return (
+    <label className="flex cursor-pointer items-center gap-3 py-1.5">
+      <input
+        type="checkbox"
+        checked={subscribed}
+        disabled={loading}
+        onChange={(e) => handleToggle(e.target.checked)}
+        className="h-4 w-4 rounded border-neutral-300 accent-red-500 dark:border-neutral-600"
+      />
+      <span className="text-sm text-neutral-700 dark:text-neutral-300">
+        Enable push notifications{loading ? '...' : ''}
+      </span>
+    </label>
   )
 }
