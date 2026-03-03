@@ -3,28 +3,37 @@ import { useQueryClient } from '@tanstack/react-query'
 import { queryKeys, invalidateViewQueries } from './queries'
 import { useAppStore } from '../stores/app'
 
+function dismissToast(toast: HTMLElement) {
+  toast.style.animation = 'toast-out 0.2s ease-in forwards'
+  setTimeout(() => toast.remove(), 200)
+}
+
 function showReminderToast(title: string, description: string, taskId?: string) {
   const container = document.getElementById('reminder-toast-container') ?? createToastContainer()
   const toast = document.createElement('div')
-  toast.className = 'flex items-start gap-3 rounded-lg border border-neutral-200 bg-white px-4 py-3 shadow-lg dark:border-neutral-700 dark:bg-neutral-800 animate-in slide-in-from-top-2 cursor-pointer'
+  toast.className = 'flex items-start gap-3 rounded-lg border border-neutral-200 bg-white px-4 py-3 shadow-lg dark:border-neutral-700 dark:bg-neutral-800 cursor-pointer'
   toast.style.cssText = 'animation: toast-in 0.2s ease-out; max-width: 360px; width: 100%;'
   toast.innerHTML = `
     <div class="flex-1 min-w-0">
       <div class="text-sm font-medium text-neutral-900 dark:text-neutral-100 truncate">${escapeHtml(title)}</div>
       ${description ? `<div class="text-xs text-neutral-500 dark:text-neutral-400 mt-0.5 truncate">${escapeHtml(description)}</div>` : ''}
     </div>
+    <button class="shrink-0 mt-0.5 p-0.5 rounded hover:bg-neutral-100 dark:hover:bg-neutral-700 text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-300" aria-label="Dismiss">
+      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+    </button>
   `
+  const closeBtn = toast.querySelector('button')!
+  closeBtn.addEventListener('click', (e) => {
+    e.stopPropagation()
+    dismissToast(toast)
+  })
   if (taskId) {
     toast.addEventListener('click', () => {
       useAppStore.getState().expandTask(taskId)
-      toast.remove()
+      dismissToast(toast)
     })
   }
   container.appendChild(toast)
-  setTimeout(() => {
-    toast.style.animation = 'toast-out 0.2s ease-in forwards'
-    setTimeout(() => toast.remove(), 200)
-  }, 5000)
 }
 
 function createToastContainer(): HTMLElement {
