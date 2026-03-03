@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
+	"time"
 )
 
 type Config struct {
@@ -29,6 +30,9 @@ type Config struct {
 	VAPIDPrivateKey string
 	VAPIDPublicKey  string
 	VAPIDContact    string
+
+	// Timezone for date/time calculations (IANA name, e.g. "America/Chicago")
+	Location *time.Location
 }
 
 func Load() Config {
@@ -58,6 +62,17 @@ func Load() Config {
 
 	if (cfg.AuthMode == "builtin" || cfg.AuthMode == "oidc") && cfg.JWTSecret == "" {
 		log.Fatal("JWT_SECRET must be set when AUTH_MODE is builtin or oidc")
+	}
+
+	// Load timezone — defaults to system TZ (UTC in most Docker containers)
+	if tz := envStr("TZ", ""); tz != "" {
+		loc, err := time.LoadLocation(tz)
+		if err != nil {
+			log.Fatalf("invalid TZ %q: %v", tz, err)
+		}
+		cfg.Location = loc
+	} else {
+		cfg.Location = time.Local
 	}
 
 	return cfg

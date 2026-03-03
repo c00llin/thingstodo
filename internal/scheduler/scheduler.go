@@ -28,9 +28,10 @@ type Scheduler struct {
 	broker        *sse.Broker
 	db            *sql.DB
 	engine        *recurrence.Engine
+	loc           *time.Location
 }
 
-func New(db *sql.DB, taskRepo *repository.TaskRepository, ruleRepo *repository.RepeatRuleRepository, checklistRepo *repository.ChecklistRepository, attachRepo *repository.AttachmentRepository, scheduleRepo *repository.ScheduleRepository, reminderRepo *repository.ReminderRepository, settingsRepo *repository.UserSettingsRepository, userRepo *repository.UserRepository, pushSender *push.Sender, broker *sse.Broker) *Scheduler {
+func New(db *sql.DB, taskRepo *repository.TaskRepository, ruleRepo *repository.RepeatRuleRepository, checklistRepo *repository.ChecklistRepository, attachRepo *repository.AttachmentRepository, scheduleRepo *repository.ScheduleRepository, reminderRepo *repository.ReminderRepository, settingsRepo *repository.UserSettingsRepository, userRepo *repository.UserRepository, pushSender *push.Sender, broker *sse.Broker, loc *time.Location) *Scheduler {
 	return &Scheduler{
 		cron:          cron.New(),
 		taskRepo:      taskRepo,
@@ -45,6 +46,7 @@ func New(db *sql.DB, taskRepo *repository.TaskRepository, ruleRepo *repository.R
 		broker:        broker,
 		db:            db,
 		engine:        recurrence.NewEngine(),
+		loc:           loc,
 	}
 }
 
@@ -185,7 +187,7 @@ func (s *Scheduler) createNextInstance(originalTaskID string, rule *model.Repeat
 }
 
 func (s *Scheduler) processReminders() {
-	now := time.Now()
+	now := time.Now().In(s.loc)
 	windowStart := now.Add(-1 * time.Minute)
 	windowEnd := now.Add(1 * time.Minute)
 
@@ -193,8 +195,6 @@ func (s *Scheduler) processReminders() {
 	morningTime := "09:00"
 	if user, err := s.userRepo.GetFirst(); err == nil && user != nil {
 		if settings, err := s.settingsRepo.GetOrCreate(user.ID); err == nil {
-			// evening_starts_at is the evening boundary; morning is typically 09:00
-			// We don't have a separate morning setting, so use 09:00 as default
 			_ = settings
 		}
 	}
@@ -204,12 +204,20 @@ func (s *Scheduler) processReminders() {
 	if err != nil {
 		log.Printf("scheduler: get pending relative reminders: %v", err)
 	}
+	if len(pending) > 0 {
+		log.Printf("scheduler: processing %d relative reminders (now=%s, window=%s..%s, tz=%s)",
+			len(pending), now.Format(time.RFC3339), windowStart.Format("15:04:05"), windowEnd.Format("15:04:05"), s.loc)
+	}
 	for _, p := range pending {
-		fireAt := computeFireAt(p, morningTime)
+		fireAt := computeFireAt(p, morningTime, s.loc)
 		if fireAt.IsZero() {
+			log.Printf("scheduler: reminder %s (type=%s, task=%q): could not compute fire_at (when_date=%q, start_time=%v)",
+				p.Reminder.ID, p.Reminder.Type, p.TaskTitle, p.WhenDate, p.StartTime)
 			continue
 		}
 		if fireAt.Before(windowStart) || !fireAt.Before(windowEnd) {
+			log.Printf("scheduler: reminder %s (type=%s, task=%q): fire_at=%s outside window",
+				p.Reminder.ID, p.Reminder.Type, p.TaskTitle, fireAt.Format(time.RFC3339))
 			continue
 		}
 		s.fireReminder(p, fireAt)
@@ -220,25 +228,31 @@ func (s *Scheduler) processReminders() {
 	if err != nil {
 		log.Printf("scheduler: get pending exact reminders: %v", err)
 	}
+	if len(exact) > 0 {
+		log.Printf("scheduler: processing %d exact reminders", len(exact))
+	}
 	for _, p := range exact {
 		if p.Reminder.ExactAt == nil {
 			continue
 		}
-		fireAt, err := time.ParseInLocation("2006-01-02T15:04:05", *p.Reminder.ExactAt, time.Local)
+		fireAt, err := time.ParseInLocation("2006-01-02T15:04:05", *p.Reminder.ExactAt, s.loc)
 		if err != nil {
-			fireAt, err = time.ParseInLocation("2006-01-02 15:04:05", *p.Reminder.ExactAt, time.Local)
+			fireAt, err = time.ParseInLocation("2006-01-02 15:04:05", *p.Reminder.ExactAt, s.loc)
 			if err != nil {
+				log.Printf("scheduler: exact reminder %s: failed to parse exact_at=%q: %v", p.Reminder.ID, *p.Reminder.ExactAt, err)
 				continue
 			}
 		}
 		if fireAt.Before(windowStart) || !fireAt.Before(windowEnd) {
+			log.Printf("scheduler: exact reminder %s (task=%q): fire_at=%s outside window",
+				p.Reminder.ID, p.TaskTitle, fireAt.Format(time.RFC3339))
 			continue
 		}
 		s.fireReminder(p, fireAt)
 	}
 }
 
-func computeFireAt(p model.PendingReminder, morningTime string) time.Time {
+func computeFireAt(p model.PendingReminder, morningTime string, loc *time.Location) time.Time {
 	morningHour, morningMin := 9, 0
 	if parts := splitTime(morningTime); parts != nil {
 		morningHour, morningMin = parts[0], parts[1]
@@ -246,27 +260,27 @@ func computeFireAt(p model.PendingReminder, morningTime string) time.Time {
 
 	switch p.Reminder.Type {
 	case model.ReminderAtStart:
-		return parseAnchor(p.WhenDate, p.StartTime, morningHour, morningMin)
+		return parseAnchor(p.WhenDate, p.StartTime, morningHour, morningMin, loc)
 
 	case model.ReminderOnDay:
 		if p.WhenDate == "" {
 			return time.Time{}
 		}
-		d, err := time.ParseInLocation("2006-01-02", p.WhenDate, time.Local)
+		d, err := time.ParseInLocation("2006-01-02", p.WhenDate, loc)
 		if err != nil {
 			return time.Time{}
 		}
 		return d.Add(time.Duration(morningHour)*time.Hour + time.Duration(morningMin)*time.Minute)
 
 	case model.ReminderMinutesBefore:
-		anchor := parseAnchor(p.WhenDate, p.StartTime, morningHour, morningMin)
+		anchor := parseAnchor(p.WhenDate, p.StartTime, morningHour, morningMin, loc)
 		if anchor.IsZero() {
 			return time.Time{}
 		}
 		return anchor.Add(-time.Duration(p.Reminder.Value) * time.Minute)
 
 	case model.ReminderHoursBefore:
-		anchor := parseAnchor(p.WhenDate, p.StartTime, morningHour, morningMin)
+		anchor := parseAnchor(p.WhenDate, p.StartTime, morningHour, morningMin, loc)
 		if anchor.IsZero() {
 			return time.Time{}
 		}
@@ -276,7 +290,7 @@ func computeFireAt(p model.PendingReminder, morningTime string) time.Time {
 		if p.WhenDate == "" {
 			return time.Time{}
 		}
-		d, err := time.ParseInLocation("2006-01-02", p.WhenDate, time.Local)
+		d, err := time.ParseInLocation("2006-01-02", p.WhenDate, loc)
 		if err != nil {
 			return time.Time{}
 		}
@@ -288,11 +302,11 @@ func computeFireAt(p model.PendingReminder, morningTime string) time.Time {
 
 // parseAnchor returns the anchor time for time-relative reminders.
 // If start_time exists, use when_date + start_time. Otherwise fall back to when_date + morning.
-func parseAnchor(whenDate string, startTime *string, morningH, morningM int) time.Time {
+func parseAnchor(whenDate string, startTime *string, morningH, morningM int, loc *time.Location) time.Time {
 	if whenDate == "" || whenDate == "someday" {
 		return time.Time{}
 	}
-	d, err := time.ParseInLocation("2006-01-02", whenDate, time.Local)
+	d, err := time.ParseInLocation("2006-01-02", whenDate, loc)
 	if err != nil {
 		return time.Time{}
 	}

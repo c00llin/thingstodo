@@ -103,7 +103,8 @@ func main() {
 	userRepo := repository.NewUserRepository(db)
 	pushSubRepo := repository.NewPushSubscriptionRepository(db)
 	pushSender := push.NewSender(pushSubRepo, cfg.VAPIDPrivateKey, cfg.VAPIDPublicKey, cfg.VAPIDContact)
-	sched := scheduler.New(db, taskRepo, ruleRepo, checklistRepo, attachRepo, scheduleRepo, reminderRepo, settingsRepo, userRepo, pushSender, broker)
+	log.Printf("timezone: %s", cfg.Location)
+	sched := scheduler.New(db, taskRepo, ruleRepo, checklistRepo, attachRepo, scheduleRepo, reminderRepo, settingsRepo, userRepo, pushSender, broker, cfg.Location)
 	sched.Start()
 	defer sched.Stop()
 

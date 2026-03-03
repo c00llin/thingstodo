@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"net/http"
 	"testing"
+	"time"
 
 	"github.com/collinjanssen/thingstodo/internal/handler"
 	"github.com/collinjanssen/thingstodo/internal/push"
@@ -28,7 +29,7 @@ func setupTaskRouter(t *testing.T) (*testutil.TestClient, *sql.DB) {
 	userRepo := repository.NewUserRepository(db)
 	pushSubRepo := repository.NewPushSubscriptionRepository(db)
 	pushSender := push.NewSender(pushSubRepo, "", "", "")
-	sched := scheduler.New(db, taskRepo, ruleRepo, checklistRepo, attachRepo, scheduleRepo, reminderRepo, settingsRepo, userRepo, pushSender, broker)
+	sched := scheduler.New(db, taskRepo, ruleRepo, checklistRepo, attachRepo, scheduleRepo, reminderRepo, settingsRepo, userRepo, pushSender, broker, time.UTC)
 	taskHandler := handler.NewTaskHandler(taskRepo, scheduleRepo, reminderRepo, settingsRepo, broker, sched)
 
 	r := chi.NewRouter()

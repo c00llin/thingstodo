@@ -23,6 +23,8 @@ RUN APP_VERSION=$(jq -r .version frontend/package.json) && \
 # Stage 3: Runtime
 FROM scratch
 COPY --from=backend-build /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
+COPY --from=backend-build /usr/local/go/lib/time/zoneinfo.zip /usr/local/go/lib/time/zoneinfo.zip
 COPY --from=backend-build /thingstodo /thingstodo
+ENV ZONEINFO=/usr/local/go/lib/time/zoneinfo.zip
 EXPOSE 2999
 ENTRYPOINT ["/thingstodo"]
