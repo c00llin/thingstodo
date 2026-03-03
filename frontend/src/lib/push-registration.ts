@@ -11,22 +11,48 @@ export async function registerPushSubscription(): Promise<{ ok: boolean; error?:
   }
 
   try {
-    const { public_key } = await getVapidKey()
-    if (!public_key) {
-      return { ok: false, error: 'Push not configured on server — set VAPID_PUBLIC_KEY and VAPID_PRIVATE_KEY env vars' }
+    let vapidKey: string
+    try {
+      const { public_key } = await getVapidKey()
+      if (!public_key) {
+        return { ok: false, error: 'Push not configured on server — set VAPID_PUBLIC_KEY and VAPID_PRIVATE_KEY env vars' }
+      }
+      vapidKey = public_key
+    } catch (err) {
+      console.error('Failed to fetch VAPID key:', err)
+      return { ok: false, error: `Failed to fetch VAPID key: ${err instanceof Error ? err.message : String(err)}` }
     }
-    const registration = await navigator.serviceWorker.ready
-    const subscription = await registration.pushManager.subscribe({
-      userVisibleOnly: true,
-      applicationServerKey: urlBase64ToUint8Array(public_key) as BufferSource,
-    })
 
-    const json = subscription.toJSON()
-    await subscribePush({
-      endpoint: subscription.endpoint,
-      p256dh: json.keys?.p256dh ?? '',
-      auth: json.keys?.auth ?? '',
-    })
+    let registration: ServiceWorkerRegistration
+    try {
+      registration = await navigator.serviceWorker.ready
+    } catch (err) {
+      console.error('Service worker not ready:', err)
+      return { ok: false, error: `Service worker not ready: ${err instanceof Error ? err.message : String(err)}` }
+    }
+
+    let subscription: PushSubscription
+    try {
+      subscription = await registration.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: urlBase64ToUint8Array(vapidKey) as BufferSource,
+      })
+    } catch (err) {
+      console.error('pushManager.subscribe failed:', err)
+      return { ok: false, error: `Browser push subscribe failed: ${err instanceof Error ? err.message : String(err)}` }
+    }
+
+    try {
+      const json = subscription.toJSON()
+      await subscribePush({
+        endpoint: subscription.endpoint,
+        p256dh: json.keys?.p256dh ?? '',
+        auth: json.keys?.auth ?? '',
+      })
+    } catch (err) {
+      console.error('Server subscribe API failed:', err)
+      return { ok: false, error: `Server subscribe failed: ${err instanceof Error ? err.message : String(err)}` }
+    }
 
     return { ok: true }
   } catch (err) {
