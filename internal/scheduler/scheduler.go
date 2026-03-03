@@ -235,13 +235,21 @@ func (s *Scheduler) processReminders() {
 		if p.Reminder.ExactAt == nil {
 			continue
 		}
-		fireAt, err := time.ParseInLocation("2006-01-02T15:04:05", *p.Reminder.ExactAt, s.loc)
-		if err != nil {
-			fireAt, err = time.ParseInLocation("2006-01-02 15:04:05", *p.Reminder.ExactAt, s.loc)
-			if err != nil {
-				log.Printf("scheduler: exact reminder %s: failed to parse exact_at=%q: %v", p.Reminder.ID, *p.Reminder.ExactAt, err)
-				continue
+		var fireAt time.Time
+		for _, layout := range []string{
+			"2006-01-02T15:04:05",
+			"2006-01-02T15:04",
+			"2006-01-02 15:04:05",
+			"2006-01-02 15:04",
+		} {
+			fireAt, err = time.ParseInLocation(layout, *p.Reminder.ExactAt, s.loc)
+			if err == nil {
+				break
 			}
+		}
+		if err != nil {
+			log.Printf("scheduler: exact reminder %s: failed to parse exact_at=%q: %v", p.Reminder.ID, *p.Reminder.ExactAt, err)
+			continue
 		}
 		if fireAt.Before(windowStart) || !fireAt.Before(windowEnd) {
 			log.Printf("scheduler: exact reminder %s (task=%q): fire_at=%s outside window",
