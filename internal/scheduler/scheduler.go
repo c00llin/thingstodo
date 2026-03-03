@@ -204,20 +204,12 @@ func (s *Scheduler) processReminders() {
 	if err != nil {
 		log.Printf("scheduler: get pending relative reminders: %v", err)
 	}
-	if len(pending) > 0 {
-		log.Printf("scheduler: processing %d relative reminders (now=%s, window=%s..%s, tz=%s)",
-			len(pending), now.Format(time.RFC3339), windowStart.Format("15:04:05"), windowEnd.Format("15:04:05"), s.loc)
-	}
 	for _, p := range pending {
 		fireAt := computeFireAt(p, morningTime, s.loc)
 		if fireAt.IsZero() {
-			log.Printf("scheduler: reminder %s (type=%s, task=%q): could not compute fire_at (when_date=%q, start_time=%v)",
-				p.Reminder.ID, p.Reminder.Type, p.TaskTitle, p.WhenDate, p.StartTime)
 			continue
 		}
 		if fireAt.Before(windowStart) || !fireAt.Before(windowEnd) {
-			log.Printf("scheduler: reminder %s (type=%s, task=%q): fire_at=%s outside window",
-				p.Reminder.ID, p.Reminder.Type, p.TaskTitle, fireAt.Format(time.RFC3339))
 			continue
 		}
 		s.fireReminder(p, fireAt)
@@ -227,9 +219,6 @@ func (s *Scheduler) processReminders() {
 	exact, err := s.reminderRepo.GetPendingExact()
 	if err != nil {
 		log.Printf("scheduler: get pending exact reminders: %v", err)
-	}
-	if len(exact) > 0 {
-		log.Printf("scheduler: processing %d exact reminders", len(exact))
 	}
 	for _, p := range exact {
 		if p.Reminder.ExactAt == nil {
@@ -252,8 +241,6 @@ func (s *Scheduler) processReminders() {
 			continue
 		}
 		if fireAt.Before(windowStart) || !fireAt.Before(windowEnd) {
-			log.Printf("scheduler: exact reminder %s (task=%q): fire_at=%s outside window",
-				p.Reminder.ID, p.TaskTitle, fireAt.Format(time.RFC3339))
 			continue
 		}
 		s.fireReminder(p, fireAt)
