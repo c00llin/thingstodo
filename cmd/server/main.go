@@ -1,11 +1,14 @@
 package main
 
 import (
+	"encoding/base64"
 	"fmt"
 	"log"
 	"net/http"
 	"os"
+	"strings"
 
+	webpush "github.com/SherClockHolmes/webpush-go"
 	"github.com/collinjanssen/thingstodo/internal/config"
 	"github.com/collinjanssen/thingstodo/internal/database"
 	"github.com/collinjanssen/thingstodo/internal/push"
@@ -33,7 +36,35 @@ func main() {
 		os.Exit(0)
 	}
 
+	// Generate VAPID key pair and exit.
+	if len(os.Args) > 1 && os.Args[1] == "-generate-vapid" {
+		priv, pub, err := webpush.GenerateVAPIDKeys()
+		if err != nil {
+			log.Fatalf("failed to generate VAPID keys: %v", err)
+		}
+		fmt.Printf("VAPID_PRIVATE_KEY=%s\n", priv)
+		fmt.Printf("VAPID_PUBLIC_KEY=%s\n", pub)
+		os.Exit(0)
+	}
+
 	cfg := config.Load()
+
+	// Validate VAPID keys at startup if configured.
+	if cfg.VAPIDPublicKey != "" {
+		// Normalize: accept both standard base64 and base64url
+		normalized := cfg.VAPIDPublicKey
+		normalized = strings.TrimRight(normalized, "=")
+		normalized = strings.ReplaceAll(normalized, "+", "-")
+		normalized = strings.ReplaceAll(normalized, "/", "_")
+		raw, err := base64.RawURLEncoding.DecodeString(normalized)
+		if err != nil {
+			log.Printf("WARNING: VAPID_PUBLIC_KEY is not valid base64url: %v", err)
+		} else if len(raw) != 65 {
+			log.Printf("WARNING: VAPID_PUBLIC_KEY decoded to %d bytes (expected 65 for uncompressed P-256)", len(raw))
+		} else {
+			log.Printf("VAPID public key OK (%d bytes, %d base64url chars)", len(raw), len(normalized))
+		}
+	}
 
 	log.Printf("ThingsToDo v%s (commit %s)", Version, Commit)
 
