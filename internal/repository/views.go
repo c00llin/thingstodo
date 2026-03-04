@@ -123,11 +123,15 @@ func (r *ViewRepository) Today(eveningStartsAt string) (*model.TodayView, error)
 		FROM tasks t
 		LEFT JOIN task_schedules ts ON ts.task_id = t.id AND ts.when_date = ? AND ts.completed = 0
 		WHERE t.status = 'open'
-			AND (t.when_date = ? OR t.deadline = ?
+			AND (
+				(t.when_date = ?
+					AND (NOT EXISTS(SELECT 1 FROM task_schedules WHERE task_id = t.id AND when_date = ?)
+						OR EXISTS(SELECT 1 FROM task_schedules WHERE task_id = t.id AND when_date = ? AND completed = 0)))
+				OR t.deadline = ?
 				OR EXISTS(SELECT 1 FROM task_schedules WHERE task_id = t.id AND when_date = ? AND completed = 0))
 			AND t.deleted_at IS NULL
 			AND (ts.start_time IS NULL OR ts.start_time < ?)
-		ORDER BY t.sort_order_today ASC, ts.start_time ASC`, today, today, today, today, eveningStartsAt)
+		ORDER BY t.sort_order_today ASC, ts.start_time ASC`, today, today, today, today, today, today, eveningStartsAt)
 	if err != nil {
 		return nil, err
 	}
@@ -157,11 +161,15 @@ func (r *ViewRepository) Today(eveningStartsAt string) (*model.TodayView, error)
 		FROM tasks t
 		LEFT JOIN task_schedules ts ON ts.task_id = t.id AND ts.when_date = ? AND ts.completed = 0
 		WHERE t.status = 'open'
-			AND (t.when_date = ? OR t.deadline = ?
+			AND (
+				(t.when_date = ?
+					AND (NOT EXISTS(SELECT 1 FROM task_schedules WHERE task_id = t.id AND when_date = ?)
+						OR EXISTS(SELECT 1 FROM task_schedules WHERE task_id = t.id AND when_date = ? AND completed = 0)))
+				OR t.deadline = ?
 				OR EXISTS(SELECT 1 FROM task_schedules WHERE task_id = t.id AND when_date = ? AND completed = 0))
 			AND t.deleted_at IS NULL
 			AND ts.start_time IS NOT NULL AND ts.start_time >= ?
-		ORDER BY t.sort_order_today ASC, ts.start_time ASC`, today, today, today, today, eveningStartsAt)
+		ORDER BY t.sort_order_today ASC, ts.start_time ASC`, today, today, today, today, today, today, eveningStartsAt)
 	if err != nil {
 		return nil, err
 	}
