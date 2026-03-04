@@ -306,7 +306,7 @@ export function ScheduleEditor({
         const isToday = entry.when_date === today
         const isPast = entry.when_date !== 'someday' && (
           entry.when_date < today ||
-          (isToday && (!entry.start_time || entry.start_time <= currentTime))
+          (isToday && entry.start_time != null && entry.start_time <= currentTime)
         )
         const isCompleted = entry.completed
 
