@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from 'react'
+import { createPortal } from 'react-dom'
 import * as Checkbox from '@radix-ui/react-checkbox'
 import { Check, Plus, Paperclip, Link, Trash2, X, Calendar, Flag, ListChecks, StickyNote, CircleMinus, CircleX, RefreshCw, CircleAlert, Bell } from 'lucide-react'
 import { DateInput } from './DateInput'
@@ -30,9 +31,11 @@ import { formatReminderLabel } from '../lib/format-reminder'
 
 interface TaskDetailProps {
   taskId: string
+  isModal?: boolean
+  toolbarPortalEl?: HTMLDivElement | null
 }
 
-export function TaskDetail({ taskId }: TaskDetailProps) {
+export function TaskDetail({ taskId, isModal, toolbarPortalEl }: TaskDetailProps) {
   const { data: task, isLoading } = useTask(taskId)
   const { data: settings } = useSettings()
   const updateTask = useUpdateTask()
@@ -65,23 +68,39 @@ export function TaskDetail({ taskId }: TaskDetailProps) {
     if (task) setNotes(task.notes)
   }, [task])
 
+  // Track whether the notes field was opened via an Alt+key shortcut so we
+  // can suppress macOS dead-key characters (e.g. Alt+N → ~).  The textarea
+  // is not focused until after a delay so the pending keypress/input events
+  // from the Alt combo are silently discarded by the browser.
+  const notesOpenedByShortcutRef = useRef(false)
+
   useEffect(() => {
     if (editingNotes && notesRef.current) {
-      notesRef.current.focus()
-      // Auto-size to fit existing content
-      notesRef.current.style.height = 'auto'
-      notesRef.current.style.height = notesRef.current.scrollHeight + 'px'
+      const delay = notesOpenedByShortcutRef.current ? 120 : 0
+      notesOpenedByShortcutRef.current = false
+      const timer = setTimeout(() => {
+        if (notesRef.current) {
+          notesRef.current.focus()
+          notesRef.current.style.height = 'auto'
+          notesRef.current.style.height = notesRef.current.scrollHeight + 'px'
+        }
+      }, delay)
+      return () => clearTimeout(timer)
     }
   }, [editingNotes])
 
-  // Handle focus field signal from inline title editing triggers (@, ^, *)
+  // Handle focus field signal from Alt+key shortcuts and title triggers
   useEffect(() => {
     if (!detailFocusField || !task) return
     const field = detailFocusField
     setDetailFocusField(null)
-    triggeredByTitleRef.current = true
+    // Only set triggeredByTitleRef for legacy trigger-char fields (not Alt+key)
+    if (field === 'notes' || field === 'when' || field === 'deadline') {
+      triggeredByTitleRef.current = true
+    }
 
     if (field === 'notes') {
+      notesOpenedByShortcutRef.current = true
       setShowNotes(true)
       setEditingNotes(true)
     } else if (field === 'when') {
@@ -107,6 +126,22 @@ export function TaskDetail({ taskId }: TaskDetailProps) {
           container?.querySelector('input')?.focus()
         }
       })
+    } else if (field === 'checklist') {
+      setShowChecklist(true)
+    } else if (field === 'reminder') {
+      setShowReminders(true)
+    } else if (field === 'file') {
+      // Click the file upload button in toolbar
+      requestAnimationFrame(() => {
+        const btn = document.querySelector<HTMLButtonElement>('button[aria-label="Attach file"]')
+        btn?.click()
+      })
+    } else if (field === 'link') {
+      // Click the link add button in toolbar
+      requestAnimationFrame(() => {
+        const btn = document.querySelector<HTMLButtonElement>('button[aria-label="Add link"]')
+        btn?.click()
+      })
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [detailFocusField, task])
@@ -118,23 +153,24 @@ export function TaskDetail({ taskId }: TaskDetailProps) {
     }
   }
 
-  function handleWhenComplete() {
-    // Hide section if no date exists (Escape without selecting)
-    if (!task?.when_date) {
+  function handleWhenComplete(selected: string | null) {
+    // Hide section if no date was selected (Escape without selecting)
+    if (!selected) {
       setShowWhen(false)
     }
     returnToTitle()
   }
 
-  function handleDeadlineComplete() {
-    if (!task?.deadline) {
+  function handleDeadlineComplete(selected: string | null) {
+    if (!selected) {
       setShowDeadline(false)
     }
     returnToTitle()
   }
 
   function handleKeyDown(e: React.KeyboardEvent) {
-    if (e.key === 'Escape') {
+    // In modal mode, the modal wrapper handles Escape
+    if (e.key === 'Escape' && !isModal) {
       expandTask(null)
     }
   }
@@ -231,6 +267,319 @@ export function TaskDetail({ taskId }: TaskDetailProps) {
   const hasMultipleSchedules = (task.schedules?.length ?? 0) > 1
   const hasSiYuan = hasSiYuanLink(task.attachments)
 
+  // Shared notes content (used in both modes)
+  const notesContent = (
+    <>
+      {editingNotes ? (
+        <textarea
+          ref={notesRef}
+          value={notes}
+          onChange={(e) => setNotes(e.target.value)}
+          onBlur={() => {
+            saveNotes()
+            if (!isModal && !notes.trim()) setShowNotes(false)
+            returnToTitle()
+          }}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') {
+              e.stopPropagation()
+            } else if (e.key === 'Escape') {
+              e.preventDefault()
+              e.stopPropagation()
+              const trimmed = notes.split('\n').filter((l) => l.trim() !== '').join('\n')
+              setNotes(trimmed)
+              if (!isModal && !trimmed) {
+                setShowNotes(false)
+              } else if (notesRef.current) {
+                notesRef.current.value = trimmed
+                notesRef.current.style.height = 'auto'
+                notesRef.current.style.height = notesRef.current.scrollHeight + 'px'
+              }
+              saveNotes()
+              returnToTitle()
+            }
+          }}
+          onInput={(e) => {
+            const el = e.currentTarget
+            el.style.height = 'auto'
+            el.style.height = el.scrollHeight + 'px'
+          }}
+          className="w-full resize-none border-none bg-transparent px-0 py-0 text-sm focus:outline-none dark:text-neutral-100 dark:placeholder:text-neutral-500"
+          placeholder="Add notes…"
+          rows={1}
+        />
+      ) : (
+        <div
+          onClick={() => setEditingNotes(true)}
+          className="cursor-text whitespace-pre-wrap text-sm text-neutral-700 dark:text-neutral-300"
+        >
+          {task.notes || (
+            <span className="text-neutral-400">{isModal ? 'Add notes…' : 'Notes'}</span>
+          )}
+        </div>
+      )}
+    </>
+  )
+
+  // Shared schedule/when content
+  const whenContent = (
+    <ScheduleEditor
+      taskId={taskId}
+      schedules={task.schedules ?? []}
+      timeFormat={settings?.time_format ?? '12h'}
+      defaultTimeGap={settings?.default_time_gap ?? 60}
+      hasRepeatRule={hasRepeatRule}
+      onWhenDateChange={handleWhenDateChange}
+      onClearWhen={clearWhen}
+      whenDateInputRef={whenDateInputRef}
+      autoFocusFirst={!isModal && showWhen && !hasWhen}
+      onComplete={handleWhenComplete}
+    />
+  )
+
+  // Shared deadline content
+  const deadlineContent = (
+    <div className="flex items-center gap-2">
+      <Flag size={14} className="shrink-0 text-red-500" />
+      <div ref={deadlineDateInputRef}>
+        <DateInput
+          variant="deadline"
+          value={task.deadline ?? ''}
+          onChange={handleDeadlineChange}
+          autoFocus={!isModal && showDeadline && !hasDeadline}
+          onComplete={handleDeadlineComplete}
+        />
+      </div>
+      {hasDeadline && (
+        <button
+          onClick={clearDeadline}
+          className="text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-300"
+          aria-label="Clear deadline"
+        >
+          <X size={14} />
+        </button>
+      )}
+    </div>
+  )
+
+  // Shared confirm dialog
+  const confirmDialog = (
+    <ConfirmDialog
+      open={scheduleConfirmAction !== null}
+      title={
+        scheduleConfirmAction === 'cancel'
+          ? 'Cancel task with scheduled dates?'
+          : "Mark as won't do with scheduled dates?"
+      }
+      description="Past scheduled dates will be marked done. Today and future dates will be removed."
+      confirmLabel={scheduleConfirmAction === 'cancel' ? 'Cancel task' : "Won't do"}
+      onConfirm={() => {
+        const action = scheduleConfirmAction
+        setScheduleConfirmAction(null)
+        if (action === 'cancel') {
+          cancelTask.mutate(taskId)
+        } else {
+          wontDoTask.mutate(taskId)
+        }
+        expandTask(null)
+      }}
+      onCancel={() => setScheduleConfirmAction(null)}
+    />
+  )
+
+  // Toolbar icons shared between modes (file, link, repeat, priority, cancel/wontdo/delete)
+  const sharedToolbarIcons = (
+    <>
+      <FileUploadButton taskId={taskId} />
+      <LinkAddButton taskId={taskId} />
+      {task.high_priority ? (
+        <button
+          onClick={() => updateTask.mutate({ id: taskId, data: { high_priority: false } })}
+          className="ml-1 flex items-center gap-1 rounded-md border border-red-200 px-1.5 py-0.5 text-red-500 hover:bg-red-50 dark:border-red-800 dark:hover:bg-red-900/20"
+          aria-label="Remove high priority"
+          title="High priority"
+        >
+          <CircleAlert size={14} />
+          <span className="text-xs">High</span>
+        </button>
+      ) : (
+        <button
+          onClick={() => updateTask.mutate({ id: taskId, data: { high_priority: true } })}
+          className="rounded-md p-2 md:p-1 text-neutral-400 hover:bg-neutral-100 hover:text-neutral-600 dark:hover:bg-neutral-800 dark:hover:text-neutral-300"
+          aria-label="Set high priority"
+          title="High priority"
+        >
+          <CircleAlert size={16} />
+        </button>
+      )}
+      {hasSiYuan || hasMultipleSchedules ? (
+        <button
+          disabled
+          className="rounded-md p-2 md:p-1 text-neutral-300 cursor-not-allowed dark:text-neutral-600"
+          aria-label={hasMultipleSchedules ? 'Recurring not available with multiple dates' : hasRepeatRule ? 'Recurring disabled — remove SiYuan link to edit' : 'Recurring not available for SiYuan-linked tasks'}
+          title={hasMultipleSchedules ? 'Recurring not available with multiple dates' : hasRepeatRule ? 'Has a repeat rule — remove SiYuan link to edit' : 'Recurring not available for SiYuan-linked tasks'}
+        >
+          <RefreshCw size={16} />
+        </button>
+      ) : hasRepeatRule && !showRepeat && task.repeat_rule ? (
+        <button
+          onClick={() => setShowRepeat(true)}
+          className="ml-1 flex items-center gap-1 rounded-md border border-neutral-200 px-1.5 py-0.5 text-neutral-400 hover:bg-neutral-100 hover:text-neutral-600 dark:border-neutral-600 dark:hover:bg-neutral-800 dark:hover:text-neutral-300"
+          aria-label="Repeat"
+          title="Repeat"
+        >
+          <RefreshCw size={14} />
+          <span className="text-xs text-neutral-500">{formatRepeatRule(task.repeat_rule)}</span>
+        </button>
+      ) : !showRepeat && (
+        <button
+          onClick={() => setShowRepeat(true)}
+          className="rounded-md p-2 md:p-1 text-neutral-400 hover:bg-neutral-100 hover:text-neutral-600 dark:hover:bg-neutral-800 dark:hover:text-neutral-300"
+          aria-label="Repeat"
+          title="Repeat"
+        >
+          <RefreshCw size={16} />
+        </button>
+      )}
+      <div className="ml-auto flex items-center gap-0.5">
+        {task.status === 'open' && (
+          <>
+            <button
+              onClick={handleCancel}
+              className="rounded-md p-2 md:p-1 text-neutral-400 hover:bg-neutral-100 hover:text-neutral-600 dark:hover:bg-neutral-800 dark:hover:text-neutral-300"
+              aria-label="Cancel task"
+              title="Cancel"
+            >
+              <CircleMinus size={16} />
+            </button>
+            <button
+              onClick={handleWontDo}
+              className="rounded-md p-2 md:p-1 text-neutral-400 hover:bg-neutral-100 hover:text-neutral-600 dark:hover:bg-neutral-800 dark:hover:text-neutral-300"
+              aria-label="Won't do task"
+              title="Won't do"
+            >
+              <CircleX size={16} />
+            </button>
+          </>
+        )}
+        <button
+          onClick={handleDelete}
+          className="rounded-md p-2 md:p-1 text-neutral-400 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-900/20 dark:hover:text-red-400"
+          aria-label="Delete task"
+          title="Delete"
+        >
+          <Trash2 size={16} />
+        </button>
+      </div>
+    </>
+  )
+
+  /* ── Modal layout: always-visible sections with dividers ── */
+  if (isModal) {
+    return (
+      <div className="space-y-0 py-2" onKeyDown={handleKeyDown}>
+        {/* Toolbar — portaled to modal header area */}
+        {toolbarPortalEl && createPortal(sharedToolbarIcons, toolbarPortalEl)}
+
+        {/* Notes */}
+        <div className="py-5">
+          <h4 className="mb-2 flex items-center gap-1.5 text-xs font-medium uppercase tracking-wide text-neutral-400 dark:text-neutral-500">
+            <StickyNote size={12} />
+            Notes
+          </h4>
+          <div className="flex items-center gap-2">
+            <Plus size={14} className="shrink-0 text-neutral-400" />
+            {notesContent}
+          </div>
+        </div>
+
+        <div className="border-t border-neutral-100 dark:border-neutral-700" />
+
+        {/* When / Schedule */}
+        <div className="py-5">
+          <h4 className="mb-2 flex items-center gap-1.5 text-xs font-medium uppercase tracking-wide text-neutral-400 dark:text-neutral-500">
+            <Calendar size={12} />
+            When
+          </h4>
+          {hasWhen ? whenContent : (
+            <ScheduleEditor
+              taskId={taskId}
+              schedules={[]}
+              timeFormat={settings?.time_format ?? '12h'}
+              defaultTimeGap={settings?.default_time_gap ?? 60}
+              hasRepeatRule={hasRepeatRule}
+              onWhenDateChange={handleWhenDateChange}
+              onClearWhen={clearWhen}
+              whenDateInputRef={whenDateInputRef}
+              autoFocusFirst={false}
+              onComplete={handleWhenComplete}
+            />
+          )}
+        </div>
+
+        <div className="border-t border-neutral-100 dark:border-neutral-700" />
+
+        {/* Deadline */}
+        <div className="py-5">
+          <h4 className="mb-2 flex items-center gap-1.5 text-xs font-medium uppercase tracking-wide text-neutral-400 dark:text-neutral-500">
+            <Flag size={12} />
+            Deadline
+          </h4>
+          {deadlineContent}
+        </div>
+
+        <div className="border-t border-neutral-100 dark:border-neutral-700" />
+
+        {/* Checklist */}
+        <div className="py-5">
+          <h4 className="mb-2 flex items-center gap-1.5 text-xs font-medium uppercase tracking-wide text-neutral-400 dark:text-neutral-500">
+            <ListChecks size={12} />
+            Checklist
+          </h4>
+          <ChecklistEditor taskId={taskId} items={task.checklist} />
+        </div>
+
+        <div className="border-t border-neutral-100 dark:border-neutral-700" />
+
+        {/* Reminders */}
+        <div className="py-5">
+          <h4 className="mb-2 flex items-center gap-1.5 text-xs font-medium uppercase tracking-wide text-neutral-400 dark:text-neutral-500">
+            <Bell size={12} />
+            Reminders
+          </h4>
+          <ReminderEditor taskId={taskId} reminders={task.reminders ?? []} timeFormat={settings?.time_format ?? '12h'} />
+        </div>
+
+        {/* Existing attachments */}
+        {task.attachments.length > 0 && (
+          <>
+            <div className="border-t border-neutral-100 dark:border-neutral-700" />
+            <div className="pt-3">
+              <AttachmentList taskId={taskId} attachments={task.attachments} />
+            </div>
+          </>
+        )}
+
+        {/* Repeat rule picker */}
+        {showRepeat && (
+          <div className="pt-3">
+            <RepeatRulePicker taskId={taskId} existingRule={task.repeat_rule} onClose={() => setShowRepeat(false)} />
+          </div>
+        )}
+
+        {/* Date validation error */}
+        {dateError && (
+          <div className="rounded-md bg-red-50 px-3 py-1.5 text-xs text-red-600 dark:bg-red-900/20 dark:text-red-400">
+            {dateError}
+          </div>
+        )}
+
+        {confirmDialog}
+      </div>
+    )
+  }
+
+  /* ── Inline (non-modal) layout: original toggle-based sections ── */
   return (
     <div
       className="space-y-3 border-t border-neutral-100 py-4 pl-6 pr-4 md:pl-[64px] md:pr-6 dark:border-neutral-700"
@@ -240,97 +589,15 @@ export function TaskDetail({ taskId }: TaskDetailProps) {
       {(hasNotes || showNotes) && (
         <div className="flex gap-2">
           <StickyNote size={14} className="mt-0.5 shrink-0 text-neutral-400" />
-          {editingNotes ? (
-            <textarea
-              ref={notesRef}
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
-              onBlur={() => {
-                saveNotes()
-                if (!notes.trim()) setShowNotes(false)
-                returnToTitle()
-              }}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') {
-                  e.stopPropagation()
-                } else if (e.key === 'Escape') {
-                  e.preventDefault()
-                  e.stopPropagation()
-                  const trimmed = notes.split('\n').filter((l) => l.trim() !== '').join('\n')
-                  setNotes(trimmed)
-                  if (!trimmed) {
-                    setShowNotes(false)
-                  } else if (notesRef.current) {
-                    notesRef.current.value = trimmed
-                    notesRef.current.style.height = 'auto'
-                    notesRef.current.style.height = notesRef.current.scrollHeight + 'px'
-                  }
-                  saveNotes()
-                  returnToTitle()
-                }
-              }}
-              onInput={(e) => {
-                const el = e.currentTarget
-                el.style.height = 'auto'
-                el.style.height = el.scrollHeight + 'px'
-              }}
-              className="w-full resize-none border-none bg-transparent px-0 py-0 text-sm focus:outline-none dark:text-neutral-100 dark:placeholder:text-neutral-500"
-              placeholder="Notes"
-              rows={1}
-            />
-          ) : (
-            <div
-              onClick={() => setEditingNotes(true)}
-              className="min-h-[1.5rem] cursor-text text-sm text-neutral-700 dark:text-neutral-300"
-            >
-              {task.notes || (
-                <span className="text-neutral-400">Notes</span>
-              )}
-            </div>
-          )}
+          {notesContent}
         </div>
       )}
 
       {/* When date / schedule entries — shown when set or toggled */}
-      {(hasWhen || showWhen) && (
-        <ScheduleEditor
-          taskId={taskId}
-          schedules={task.schedules ?? []}
-          timeFormat={settings?.time_format ?? '12h'}
-          defaultTimeGap={settings?.default_time_gap ?? 60}
-          hasRepeatRule={hasRepeatRule}
-          onWhenDateChange={handleWhenDateChange}
-          onClearWhen={clearWhen}
-          whenDateInputRef={whenDateInputRef}
-          autoFocusFirst={showWhen && !hasWhen}
-          onComplete={handleWhenComplete}
-        />
-      )}
+      {(hasWhen || showWhen) && whenContent}
 
       {/* Deadline — shown when set or toggled */}
-      {(hasDeadline || showDeadline) && (
-        <div className="flex items-center gap-2">
-          <Flag size={14} className="shrink-0 text-red-500" />
-          <div ref={deadlineDateInputRef}>
-            <DateInput
-              variant="deadline"
-              value={task.deadline ?? ''}
-              onChange={handleDeadlineChange}
-              autoFocus={showDeadline && !hasDeadline}
-              onComplete={handleDeadlineComplete}
-            />
-          </div>
-          {hasDeadline && (
-            <button
-              onClick={clearDeadline}
-              className="text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-300"
-              aria-label="Clear deadline"
-            >
-              <X size={14} />
-            </button>
-          )}
-        </div>
-      )}
+      {(hasDeadline || showDeadline) && deadlineContent}
 
       {/* Checklist — shown when has items or toggled */}
       {(hasChecklist || showChecklist) && (
@@ -415,109 +682,10 @@ export function TaskDetail({ taskId }: TaskDetailProps) {
             <Bell size={16} />
           </button>
         )}
-        <FileUploadButton taskId={taskId} />
-        <LinkAddButton taskId={taskId} />
-        {task.high_priority ? (
-          <button
-            onClick={() => updateTask.mutate({ id: taskId, data: { high_priority: false } })}
-            className="ml-1 flex items-center gap-1 rounded-md border border-red-200 px-1.5 py-0.5 text-red-500 hover:bg-red-50 dark:border-red-800 dark:hover:bg-red-900/20"
-            aria-label="Remove high priority"
-            title="High priority"
-          >
-            <CircleAlert size={14} />
-            <span className="text-xs">High</span>
-          </button>
-        ) : (
-          <button
-            onClick={() => updateTask.mutate({ id: taskId, data: { high_priority: true } })}
-            className="rounded-md p-2 md:p-1 text-neutral-400 hover:bg-neutral-100 hover:text-neutral-600 dark:hover:bg-neutral-800 dark:hover:text-neutral-300"
-            aria-label="Set high priority"
-            title="High priority"
-          >
-            <CircleAlert size={16} />
-          </button>
-        )}
-        {hasSiYuan || hasMultipleSchedules ? (
-          <button
-            disabled
-            className="rounded-md p-2 md:p-1 text-neutral-300 cursor-not-allowed dark:text-neutral-600"
-            aria-label={hasMultipleSchedules ? 'Recurring not available with multiple dates' : hasRepeatRule ? 'Recurring disabled — remove SiYuan link to edit' : 'Recurring not available for SiYuan-linked tasks'}
-            title={hasMultipleSchedules ? 'Recurring not available with multiple dates' : hasRepeatRule ? 'Has a repeat rule — remove SiYuan link to edit' : 'Recurring not available for SiYuan-linked tasks'}
-          >
-            <RefreshCw size={16} />
-          </button>
-        ) : hasRepeatRule && !showRepeat && task.repeat_rule ? (
-          <button
-            onClick={() => setShowRepeat(true)}
-            className="ml-1 flex items-center gap-1 rounded-md border border-neutral-200 px-1.5 py-0.5 text-neutral-400 hover:bg-neutral-100 hover:text-neutral-600 dark:border-neutral-600 dark:hover:bg-neutral-800 dark:hover:text-neutral-300"
-            aria-label="Repeat"
-            title="Repeat"
-          >
-            <RefreshCw size={14} />
-            <span className="text-xs text-neutral-500">{formatRepeatRule(task.repeat_rule)}</span>
-          </button>
-        ) : !showRepeat && (
-          <button
-            onClick={() => setShowRepeat(true)}
-            className="rounded-md p-2 md:p-1 text-neutral-400 hover:bg-neutral-100 hover:text-neutral-600 dark:hover:bg-neutral-800 dark:hover:text-neutral-300"
-            aria-label="Repeat"
-            title="Repeat"
-          >
-            <RefreshCw size={16} />
-          </button>
-        )}
-        <div className="ml-auto flex items-center gap-0.5">
-          {task.status === 'open' && (
-            <>
-              <button
-                onClick={handleCancel}
-                className="rounded-md p-2 md:p-1 text-neutral-400 hover:bg-neutral-100 hover:text-neutral-600 dark:hover:bg-neutral-800 dark:hover:text-neutral-300"
-                aria-label="Cancel task"
-                title="Cancel"
-              >
-                <CircleMinus size={16} />
-              </button>
-              <button
-                onClick={handleWontDo}
-                className="rounded-md p-2 md:p-1 text-neutral-400 hover:bg-neutral-100 hover:text-neutral-600 dark:hover:bg-neutral-800 dark:hover:text-neutral-300"
-                aria-label="Won't do task"
-                title="Won't do"
-              >
-                <CircleX size={16} />
-              </button>
-            </>
-          )}
-          <button
-            onClick={handleDelete}
-            className="rounded-md p-2 md:p-1 text-neutral-400 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-900/20 dark:hover:text-red-400"
-            aria-label="Delete task"
-            title="Delete"
-          >
-            <Trash2 size={16} />
-          </button>
-        </div>
+        {sharedToolbarIcons}
       </div>
-      <ConfirmDialog
-        open={scheduleConfirmAction !== null}
-        title={
-          scheduleConfirmAction === 'cancel'
-            ? 'Cancel task with scheduled dates?'
-            : "Mark as won't do with scheduled dates?"
-        }
-        description="Past scheduled dates will be marked done. Today and future dates will be removed."
-        confirmLabel={scheduleConfirmAction === 'cancel' ? 'Cancel task' : "Won't do"}
-        onConfirm={() => {
-          const action = scheduleConfirmAction
-          setScheduleConfirmAction(null)
-          if (action === 'cancel') {
-            cancelTask.mutate(taskId)
-          } else {
-            wontDoTask.mutate(taskId)
-          }
-          expandTask(null)
-        }}
-        onCancel={() => setScheduleConfirmAction(null)}
-      />
+
+      {confirmDialog}
     </div>
   )
 }

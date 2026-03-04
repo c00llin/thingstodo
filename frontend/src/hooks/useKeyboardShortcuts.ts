@@ -139,9 +139,17 @@ function isFocusInFilterBar(): boolean {
   return document.activeElement?.closest('[data-filter-bar]') !== null
 }
 
-function getVisibleTaskIds(): string[] {
+interface VisibleTask {
+  taskId: string
+  scheduleEntryId: string | null
+}
+
+function getVisibleTasks(): VisibleTask[] {
   const nodes = document.querySelectorAll<HTMLElement>('[data-task-id]:not([data-departing="true"])')
-  return Array.from(nodes).map((el) => el.dataset.taskId!)
+  return Array.from(nodes).map((el) => ({
+    taskId: el.dataset.taskId!,
+    scheduleEntryId: el.dataset.scheduleEntryId ?? null,
+  }))
 }
 
 function scrollToTask(taskId: string) {
@@ -153,9 +161,11 @@ function scrollToTask(taskId: string) {
 
 export function useTaskShortcuts() {
   const selectedTaskId = useAppStore((s) => s.selectedTaskId)
+  const selectedScheduleEntryId = useAppStore((s) => s.selectedScheduleEntryId)
   const selectTask = useAppStore((s) => s.selectTask)
   const expandedTaskId = useAppStore((s) => s.expandedTaskId)
   const expandTask = useAppStore((s) => s.expandTask)
+  const closeModal = useAppStore((s) => s.closeModal)
   const startEditingTask = useAppStore((s) => s.startEditingTask)
   const setPendingCompleteConfirmId = useAppStore((s) => s.setPendingCompleteConfirmId)
   const queryClient = useQueryClient()
@@ -165,79 +175,93 @@ export function useTaskShortcuts() {
 
   const enabled = !!selectedTaskId
 
-  // Space toggles detail panel (keep task selected when closing)
+  // Space opens/closes modal for selected task
   useHotkeys('space', (e) => {
     if (isFocusInFilterBar()) return
     e.preventDefault()
     if (selectedTaskId) {
       if (expandedTaskId === selectedTaskId) {
-        useAppStore.setState({ expandedTaskId: null })
+        closeModal()
       } else {
-        expandTask(selectedTaskId)
+        expandTask(selectedTaskId, selectedScheduleEntryId)
       }
     }
   }, { enabled })
 
-  // Enter edits title
+  // Enter opens modal + focuses title for editing
   useHotkeys('enter', (e) => {
     if (isFocusInFilterBar()) return
     e.preventDefault()
     if (selectedTaskId) {
+      expandTask(selectedTaskId, selectedScheduleEntryId)
       startEditingTask(selectedTaskId)
     }
   }, { enabled })
 
-  // Cmd+Enter opens detail
+  // Cmd+Enter opens modal
   useHotkeys('meta+enter', (e) => {
     e.preventDefault()
     if (selectedTaskId) {
-      expandTask(selectedTaskId)
+      expandTask(selectedTaskId, selectedScheduleEntryId)
     }
   }, { enabled })
 
-  // Escape closes detail and deselects
+  // Escape closes modal; if no modal, deselects
   useHotkeys('escape', (e) => {
     if (isFocusInFilterBar()) return
     e.preventDefault()
     if (expandedTaskId) {
-      expandTask(null)
+      closeModal()
     } else if (selectedTaskId) {
       selectTask(null)
     }
   }, { enabled: !!expandedTaskId || !!selectedTaskId })
 
-  // Arrow down — select next task (wraps around)
+  // Arrow down — select next task (wraps around); if modal open, switch modal task
   useHotkeys('down', (e) => {
     if (isFocusInFilterBar()) return
+    const tag = (document.activeElement as HTMLElement)?.tagName
+    if (tag === 'INPUT' || tag === 'TEXTAREA') return
     e.preventDefault()
-    const ids = getVisibleTaskIds()
-    if (ids.length === 0) return
+    const tasks = getVisibleTasks()
+    if (tasks.length === 0) return
     if (!selectedTaskId) {
-      selectTask(ids[0])
-      scrollToTask(ids[0])
+      selectTask(tasks[0].taskId, tasks[0].scheduleEntryId)
+      scrollToTask(tasks[0].taskId)
       return
     }
-    const idx = ids.indexOf(selectedTaskId)
-    const nextId = ids[(idx + 1) % ids.length]
-    selectTask(nextId)
-    scrollToTask(nextId)
+    const idx = tasks.findIndex((t) => t.taskId === selectedTaskId && t.scheduleEntryId === selectedScheduleEntryId)
+    const next = tasks[((idx === -1 ? 0 : idx) + 1) % tasks.length]
+    selectTask(next.taskId, next.scheduleEntryId)
+    scrollToTask(next.taskId)
+    // If modal is open, navigate modal to new task
+    if (expandedTaskId) {
+      expandTask(next.taskId, next.scheduleEntryId)
+    }
   }, { enabled: true })
 
-  // Arrow up — select previous task (wraps around)
+  // Arrow up — select previous task (wraps around); if modal open, switch modal task
   useHotkeys('up', (e) => {
     if (isFocusInFilterBar()) return
+    const tag = (document.activeElement as HTMLElement)?.tagName
+    if (tag === 'INPUT' || tag === 'TEXTAREA') return
     e.preventDefault()
-    const ids = getVisibleTaskIds()
-    if (ids.length === 0) return
+    const tasks = getVisibleTasks()
+    if (tasks.length === 0) return
     if (!selectedTaskId) {
-      selectTask(ids[ids.length - 1])
-      scrollToTask(ids[ids.length - 1])
+      const last = tasks[tasks.length - 1]
+      selectTask(last.taskId, last.scheduleEntryId)
+      scrollToTask(last.taskId)
       return
     }
-    const idx = ids.indexOf(selectedTaskId)
-    const prevId = ids[(idx - 1 + ids.length) % ids.length]
-    selectTask(prevId)
-    scrollToTask(prevId)
+    const idx = tasks.findIndex((t) => t.taskId === selectedTaskId && t.scheduleEntryId === selectedScheduleEntryId)
+    const prev = tasks[((idx === -1 ? tasks.length - 1 : idx) - 1 + tasks.length) % tasks.length]
+    selectTask(prev.taskId, prev.scheduleEntryId)
+    scrollToTask(prev.taskId)
+    // If modal is open, navigate modal to new task
+    if (expandedTaskId) {
+      expandTask(prev.taskId, prev.scheduleEntryId)
+    }
   }, { enabled: true })
 
   // Complete task
@@ -250,15 +274,6 @@ export function useTaskShortcuts() {
       } else {
         completeTask.mutate(selectedTaskId)
       }
-    }
-  }, { enabled })
-
-  // Move to Today
-  useHotkeys('alt+t', (e) => {
-    e.preventDefault()
-    if (selectedTaskId) {
-      const today = new Date().toISOString().split('T')[0]
-      updateTask.mutate({ id: selectedTaskId, data: { when_date: today } })
     }
   }, { enabled })
 

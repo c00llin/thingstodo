@@ -13,13 +13,14 @@ interface AppStore {
   collapsedAreaIds: Set<string>
   toggleAreaCollapsed: (areaId: string) => void
 
-  // Task selection & detail panel
+  // Task selection & detail modal
   selectedTaskId: string | null
   selectedScheduleEntryId: string | null
   selectTask: (id: string | null, scheduleEntryId?: string | null) => void
   expandedTaskId: string | null
   expandedScheduleEntryId: string | null
   expandTask: (id: string | null, scheduleEntryId?: string | null) => void
+  closeModal: () => void
   editingTaskId: string | null
   startEditingTask: (id: string | null) => void
 
@@ -65,8 +66,8 @@ interface AppStore {
   setDepartingTaskId: (id: string | null) => void
 
   // Signal TaskDetail to auto-focus a specific field after expanding
-  detailFocusField: 'notes' | 'when' | 'deadline' | null
-  setDetailFocusField: (field: 'notes' | 'when' | 'deadline' | null) => void
+  detailFocusField: 'notes' | 'when' | 'deadline' | 'title' | 'tags' | 'area' | 'checklist' | 'reminder' | 'link' | 'file' | 'priority' | null
+  setDetailFocusField: (field: 'notes' | 'when' | 'deadline' | 'title' | 'tags' | 'area' | 'checklist' | 'reminder' | 'link' | 'file' | 'priority' | null) => void
 
   // Signal that a detail field interaction completed — title editing should resume
   detailFieldCompleted: boolean
@@ -125,10 +126,11 @@ export const useAppStore = create<AppStore>((set) => ({
 
   selectedTaskId: null,
   selectedScheduleEntryId: null,
-  selectTask: (id, scheduleEntryId) => set({ selectedTaskId: id, selectedScheduleEntryId: scheduleEntryId ?? null, expandedTaskId: null, editingTaskId: null }),
+  selectTask: (id, scheduleEntryId) => set({ selectedTaskId: id, selectedScheduleEntryId: scheduleEntryId ?? null, editingTaskId: null }),
   expandedTaskId: null,
   expandedScheduleEntryId: null,
   expandTask: (id, scheduleEntryId) => set({ expandedTaskId: id, expandedScheduleEntryId: scheduleEntryId ?? null, selectedTaskId: id, selectedScheduleEntryId: scheduleEntryId ?? null }),
+  closeModal: () => set({ expandedTaskId: null, expandedScheduleEntryId: null, editingTaskId: null }),
   editingTaskId: null,
   startEditingTask: (id) => set({ editingTaskId: id }),
 

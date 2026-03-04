@@ -2,10 +2,12 @@ import { useState, useCallback, useRef, useEffect } from 'react'
 import { useAppStore } from '../stores/app'
 import { useCreateTask } from '../hooks/queries'
 import { useResolveTags } from '../hooks/useResolveTags'
-import { TagAutocomplete } from './TagAutocomplete'
+import { useDetailShortcuts, detectHashTrigger } from '../hooks/useDetailShortcuts'
 import { ProjectAutocomplete } from './ProjectAutocomplete'
 import { PriorityAutocomplete } from './PriorityAutocomplete'
-import { StickyNote, Calendar, Flag, X } from 'lucide-react'
+import { TagMultiSelect } from './TagMultiSelect'
+import { AreaProjectPicker } from './AreaProjectPicker'
+import { StickyNote, Calendar, Flag, Tag, Folder, X } from 'lucide-react'
 import { DateInput } from './DateInput'
 
 export function QuickEntry() {
@@ -24,11 +26,19 @@ export function QuickEntry() {
   const [showWhen, setShowWhen] = useState(false)
   const [showDeadline, setShowDeadline] = useState(false)
 
+  // Tag and area/project fields
+  const [tagIds, setTagIds] = useState<string[]>([])
+  const [projectId, setProjectId] = useState<string | null>(null)
+  const [areaId, setAreaId] = useState<string | null>(null)
+  const [showTags, setShowTags] = useState(false)
+  const [showArea, setShowArea] = useState(false)
+
   const createTask = useCreateTask()
   const resolveTags = useResolveTags()
 
   const inputRef = useRef<HTMLInputElement>(null)
   const notesRef = useRef<HTMLTextAreaElement>(null)
+  const notesOpenedByShortcutRef = useRef(false)
 
   useEffect(() => {
     if (open) {
@@ -48,6 +58,11 @@ export function QuickEntry() {
     setShowNotes(false)
     setShowWhen(false)
     setShowDeadline(false)
+    setTagIds([])
+    setProjectId(null)
+    setAreaId(null)
+    setShowTags(false)
+    setShowArea(false)
   }
 
   // Reset detail fields when title is cleared
@@ -66,17 +81,33 @@ export function QuickEntry() {
     }
   }, [open])
 
-  // Auto-focus sections when toggled
+  const handleToggleNotes = useCallback((v: boolean) => {
+    if (v) notesOpenedByShortcutRef.current = true
+    setShowNotes(v)
+  }, [])
+
+  // Auto-focus notes when toggled — delay when opened via Alt+N to avoid
+  // macOS dead-key characters (e.g. Alt+N → ~)
   useEffect(() => {
-    if (showNotes && notesRef.current) notesRef.current.focus()
+    if (showNotes && notesRef.current) {
+      const delay = notesOpenedByShortcutRef.current ? 120 : 0
+      notesOpenedByShortcutRef.current = false
+      const timer = setTimeout(() => {
+        notesRef.current?.focus()
+      }, delay)
+      return () => clearTimeout(timer)
+    }
   }, [showNotes])
 
   const handleSubmit = useCallback(async () => {
     const raw = title.trim()
     if (!raw) return
 
-    const { title: parsedTitle, tagIds, projectId, areaId } = await resolveTags(raw)
+    const { title: parsedTitle, tagIds: parsedTagIds, projectId: parsedProjectId, areaId: parsedAreaId } = await resolveTags(raw)
     if (!parsedTitle) return
+
+    // Merge tag IDs from title tokens with tag picker selections
+    const mergedTagIds = [...new Set([...parsedTagIds, ...tagIds])]
 
     createTask.mutate(
       {
@@ -85,9 +116,9 @@ export function QuickEntry() {
         when_date: whenDate || undefined,
         high_priority: highPriority || undefined,
         deadline: deadline || undefined,
-        tag_ids: tagIds.length > 0 ? tagIds : undefined,
-        project_id: projectId ?? undefined,
-        area_id: areaId ?? undefined,
+        tag_ids: mergedTagIds.length > 0 ? mergedTagIds : undefined,
+        project_id: projectId ?? parsedProjectId ?? undefined,
+        area_id: areaId ?? parsedAreaId ?? undefined,
       },
       {
         onSuccess: () => {
@@ -97,7 +128,7 @@ export function QuickEntry() {
         },
       }
     )
-  }, [title, notes, whenDate, highPriority, deadline, resolveTags, createTask, close])
+  }, [title, notes, whenDate, highPriority, deadline, tagIds, projectId, areaId, resolveTags, createTask, close])
 
   if (!open) return null
 
@@ -153,18 +184,24 @@ export function QuickEntry() {
             if (!date) setShowDeadline(false)
           }}
           highPriority={highPriority}
+          onToggleHighPriority={() => setHighPriority((p) => !p)}
           onSetHighPriority={() => setHighPriority(true)}
           showNotes={showNotes}
-          onToggleNotes={setShowNotes}
+          onToggleNotes={handleToggleNotes}
           showWhen={showWhen}
           onToggleWhen={setShowWhen}
           showDeadline={showDeadline}
           onToggleDeadline={setShowDeadline}
+          tagIds={tagIds}
+          onTagIdsChange={setTagIds}
+          showTags={showTags}
+          onToggleTags={setShowTags}
+          areaId={areaId}
+          projectId={projectId}
+          onAreaProjectChange={(a, p) => { setAreaId(a); setProjectId(p) }}
+          showArea={showArea}
+          onToggleArea={setShowArea}
         />
-        <div className="hidden items-center justify-between border-t border-neutral-200 px-4 py-2 text-xs text-neutral-400 md:flex dark:border-neutral-700 dark:text-neutral-500">
-          <span>Enter to create · #tag $project *notes @when ^deadline !high</span>
-          <span>Esc to close</span>
-        </div>
       </div>
     </div>
   )
@@ -184,6 +221,7 @@ function CreateMode({
   deadline,
   onDeadlineChange,
   highPriority,
+  onToggleHighPriority,
   onSetHighPriority,
   showNotes,
   onToggleNotes,
@@ -191,6 +229,15 @@ function CreateMode({
   onToggleWhen,
   showDeadline,
   onToggleDeadline,
+  tagIds,
+  onTagIdsChange,
+  showTags,
+  onToggleTags,
+  areaId,
+  projectId,
+  onAreaProjectChange,
+  showArea,
+  onToggleArea,
 }: {
   title: string
   onTitleChange: (v: string) => void
@@ -205,6 +252,7 @@ function CreateMode({
   deadline: string
   onDeadlineChange: (date: string | null) => void
   highPriority: boolean
+  onToggleHighPriority: () => void
   onSetHighPriority: () => void
   showNotes: boolean
   onToggleNotes: (v: boolean) => void
@@ -212,66 +260,54 @@ function CreateMode({
   onToggleWhen: (v: boolean) => void
   showDeadline: boolean
   onToggleDeadline: (v: boolean) => void
+  tagIds: string[]
+  onTagIdsChange: (ids: string[]) => void
+  showTags: boolean
+  onToggleTags: (v: boolean) => void
+  areaId: string | null
+  projectId: string | null
+  onAreaProjectChange: (areaId: string | null, projectId: string | null) => void
+  showArea: boolean
+  onToggleArea: (v: boolean) => void
 }) {
   const showToolbar = title.trim().length >= 2
 
-  // Track cursor position when a trigger character is used, so we can restore it after field completion
-  const triggerCursorRef = useRef<number | null>(null)
   const whenDateInputRef = useRef<HTMLDivElement>(null)
   const deadlineDateInputRef = useRef<HTMLDivElement>(null)
 
   const handleTitleChange = useCallback((value: string) => {
     const cursorPos = inputRef.current?.selectionStart ?? value.length
-    const lastChar = value[cursorPos - 1]
 
-    if (lastChar === '@') {
-      const withoutTrigger = value.slice(0, cursorPos - 1) + value.slice(cursorPos)
-      triggerCursorRef.current = cursorPos - 1
-      onTitleChange(withoutTrigger)
-      onToggleWhen(true)
-      requestAnimationFrame(() => {
-        const input = whenDateInputRef.current?.querySelector('input')
-        input?.focus()
-      })
-      return
-    }
-
-    if (lastChar === '^') {
-      const withoutTrigger = value.slice(0, cursorPos - 1) + value.slice(cursorPos)
-      triggerCursorRef.current = cursorPos - 1
-      onTitleChange(withoutTrigger)
-      onToggleDeadline(true)
-      requestAnimationFrame(() => {
-        const input = deadlineDateInputRef.current?.querySelector('input')
-        input?.focus()
-      })
-      return
-    }
-
-    if (lastChar === '*') {
-      const withoutTrigger = value.slice(0, cursorPos - 1) + value.slice(cursorPos)
-      triggerCursorRef.current = cursorPos - 1
-      onTitleChange(withoutTrigger)
-      onToggleNotes(true)
-      requestAnimationFrame(() => {
-        notesRef.current?.focus()
-      })
+    // # triggers tag picker
+    if (detectHashTrigger(value, cursorPos, () => onToggleTags(true), onTitleChange)) {
       return
     }
 
     onTitleChange(value)
-  }, [inputRef, onTitleChange, onToggleWhen, onToggleDeadline, onToggleNotes, notesRef])
+  }, [inputRef, onTitleChange, onToggleTags])
 
   const returnFocusToTitle = useCallback(() => {
-    const pos = triggerCursorRef.current
-    triggerCursorRef.current = null
     requestAnimationFrame(() => {
       inputRef.current?.focus()
-      if (pos != null) {
-        inputRef.current?.setSelectionRange(pos, pos)
-      }
     })
   }, [inputRef])
+
+  // Alt+key shortcuts
+  useDetailShortcuts({
+    onToggleTags: useCallback(() => onToggleTags(true), [onToggleTags]),
+    onToggleArea: useCallback(() => onToggleArea(true), [onToggleArea]),
+    onToggleWhen: useCallback(() => onToggleWhen(true), [onToggleWhen]),
+    onToggleDeadline: useCallback(() => onToggleDeadline(true), [onToggleDeadline]),
+    onToggleNotes: useCallback(() => onToggleNotes(true), [onToggleNotes]),
+    onTogglePriority: onToggleHighPriority,
+    enabled: true,
+  })
+
+  // Whether tag/area rows should show
+  // Tags: show when picker is open or tags have been selected
+  const hasTagContent = tagIds.length > 0 || showTags
+  // Area: show in the row only when an area/project is actually set, OR the picker is open
+  const hasAreaContent = areaId !== null || showArea
 
   return (
     <div
@@ -297,12 +333,40 @@ function CreateMode({
           />
         </div>
       </div>
-      <TagAutocomplete inputRef={inputRef} value={title} onChange={onTitleChange} />
       <ProjectAutocomplete inputRef={inputRef} value={title} onChange={onTitleChange} />
       <PriorityAutocomplete inputRef={inputRef} value={title} onChange={onTitleChange} onSetHighPriority={onSetHighPriority} />
 
+      {/* Tag and area/project pickers — shown when tags triggered or have content */}
+      {(hasTagContent || hasAreaContent) && (
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 border-t border-neutral-200 px-4 py-2 pl-[48px] dark:border-neutral-700">
+          {hasAreaContent && (
+            <AreaProjectPicker
+              controlledAreaId={areaId}
+              controlledProjectId={projectId}
+              onControlledChange={onAreaProjectChange}
+              externalOpen={showArea}
+              onExternalOpenChange={onToggleArea}
+              onSelect={returnFocusToTitle}
+              onClose={returnFocusToTitle}
+            />
+          )}
+          {hasAreaContent && hasTagContent && (
+            <div className="h-4 w-px bg-neutral-200 dark:bg-neutral-700" />
+          )}
+          {hasTagContent && (
+            <TagMultiSelect
+              controlledTagIds={tagIds}
+              onControlledChange={onTagIdsChange}
+              externalOpen={showTags}
+              onExternalOpenChange={onToggleTags}
+              onClose={returnFocusToTitle}
+            />
+          )}
+        </div>
+      )}
+
       {/* Detail sections — shown when toggled */}
-      {showToolbar && (showNotes || showWhen || showDeadline) && (
+      {(showNotes || showWhen || showDeadline) && (
         <div className="space-y-3 border-t border-neutral-200 px-4 py-3 pl-[48px] dark:border-neutral-700">
           {showNotes && (
             <div className="flex gap-2">
@@ -349,7 +413,10 @@ function CreateMode({
                   value={whenDate}
                   onChange={onWhenDateChange}
                   autoFocus={!whenDate}
-                  onComplete={returnFocusToTitle}
+                  onComplete={(selected) => {
+                    if (!selected) onToggleWhen(false)
+                    returnFocusToTitle()
+                  }}
                 />
               </div>
               {whenDate && (
@@ -372,7 +439,10 @@ function CreateMode({
                   value={deadline}
                   onChange={onDeadlineChange}
                   autoFocus={!deadline}
-                  onComplete={returnFocusToTitle}
+                  onComplete={(selected) => {
+                    if (!selected) onToggleDeadline(false)
+                    returnFocusToTitle()
+                  }}
                 />
               </div>
               {deadline && (
@@ -389,15 +459,35 @@ function CreateMode({
         </div>
       )}
 
-      {/* Icon toolbar — appears after 2+ characters, hidden when all sections active */}
-      {showToolbar && (!showNotes || !showWhen || !showDeadline) && (
+      {/* Icon toolbar — appears after 2+ characters */}
+      {showToolbar && (
         <div className="flex items-center gap-1 border-t border-neutral-200 py-2 pl-[42px] pr-4 dark:border-neutral-700">
+          {!hasAreaContent && (
+            <button
+              onClick={() => onToggleArea(true)}
+              className="rounded-md p-1.5 text-neutral-400 hover:bg-neutral-100 hover:text-neutral-600 dark:hover:bg-neutral-800 dark:hover:text-neutral-300"
+              aria-label="Set area/project"
+              title="Area / Project (Alt+A)"
+            >
+              <Folder size={16} />
+            </button>
+          )}
+          {!hasTagContent && (
+            <button
+              onClick={() => onToggleTags(true)}
+              className="rounded-md p-1.5 text-neutral-400 hover:bg-neutral-100 hover:text-neutral-600 dark:hover:bg-neutral-800 dark:hover:text-neutral-300"
+              aria-label="Add tags"
+              title="Tags (Alt+T)"
+            >
+              <Tag size={16} />
+            </button>
+          )}
           {!showNotes && (
             <button
               onClick={() => onToggleNotes(true)}
               className="rounded-md p-1.5 text-neutral-400 hover:bg-neutral-100 hover:text-neutral-600 dark:hover:bg-neutral-800 dark:hover:text-neutral-300"
               aria-label="Add notes"
-              title="Notes"
+              title="Notes (Alt+N)"
             >
               <StickyNote size={16} />
             </button>
@@ -407,7 +497,7 @@ function CreateMode({
               onClick={() => onToggleWhen(true)}
               className="rounded-md p-1.5 text-neutral-400 hover:bg-neutral-100 hover:text-neutral-600 dark:hover:bg-neutral-800 dark:hover:text-neutral-300"
               aria-label="Set when date"
-              title="When"
+              title="When (Alt+W)"
             >
               <Calendar size={16} />
             </button>
@@ -417,7 +507,7 @@ function CreateMode({
               onClick={() => onToggleDeadline(true)}
               className="rounded-md p-1.5 text-neutral-400 hover:bg-neutral-100 hover:text-neutral-600 dark:hover:bg-neutral-800 dark:hover:text-neutral-300"
               aria-label="Set deadline"
-              title="Deadline"
+              title="Deadline (Alt+D)"
             >
               <Flag size={16} />
             </button>
@@ -427,4 +517,3 @@ function CreateMode({
     </div>
   )
 }
-

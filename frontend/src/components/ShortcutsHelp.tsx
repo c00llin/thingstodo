@@ -28,9 +28,22 @@ const taskShortcuts = [
   { keys: 'Escape', action: 'Close detail / deselect' },
   { keys: '↑ / ↓', action: 'Navigate tasks' },
   { keys: 'Alt + K', action: 'Complete task' },
-  { keys: 'Alt + T', action: 'Move to Today' },
   { keys: 'Alt + S', action: 'Move to Someday' },
   { keys: 'Delete', action: 'Delete task' },
+]
+
+const detailShortcuts = [
+  { keys: 'Alt + E', action: 'Edit title' },
+  { keys: 'Alt + A', action: 'Area / project' },
+  { keys: 'Alt + T', action: 'Tags' },
+  { keys: 'Alt + W', action: 'When date' },
+  { keys: 'Alt + D', action: 'Deadline' },
+  { keys: 'Alt + N', action: 'Notes' },
+  { keys: 'Alt + C', action: 'Checklist' },
+  { keys: 'Alt + R', action: 'Reminder' },
+  { keys: 'Alt + U', action: 'Attach link' },
+  { keys: 'Alt + F', action: 'Attach file' },
+  { keys: 'Alt + H', action: 'High priority' },
 ]
 
 function ShortcutRow({ keys, action }: { keys: string; action: string }) {
@@ -85,14 +98,26 @@ export function ShortcutsHelp() {
                 </div>
               </div>
             </div>
-            <div>
-              <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-neutral-500">
-                Task
-              </h3>
-              <div className="divide-y divide-neutral-100 dark:divide-neutral-700">
-                {taskShortcuts.map((s) => (
-                  <ShortcutRow key={s.keys} {...s} />
-                ))}
+            <div className="space-y-4">
+              <div>
+                <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-neutral-500">
+                  Task
+                </h3>
+                <div className="divide-y divide-neutral-100 dark:divide-neutral-700">
+                  {taskShortcuts.map((s) => (
+                    <ShortcutRow key={s.keys} {...s} />
+                  ))}
+                </div>
+              </div>
+              <div>
+                <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-neutral-500">
+                  Detail Editing
+                </h3>
+                <div className="divide-y divide-neutral-100 dark:divide-neutral-700">
+                  {detailShortcuts.map((s) => (
+                    <ShortcutRow key={s.keys} {...s} />
+                  ))}
+                </div>
               </div>
             </div>
           </div>

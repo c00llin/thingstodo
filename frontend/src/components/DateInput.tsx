@@ -8,7 +8,8 @@ interface DateInputProps {
   onChange: (date: string | null) => void
   variant: 'when' | 'deadline'
   autoFocus?: boolean
-  onComplete?: () => void
+  /** Called after a selection or dismissal. Receives the current value (null if cleared/dismissed). */
+  onComplete?: (selectedValue: string | null) => void
   /** Hide the "Someday" option from suggestions */
   hideSomeday?: boolean
   /** Extra classes applied to the button/input field */
@@ -94,7 +95,7 @@ export function DateInput({ value, onChange, variant, autoFocus, onComplete, hid
     setActive(false)
     setText('')
     inputRef.current?.blur()
-    onComplete?.()
+    onComplete?.(s.date)
   }, [onChange, onComplete])
 
   // Auto-focus on mount
@@ -111,12 +112,12 @@ export function DateInput({ value, onChange, variant, autoFocus, onComplete, hid
       if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
         setActive(false)
         setText('')
-        onComplete?.()
+        onComplete?.(value || null)
       }
     }
     document.addEventListener('mousedown', handleMouseDown)
     return () => document.removeEventListener('mousedown', handleMouseDown)
-  }, [active, onComplete])
+  }, [active, onComplete, value])
 
   // Reset highlight when text changes
   // eslint-disable-next-line react-hooks/set-state-in-effect -- derived reset, not cascading
@@ -143,7 +144,7 @@ export function DateInput({ value, onChange, variant, autoFocus, onComplete, hid
       setActive(false)
       setText('')
       inputRef.current?.blur()
-      onComplete?.()
+      onComplete?.(value || null)
     }
   }
 

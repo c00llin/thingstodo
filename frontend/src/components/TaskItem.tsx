@@ -7,7 +7,6 @@ import type { Task } from '../api/types'
 import { useCompleteTask, useReopenTask, useUpdateTask, useReviewTask } from '../hooks/queries'
 import { getTaskContext } from '../hooks/useTaskContext'
 import { useAppStore } from '../stores/app'
-import { TaskDetail } from './TaskDetail'
 import { ConfirmDialog } from './ConfirmDialog'
 import { useResolveTags } from '../hooks/useResolveTags'
 import { formatRelativeDate } from '../lib/format-date'
@@ -21,24 +20,6 @@ import { TaskStatusIcon } from './TaskStatusIcon'
 import { TagAutocomplete } from './TagAutocomplete'
 import { ProjectAutocomplete } from './ProjectAutocomplete'
 import { PriorityAutocomplete } from './PriorityAutocomplete'
-
-function DelayedReveal({ children }: { children: React.ReactNode }) {
-  const [visible, setVisible] = useState(false)
-
-  useEffect(() => {
-    const id = setTimeout(() => setVisible(true), 200)
-    return () => clearTimeout(id)
-  }, [])
-
-  return (
-    <div
-      className="transition-opacity duration-200"
-      style={{ opacity: visible ? 1 : 0 }}
-    >
-      {children}
-    </div>
-  )
-}
 
 interface TaskItemProps {
   task: Task
@@ -88,7 +69,6 @@ export function TaskItem({ task, showProject = true, hideWhenDate = false, showR
   const [siyuanError, setSiyuanError] = useState<string | null>(null)
   const [scheduleConfirmPending, setScheduleConfirmPending] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
-  const clickTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const skipBlurRef = useRef(false)
   const triggerCursorRef = useRef<number | null>(null)
   const siyuanErrorTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -123,15 +103,16 @@ export function TaskItem({ task, showProject = true, hideWhenDate = false, showR
     }
   }, [pendingCompleteConfirmId, task.id, setPendingCompleteConfirmId])
 
-  // Respond to store-level edit trigger (Enter key)
+  // Respond to store-level edit trigger (Enter key) — only when modal is NOT open
+  // (the modal's ModalContent handles editingTaskId when isExpanded)
   useEffect(() => {
-    if (editingTaskId === task.id) {
+    if (editingTaskId === task.id && !isExpanded) {
       setTitle(getEditTitle())
       setEditing(true)
       startEditingTask(null)
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [editingTaskId, task.id, startEditingTask])
+  }, [editingTaskId, task.id, startEditingTask, isExpanded])
 
   // Return focus to title after a detail field completes (triggered by @, ^, *)
   useEffect(() => {
@@ -165,23 +146,14 @@ export function TaskItem({ task, showProject = true, hideWhenDate = false, showR
       selectTask(isSelected ? null : task.id, entryId)
       return
     }
-    // Delay single-click so double-click can cancel it
-    if (clickTimerRef.current) clearTimeout(clickTimerRef.current)
-    clickTimerRef.current = setTimeout(() => {
-      clickTimerRef.current = null
-      expandTask(isExpanded ? null : task.id, entryId)
-    }, 200)
+    // Single click = select task (highlight only)
+    selectTask(task.id, entryId)
   }
 
   function handleDoubleClick(e: React.MouseEvent) {
     e.preventDefault()
-    if (clickTimerRef.current) {
-      clearTimeout(clickTimerRef.current)
-      clickTimerRef.current = null
-    }
+    // Double click = open modal
     expandTask(task.id, entryId)
-    setTitle(getEditTitle())
-    setEditing(true)
   }
 
   async function saveTitle() {
@@ -246,6 +218,7 @@ export function TaskItem({ task, showProject = true, hideWhenDate = false, showR
     <motion.div
       ref={setNodeRef}
       data-task-id={task.id}
+      data-schedule-entry-id={task.schedule_entry_id ?? undefined}
       data-departing={isDeparting ? 'true' : undefined}
       className="group/item"
       style={{ opacity: isDragging ? 0.4 : 1 }}
@@ -446,11 +419,6 @@ export function TaskItem({ task, showProject = true, hideWhenDate = false, showR
         </button>
       )}
       </div>
-      {isExpanded && (
-        <DelayedReveal>
-          <TaskDetail taskId={task.id} />
-        </DelayedReveal>
-      )}
       <ConfirmDialog
         open={scheduleConfirmPending}
         title="Complete task with scheduled dates?"

@@ -10,7 +10,6 @@ import { getTaskContext } from '../hooks/useTaskContext'
 import { formatTime, formatTimeRange } from '../lib/format-time'
 import { formatReminderShort } from '../lib/format-reminder'
 import { useAppStore } from '../stores/app'
-import { TaskDetail } from './TaskDetail'
 import { ConfirmDialog } from './ConfirmDialog'
 import { useResolveTags } from '../hooks/useResolveTags'
 import { formatRelativeDate } from '../lib/format-date'
@@ -22,23 +21,7 @@ import { ProjectAutocomplete } from './ProjectAutocomplete'
 import { PriorityAutocomplete } from './PriorityAutocomplete'
 import { TaskStatusIcon } from './TaskStatusIcon'
 
-function DelayedReveal({ children }: { children: React.ReactNode }) {
-  const [visible, setVisible] = useState(false)
 
-  useEffect(() => {
-    const id = setTimeout(() => setVisible(true), 200)
-    return () => clearTimeout(id)
-  }, [])
-
-  return (
-    <div
-      className="transition-opacity duration-200"
-      style={{ opacity: visible ? 1 : 0 }}
-    >
-      {children}
-    </div>
-  )
-}
 
 interface SortableTaskItemProps {
   task: Task
@@ -92,7 +75,6 @@ export function SortableTaskItem({
   const [siyuanError, setSiyuanError] = useState<string | null>(null)
   const [scheduleConfirmPending, setScheduleConfirmPending] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
-  const clickTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const skipBlurRef = useRef(false)
   const triggerCursorRef = useRef<number | null>(null)
   const siyuanErrorTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -140,15 +122,16 @@ export function SortableTaskItem({
     }
   }, [detailFieldCompleted, editing, isExpanded, setDetailFieldCompleted])
 
-  // Respond to store-level edit trigger (Enter key)
+  // Respond to store-level edit trigger (Enter key) — only when modal is NOT open
+  // (the modal's ModalContent handles editingTaskId when isExpanded)
   useEffect(() => {
-    if (editingTaskId === task.id) {
+    if (editingTaskId === task.id && !isExpanded) {
       setTitle(getEditTitle())
       setEditing(true)
       startEditingTask(null)
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [editingTaskId, task.id, startEditingTask])
+  }, [editingTaskId, task.id, startEditingTask, isExpanded])
 
   const {
     attributes,
@@ -181,23 +164,14 @@ export function SortableTaskItem({
       selectTask(isSelected ? null : task.id, entryId)
       return
     }
-    // Delay single-click so double-click can cancel it
-    if (clickTimerRef.current) clearTimeout(clickTimerRef.current)
-    clickTimerRef.current = setTimeout(() => {
-      clickTimerRef.current = null
-      expandTask(isExpanded ? null : task.id, entryId)
-    }, 200)
+    // Single click = select task (highlight only)
+    selectTask(task.id, entryId)
   }
 
   function handleDoubleClick(e: React.MouseEvent) {
     e.preventDefault()
-    if (clickTimerRef.current) {
-      clearTimeout(clickTimerRef.current)
-      clickTimerRef.current = null
-    }
+    // Double click = open modal
     expandTask(task.id, entryId)
-    setTitle(getEditTitle())
-    setEditing(true)
   }
 
   async function saveTitle() {
@@ -262,6 +236,7 @@ export function SortableTaskItem({
     <motion.div
       ref={setNodeRef}
       data-task-id={isDragOverlay ? undefined : task.id}
+      data-schedule-entry-id={isDragOverlay ? undefined : (task.schedule_entry_id ?? undefined)}
       data-departing={isDeparting ? 'true' : undefined}
       style={style}
       layout={isDragOverlay ? false : 'position'}
@@ -460,11 +435,6 @@ export function SortableTaskItem({
         </button>
       )}
       </div>
-      {isExpanded && !isDragging && (
-        <DelayedReveal>
-          <TaskDetail taskId={task.id} />
-        </DelayedReveal>
-      )}
       {showDivider && <div className="mx-3 border-b border-neutral-100 dark:border-neutral-800" />}
       <ConfirmDialog
         open={scheduleConfirmPending}

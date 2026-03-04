@@ -15,11 +15,12 @@ import { useFilterStore } from '../stores/filters'
 const QuickEntry = lazy(() => import('./QuickEntry').then(m => ({ default: m.QuickEntry })))
 const CommandPalette = lazy(() => import('./CommandPalette').then(m => ({ default: m.CommandPalette })))
 const SearchOverlay = lazy(() => import('./SearchOverlay').then(m => ({ default: m.SearchOverlay })))
+const TaskDetailModal = lazy(() => import('./TaskDetailModal').then(m => ({ default: m.TaskDetailModal })))
 
 export function AppLayout() {
   const { isLoading, error } = useMe()
   const location = useLocation()
-  const expandTask = useAppStore((s) => s.expandTask)
+  const closeModal = useAppStore((s) => s.closeModal)
   const openMobileSidebar = useAppStore((s) => s.openMobileSidebar)
   const openQuickEntry = useAppStore((s) => s.openQuickEntry)
   const closeMobileSidebar = useAppStore((s) => s.closeMobileSidebar)
@@ -43,12 +44,12 @@ export function AppLayout() {
     }
   }, [fontSize])
 
-  // Close task detail panel, filter bar, and reset filters when navigating to a different page
+  // Close task detail modal, clear selection, filter bar, and reset filters when navigating to a different page
   useEffect(() => {
-    expandTask(null)
+    closeModal()
+    useAppStore.setState({ selectedTaskId: null, selectedScheduleEntryId: null, filterBarOpen: false })
     useFilterStore.getState().clearAll()
-    useAppStore.setState({ filterBarOpen: false })
-  }, [location.pathname, expandTask])
+  }, [location.pathname, closeModal])
 
   // Auto-close mobile sidebar on navigation
   useEffect(() => {
@@ -112,6 +113,9 @@ export function AppLayout() {
         </Suspense>
         <Suspense>
           <SearchOverlay />
+        </Suspense>
+        <Suspense>
+          <TaskDetailModal />
         </Suspense>
       </div>
     </AppDndContext>

@@ -24,7 +24,7 @@ interface ScheduleEditorProps {
   /** Ref for the first DateInput (for @-trigger focus) */
   whenDateInputRef?: React.RefObject<HTMLDivElement | null>
   autoFocusFirst?: boolean
-  onComplete?: () => void
+  onComplete?: (selectedValue: string | null) => void
 }
 
 function addMinutes(time: string, minutes: number): string {
