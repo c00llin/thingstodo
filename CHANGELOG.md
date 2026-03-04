@@ -1,5 +1,28 @@
 # Changelog
 
+## [0.9.4] - 2026-03-04
+
+### Added
+- Task detail modal with keyboard shortcuts (Alt+key) and searchable area/project picker
+- Reminders and web push notifications with VAPID key auto-generation
+- Floating action button for mobile task creation
+- Base font size setting with slider (14–18px)
+- Reschedule button for single-entry non-recurring past schedule entries
+
+### Fixed
+- Fix today timeless time blocks being treated as past/blocked — entries without a time frame are now fully editable
+- Fix completed time blocks still showing as task instances in Today/Evening/Upcoming views
+- Fix completing today's time blocks when start time has passed
+- Fix reminder timezone: use TZ env var instead of time.Local
+- Fix exact reminder parsing: support HH:MM without seconds
+- Fix push subscription: normalize VAPID key to base64url
+- Fix push notification toggle: use serviceWorker.ready and show errors
+
+### Changed
+- Reminder toasts are now persistent until dismissed (no auto-timeout)
+- Remove debug logging from reminder scheduler
+- Rename 'multiple time frames' to 'multiple time blocks'
+
 ## [0.9.3] - 2026-03-01
 
 ### Fixed
