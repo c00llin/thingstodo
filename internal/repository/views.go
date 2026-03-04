@@ -121,10 +121,10 @@ func (r *ViewRepository) Today(eveningStartsAt string) (*model.TodayView, error)
 			ts.end_time,
 			ts.id AS schedule_entry_id
 		FROM tasks t
-		LEFT JOIN task_schedules ts ON ts.task_id = t.id AND ts.when_date = ?
+		LEFT JOIN task_schedules ts ON ts.task_id = t.id AND ts.when_date = ? AND ts.completed = 0
 		WHERE t.status = 'open'
 			AND (t.when_date = ? OR t.deadline = ?
-				OR EXISTS(SELECT 1 FROM task_schedules WHERE task_id = t.id AND when_date = ?))
+				OR EXISTS(SELECT 1 FROM task_schedules WHERE task_id = t.id AND when_date = ? AND completed = 0))
 			AND t.deleted_at IS NULL
 			AND (ts.start_time IS NULL OR ts.start_time < ?)
 		ORDER BY t.sort_order_today ASC, ts.start_time ASC`, today, today, today, today, eveningStartsAt)
@@ -155,10 +155,10 @@ func (r *ViewRepository) Today(eveningStartsAt string) (*model.TodayView, error)
 			ts.end_time,
 			ts.id AS schedule_entry_id
 		FROM tasks t
-		LEFT JOIN task_schedules ts ON ts.task_id = t.id AND ts.when_date = ?
+		LEFT JOIN task_schedules ts ON ts.task_id = t.id AND ts.when_date = ? AND ts.completed = 0
 		WHERE t.status = 'open'
 			AND (t.when_date = ? OR t.deadline = ?
-				OR EXISTS(SELECT 1 FROM task_schedules WHERE task_id = t.id AND when_date = ?))
+				OR EXISTS(SELECT 1 FROM task_schedules WHERE task_id = t.id AND when_date = ? AND completed = 0))
 			AND t.deleted_at IS NULL
 			AND ts.start_time IS NOT NULL AND ts.start_time >= ?
 		ORDER BY t.sort_order_today ASC, ts.start_time ASC`, today, today, today, today, eveningStartsAt)
@@ -297,7 +297,7 @@ func (r *ViewRepository) Upcoming(from string) (*model.UpcomingView, error) {
 			ts.id AS schedule_entry_id,
 			ts.when_date AS schedule_date
 		FROM tasks t
-		JOIN task_schedules ts ON ts.task_id = t.id
+		JOIN task_schedules ts ON ts.task_id = t.id AND ts.completed = 0
 		WHERE t.status = 'open' AND ts.when_date >= ? AND ts.when_date != 'someday' AND t.deleted_at IS NULL
 		ORDER BY ts.when_date ASC, ts.start_time ASC, t.sort_order_today ASC`, from)
 	if err != nil {
