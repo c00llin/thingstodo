@@ -300,8 +300,14 @@ export function ScheduleEditor({
         const isFirst = index === 0
         const isLast = index === schedules.length - 1
         const hasTime = !!entry.start_time
-        const today = new Date().toISOString().split('T')[0]
-        const isPast = entry.when_date !== 'someday' && entry.when_date < today
+        const now = new Date()
+        const today = now.toISOString().split('T')[0]
+        const currentTime = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`
+        const isToday = entry.when_date === today
+        const isPast = entry.when_date !== 'someday' && (
+          entry.when_date < today ||
+          (isToday && (!entry.start_time || entry.start_time <= currentTime))
+        )
         const isCompleted = entry.completed
 
         // Field styling: green when completed, red when past & not completed, normal otherwise
@@ -422,7 +428,7 @@ export function ScheduleEditor({
                   >
                     <Trash2 size={14} />
                   </button>
-                  {(hasRepeatRule || schedules.length === 1) && !isCompleted && (
+                  {(hasRepeatRule || schedules.length === 1) && !isCompleted && !isToday && (
                     <button
                       onClick={() => updateSchedule.mutate({
                         id: entry.id,
