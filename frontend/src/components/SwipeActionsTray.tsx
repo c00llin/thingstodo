@@ -1,22 +1,32 @@
-import { X, Ban, Check, Trash2 } from 'lucide-react'
+import { X, Ban, XCircle, Check, Trash2 } from 'lucide-react'
 
 interface SwipeActionsTrayProps {
   onDismiss: () => void
+  onCancel: () => void
   onWontDo: () => void
   onComplete: () => void
   onDelete: () => void
 }
 
-export function SwipeActionsTray({ onDismiss, onWontDo, onComplete, onDelete }: SwipeActionsTrayProps) {
+export function SwipeActionsTray({ onDismiss, onCancel, onWontDo, onComplete, onDelete }: SwipeActionsTrayProps) {
   return (
     <div className="flex items-center justify-evenly gap-2 px-3 py-2 md:hidden">
       <button
         type="button"
         onClick={onDismiss}
         className="flex flex-1 flex-col items-center gap-1 rounded-lg py-2 text-neutral-500 active:bg-neutral-100 dark:text-neutral-400 dark:active:bg-neutral-700"
-        aria-label="Cancel"
+        aria-label="Close"
       >
         <X size={20} />
+        <span className="text-[10px]">Close</span>
+      </button>
+      <button
+        type="button"
+        onClick={onCancel}
+        className="flex flex-1 flex-col items-center gap-1 rounded-lg py-2 text-yellow-600 active:bg-yellow-50 dark:text-yellow-500 dark:active:bg-yellow-900/20"
+        aria-label="Cancel"
+      >
+        <XCircle size={20} />
         <span className="text-[10px]">Cancel</span>
       </button>
       <button

@@ -419,7 +419,8 @@ export function TaskItem({ task, showProject = true, hideWhenDate = false, showR
       {swipeTrayOpen && (
         <SwipeActionsTray
           onDismiss={() => setSwipeTrayOpen(false)}
-          onWontDo={() => { setSwipeTrayOpen(false); cancelTask.mutate(task.id) }}
+          onCancel={() => { setSwipeTrayOpen(false); cancelTask.mutate(task.id) }}
+          onWontDo={() => { setSwipeTrayOpen(false); updateTask.mutate({ id: task.id, data: { status: 'wont_do' } }) }}
           onComplete={() => { setSwipeTrayOpen(false); completeTask.mutate(task.id) }}
           onDelete={() => { setSwipeTrayOpen(false); deleteTask.mutate(task.id) }}
         />
