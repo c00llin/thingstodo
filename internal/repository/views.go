@@ -121,7 +121,7 @@ func (r *ViewRepository) Today(eveningStartsAt string) (*model.TodayView, error)
 			ts.end_time,
 			ts.id AS schedule_entry_id
 		FROM tasks t
-		LEFT JOIN task_schedules ts ON ts.task_id = t.id AND ts.when_date = ? AND ts.completed = 0
+		LEFT JOIN task_schedules ts ON ts.task_id = t.id AND ts.when_date = ?
 		WHERE t.status = 'open'
 			AND (
 				(t.when_date = ?
@@ -159,7 +159,7 @@ func (r *ViewRepository) Today(eveningStartsAt string) (*model.TodayView, error)
 			ts.end_time,
 			ts.id AS schedule_entry_id
 		FROM tasks t
-		LEFT JOIN task_schedules ts ON ts.task_id = t.id AND ts.when_date = ? AND ts.completed = 0
+		LEFT JOIN task_schedules ts ON ts.task_id = t.id AND ts.when_date = ?
 		WHERE t.status = 'open'
 			AND (
 				(t.when_date = ?
@@ -924,6 +924,56 @@ func populateActionableScheduleFlags(db *sql.DB, tasks []model.TaskListItem) {
 		).Scan(&count)
 		if err == nil && count > 0 {
 			tasks[i].HasActionableSchedules = true
+		}
+	}
+	populateAllSchedulesCompleted(db, tasks)
+	populateFirstScheduleCompleted(db, tasks)
+}
+
+// populateAllSchedulesCompleted sets AllTodaySchedulesCompleted on each
+// task that has schedule entries and ALL of them are completed.
+func populateAllSchedulesCompleted(db *sql.DB, tasks []model.TaskListItem) {
+	if len(tasks) == 0 {
+		return
+	}
+	for i, t := range tasks {
+		var total, completed int
+		err := db.QueryRow(
+			"SELECT COUNT(*), SUM(CASE WHEN completed = 1 THEN 1 ELSE 0 END) FROM task_schedules WHERE task_id = ?",
+			t.ID,
+		).Scan(&total, &completed)
+		if err == nil && total > 0 && completed == total {
+			tasks[i].AllTodaySchedulesCompleted = true
+		}
+	}
+}
+
+// populateFirstScheduleCompleted sets FirstScheduleCompleted on each task
+// whose displayed schedule entry is completed. Uses ScheduleEntryID if present
+// (Today view), otherwise checks the first schedule by sort_order.
+func populateFirstScheduleCompleted(db *sql.DB, tasks []model.TaskListItem) {
+	if len(tasks) == 0 {
+		return
+	}
+	for i, t := range tasks {
+		if t.FirstScheduleTime == nil {
+			continue
+		}
+		var completed int
+		var err error
+		if t.ScheduleEntryID != nil {
+			err = db.QueryRow(
+				"SELECT completed FROM task_schedules WHERE id = ?",
+				*t.ScheduleEntryID,
+			).Scan(&completed)
+		} else {
+			err = db.QueryRow(
+				"SELECT completed FROM task_schedules WHERE task_id = ? ORDER BY sort_order ASC LIMIT 1",
+				t.ID,
+			).Scan(&completed)
+		}
+		if err == nil && completed == 1 {
+			tasks[i].FirstScheduleCompleted = true
 		}
 	}
 }

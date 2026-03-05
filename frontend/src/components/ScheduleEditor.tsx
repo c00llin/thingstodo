@@ -310,6 +310,7 @@ export function ScheduleEditor({
           (isToday && entry.start_time != null && entry.start_time <= currentTime)
         )
         const isCompleted = entry.completed
+        const isEndPast = isPast && entry.end_time != null && entry.end_time <= currentTime
 
         // Field styling: green when completed, red when past & not completed, normal otherwise
         const pastFieldClassName = isCompleted
@@ -368,7 +369,7 @@ export function ScheduleEditor({
                       onBlurEmpty={() => handleEndTimeBlurEmpty(entry)}
                       placeholder="End"
                       timeFormat={timeFormat}
-                      fieldClassName={isPast && !isToday ? pastFieldClassName : undefined}
+                      fieldClassName={isCompleted || isPast && (!isToday || isEndPast) ? pastFieldClassName : undefined}
                     />
                   </span>
                   {hasTime && !isPast && (

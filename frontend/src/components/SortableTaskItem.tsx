@@ -318,6 +318,9 @@ export function SortableTaskItem({
               <Checkbox.Indicator>
                 <Check size={12} className="text-white" />
               </Checkbox.Indicator>
+              {!isCompleted && task.all_today_schedules_completed && (
+                <span className={`h-1.5 w-1.5 rounded-full ${task.high_priority ? 'bg-red-500' : 'bg-neutral-300 dark:bg-neutral-500'}`} />
+              )}
             </Checkbox.Root>
           )}
         </div>

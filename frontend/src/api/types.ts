@@ -237,9 +237,11 @@ export interface Task {
   area_name: string | null
   first_schedule_time: string | null
   first_schedule_end_time: string | null
+  first_schedule_completed?: boolean
   schedule_entry_id: string | null
   past_schedule_count?: number
   has_actionable_schedules?: boolean
+  all_today_schedules_completed?: boolean
 }
 
 export interface TaskDetail extends Task {

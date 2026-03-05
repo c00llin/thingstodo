@@ -112,11 +112,13 @@ type TaskListItem struct {
 	FirstReminderType    *string  `json:"first_reminder_type"`
 	FirstReminderValue   *int     `json:"first_reminder_value"`
 	FirstReminderExactAt *string  `json:"first_reminder_exact_at"`
-	FirstScheduleTime    *string  `json:"first_schedule_time"`
-	FirstScheduleEndTime *string  `json:"first_schedule_end_time"`
+	FirstScheduleTime      *string `json:"first_schedule_time"`
+	FirstScheduleEndTime   *string `json:"first_schedule_end_time"`
+	FirstScheduleCompleted bool    `json:"first_schedule_completed,omitempty"`
 	ScheduleEntryID      *string  `json:"schedule_entry_id"`
 	PastScheduleCount        int      `json:"past_schedule_count,omitempty"`
-	HasActionableSchedules   bool     `json:"has_actionable_schedules,omitempty"`
+	HasActionableSchedules       bool     `json:"has_actionable_schedules,omitempty"`
+	AllTodaySchedulesCompleted   bool     `json:"all_today_schedules_completed,omitempty"`
 	ProjectName              *string  `json:"project_name"`
 	AreaName                 *string  `json:"area_name"`
 }
