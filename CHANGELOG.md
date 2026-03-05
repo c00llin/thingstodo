@@ -1,5 +1,26 @@
 # Changelog
 
+## [0.10.0] - 2026-03-05
+
+### Added
+- Mobile swipe gestures: swipe left for task details, swipe right for action tray
+- Swipe direction indicator icons (Info/CheckCheck) shown during swipe
+- Cancel task action in swipe action tray
+- All-schedules-completed dot indicator in task checkbox
+- Complete checkbox in task detail modal
+- Mobile keyboard shortcuts for time gap, keybindings, and swipe actions
+
+### Fixed
+- Fix today's completed time block end-time not showing green in detail panel
+- Fix today's uncompleted time block end-time not showing red when past
+- Fix tasks with all-completed today schedules still showing in Today view
+- Fix mobile swipe with pointer capture and bottom padding
+- Fix wont_do task status using correct hook
+
+### Changed
+- Include completed schedules in Today view for time display with green styling
+- Bottom padding increased on all pages for mobile usability
+
 ## [0.9.4] - 2026-03-04
 
 ### Added
