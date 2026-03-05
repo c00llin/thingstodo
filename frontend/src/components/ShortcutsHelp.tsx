@@ -24,11 +24,8 @@ const globalShortcuts = [
 const taskShortcuts = [
   { keys: 'Space', action: 'Toggle task detail' },
   { keys: 'Enter', action: 'Edit task title' },
-  { keys: '⌘ + Enter', action: 'Open task detail' },
   { keys: 'Escape', action: 'Close detail / deselect' },
   { keys: '↑ / ↓', action: 'Navigate tasks' },
-  { keys: 'Alt + K', action: 'Complete task' },
-  { keys: 'Alt + S', action: 'Move to Someday' },
   { keys: 'Delete', action: 'Delete task' },
 ]
 

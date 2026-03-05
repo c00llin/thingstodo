@@ -205,13 +205,14 @@ export function ScheduleEditor({
 
   function handleStartTimeChange(entry: TaskSchedule, time: string | null) {
     if (time) {
-      // If existing end time is now <= new start time, clear it
+      // If existing end time is now <= new start time, apply default gap
       const clearEnd = entry.end_time && entry.end_time <= time
+      const endTime = clearEnd ? addMinutes(time, defaultTimeGap) : undefined
       updateSchedule.mutate({
         id: entry.id,
         data: clearEnd
-          ? { start_time: time, end_time: null }
-          : { start_time: time },
+          ? { start_time: time, end_time: endTime }
+          : { start_time: time, end_time: entry.end_time ?? addMinutes(time, defaultTimeGap) },
       })
       // Jump to end time input
       endTimeRefs.current[entry.id]?.focus()
@@ -359,7 +360,7 @@ export function ScheduleEditor({
                     />
                   </span>
                   <span className="text-xs text-neutral-400">-</span>
-                  <span className={isPast ? 'pointer-events-none' : undefined}>
+                  <span className={isPast && !isToday ? 'pointer-events-none' : undefined}>
                     <TimeInput
                       ref={(handle) => { endTimeRefs.current[entry.id] = handle }}
                       value={entry.end_time}
@@ -367,7 +368,7 @@ export function ScheduleEditor({
                       onBlurEmpty={() => handleEndTimeBlurEmpty(entry)}
                       placeholder="End"
                       timeFormat={timeFormat}
-                      fieldClassName={pastFieldClassName}
+                      fieldClassName={isPast && !isToday ? pastFieldClassName : undefined}
                     />
                   </span>
                   {hasTime && !isPast && (

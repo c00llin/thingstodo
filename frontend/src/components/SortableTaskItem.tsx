@@ -5,7 +5,7 @@ import { motion } from 'framer-motion'
 import * as Checkbox from '@radix-ui/react-checkbox'
 import { Check, Calendar, Flag, GripVertical, X, ListChecks, StickyNote, Link, Paperclip, RefreshCw, Bell } from 'lucide-react'
 import type { Task } from '../api/types'
-import { useCompleteTask, useReopenTask, useUpdateTask, useReviewTask, useSettings } from '../hooks/queries'
+import { useCompleteTask, useReopenTask, useUpdateTask, useReviewTask, useCancelTask, useDeleteTask, useSettings } from '../hooks/queries'
 import { getTaskContext } from '../hooks/useTaskContext'
 import { formatTime, formatTimeRange } from '../lib/format-time'
 import { formatReminderShort } from '../lib/format-reminder'
@@ -20,6 +20,8 @@ import { TagAutocomplete } from './TagAutocomplete'
 import { ProjectAutocomplete } from './ProjectAutocomplete'
 import { PriorityAutocomplete } from './PriorityAutocomplete'
 import { TaskStatusIcon } from './TaskStatusIcon'
+import { useSwipe } from '../hooks/useSwipeLeft'
+import { SwipeActionsTray } from './SwipeActionsTray'
 
 
 
@@ -56,6 +58,8 @@ export function SortableTaskItem({
   const reopenTask = useReopenTask()
   const updateTask = useUpdateTask()
   const reviewTask = useReviewTask()
+  const cancelTask = useCancelTask()
+  const deleteTask = useDeleteTask()
   const resolveTags = useResolveTags()
   const { data: settings } = useSettings()
   const taskContext = getTaskContext(task)
@@ -74,6 +78,7 @@ export function SortableTaskItem({
   const [title, setTitle] = useState(task.title)
   const [siyuanError, setSiyuanError] = useState<string | null>(null)
   const [scheduleConfirmPending, setScheduleConfirmPending] = useState(false)
+  const [swipeTrayOpen, setSwipeTrayOpen] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
   const skipBlurRef = useRef(false)
   const triggerCursorRef = useRef<number | null>(null)
@@ -174,6 +179,11 @@ export function SortableTaskItem({
     expandTask(task.id, entryId)
   }
 
+  const swipeHandlers = useSwipe({
+    onSwipeLeft: () => expandTask(task.id, entryId),
+    onSwipeRight: () => setSwipeTrayOpen(true),
+  })
+
   async function saveTitle() {
     setEditing(false)
     const trimmed = title.trim()
@@ -263,6 +273,7 @@ export function SortableTaskItem({
         }`}
         onClick={handleClick}
         onDoubleClick={handleDoubleClick}
+        {...swipeHandlers}
       >
         {/* Drag handle */}
         <button
@@ -435,6 +446,14 @@ export function SortableTaskItem({
         </button>
       )}
       </div>
+      {swipeTrayOpen && (
+        <SwipeActionsTray
+          onDismiss={() => setSwipeTrayOpen(false)}
+          onWontDo={() => { setSwipeTrayOpen(false); cancelTask.mutate(task.id) }}
+          onComplete={() => { setSwipeTrayOpen(false); completeTask.mutate(task.id) }}
+          onDelete={() => { setSwipeTrayOpen(false); deleteTask.mutate(task.id) }}
+        />
+      )}
       {showDivider && <div className="mx-3 border-b border-neutral-100 dark:border-neutral-800" />}
       <ConfirmDialog
         open={scheduleConfirmPending}

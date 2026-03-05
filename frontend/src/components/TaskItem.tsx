@@ -4,7 +4,7 @@ import { motion } from 'framer-motion'
 import * as Checkbox from '@radix-ui/react-checkbox'
 import { Check, Calendar, Flag, GripVertical, X, ListChecks, StickyNote, Link, Paperclip, RefreshCw, Bell } from 'lucide-react'
 import type { Task } from '../api/types'
-import { useCompleteTask, useReopenTask, useUpdateTask, useReviewTask } from '../hooks/queries'
+import { useCompleteTask, useReopenTask, useUpdateTask, useReviewTask, useCancelTask, useDeleteTask } from '../hooks/queries'
 import { getTaskContext } from '../hooks/useTaskContext'
 import { useAppStore } from '../stores/app'
 import { ConfirmDialog } from './ConfirmDialog'
@@ -20,6 +20,8 @@ import { TaskStatusIcon } from './TaskStatusIcon'
 import { TagAutocomplete } from './TagAutocomplete'
 import { ProjectAutocomplete } from './ProjectAutocomplete'
 import { PriorityAutocomplete } from './PriorityAutocomplete'
+import { useSwipe } from '../hooks/useSwipeLeft'
+import { SwipeActionsTray } from './SwipeActionsTray'
 
 interface TaskItemProps {
   task: Task
@@ -48,6 +50,8 @@ export function TaskItem({ task, showProject = true, hideWhenDate = false, showR
   const reopenTask = useReopenTask()
   const updateTask = useUpdateTask()
   const reviewTask = useReviewTask()
+  const cancelTask = useCancelTask()
+  const deleteTask = useDeleteTask()
   const resolveTags = useResolveTags()
   const { data: settings } = useSettings()
   const taskContext = getTaskContext(task)
@@ -68,6 +72,7 @@ export function TaskItem({ task, showProject = true, hideWhenDate = false, showR
   const [title, setTitle] = useState(task.title)
   const [siyuanError, setSiyuanError] = useState<string | null>(null)
   const [scheduleConfirmPending, setScheduleConfirmPending] = useState(false)
+  const [swipeTrayOpen, setSwipeTrayOpen] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
   const skipBlurRef = useRef(false)
   const triggerCursorRef = useRef<number | null>(null)
@@ -155,6 +160,11 @@ export function TaskItem({ task, showProject = true, hideWhenDate = false, showR
     // Double click = open modal
     expandTask(task.id, entryId)
   }
+
+  const swipeHandlers = useSwipe({
+    onSwipeLeft: () => expandTask(task.id, entryId),
+    onSwipeRight: () => setSwipeTrayOpen(true),
+  })
 
   async function saveTitle() {
     setEditing(false)
@@ -246,6 +256,7 @@ export function TaskItem({ task, showProject = true, hideWhenDate = false, showR
         }`}
         onClick={handleClick}
         onDoubleClick={handleDoubleClick}
+        {...swipeHandlers}
       >
         {/* Drag handle */}
         <button
@@ -405,6 +416,14 @@ export function TaskItem({ task, showProject = true, hideWhenDate = false, showR
         </div>
       </div>
       {showDivider && <div className="mx-3 border-b border-neutral-100 dark:border-neutral-800" />}
+      {swipeTrayOpen && (
+        <SwipeActionsTray
+          onDismiss={() => setSwipeTrayOpen(false)}
+          onWontDo={() => { setSwipeTrayOpen(false); cancelTask.mutate(task.id) }}
+          onComplete={() => { setSwipeTrayOpen(false); completeTask.mutate(task.id) }}
+          onDelete={() => { setSwipeTrayOpen(false); deleteTask.mutate(task.id) }}
+        />
+      )}
       </div>
       {showReviewCheckbox && (
         <button

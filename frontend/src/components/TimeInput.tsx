@@ -58,6 +58,10 @@ export const TimeInput = forwardRef<TimeInputHandle, TimeInputProps>(
         e.preventDefault()
         e.stopPropagation()
         setEditing(false)
+        // If input is empty (no value typed), fire onBlurEmpty so default gap applies
+        if (!text.trim()) {
+          onBlurEmpty?.()
+        }
         setText('')
       }
     }

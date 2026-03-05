@@ -3,7 +3,6 @@ import { useAppStore } from '../stores/app'
 import { useCreateTask } from '../hooks/queries'
 import { useResolveTags } from '../hooks/useResolveTags'
 import { useDetailShortcuts, detectHashTrigger } from '../hooks/useDetailShortcuts'
-import { ProjectAutocomplete } from './ProjectAutocomplete'
 import { PriorityAutocomplete } from './PriorityAutocomplete'
 import { TagMultiSelect } from './TagMultiSelect'
 import { AreaProjectPicker } from './AreaProjectPicker'
@@ -333,7 +332,6 @@ function CreateMode({
           />
         </div>
       </div>
-      <ProjectAutocomplete inputRef={inputRef} value={title} onChange={onTitleChange} />
       <PriorityAutocomplete inputRef={inputRef} value={title} onChange={onTitleChange} onSetHighPriority={onSetHighPriority} />
 
       {/* Tag and area/project pickers — shown when tags triggered or have content */}

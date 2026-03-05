@@ -1,11 +1,10 @@
 import { useEffect, useRef, useCallback } from 'react'
 import { useHotkeys } from 'react-hotkeys-hook'
 import { useNavigate } from 'react-router'
-import { useQueryClient } from '@tanstack/react-query'
 import { useAppStore } from '../stores/app'
 import { useFilterStore } from '../stores/filters'
 import { hasFilters } from '../lib/filter-tasks'
-import { useCompleteTask, useDeleteTask, useUpdateTask, findTaskInViewCache } from './queries'
+import { useDeleteTask } from './queries'
 
 const VIEW_ROUTES = ['/inbox', '/today', '/upcoming', '/anytime', '/someday', '/logbook']
 
@@ -167,11 +166,7 @@ export function useTaskShortcuts() {
   const expandTask = useAppStore((s) => s.expandTask)
   const closeModal = useAppStore((s) => s.closeModal)
   const startEditingTask = useAppStore((s) => s.startEditingTask)
-  const setPendingCompleteConfirmId = useAppStore((s) => s.setPendingCompleteConfirmId)
-  const queryClient = useQueryClient()
-  const completeTask = useCompleteTask()
   const deleteTask = useDeleteTask()
-  const updateTask = useUpdateTask()
 
   const enabled = !!selectedTaskId
 
@@ -195,14 +190,6 @@ export function useTaskShortcuts() {
     if (selectedTaskId) {
       expandTask(selectedTaskId, selectedScheduleEntryId)
       startEditingTask(selectedTaskId)
-    }
-  }, { enabled })
-
-  // Cmd+Enter opens modal
-  useHotkeys('meta+enter', (e) => {
-    e.preventDefault()
-    if (selectedTaskId) {
-      expandTask(selectedTaskId, selectedScheduleEntryId)
     }
   }, { enabled })
 
@@ -263,27 +250,6 @@ export function useTaskShortcuts() {
       expandTask(prev.taskId, prev.scheduleEntryId)
     }
   }, { enabled: true })
-
-  // Complete task
-  useHotkeys('alt+k', (e) => {
-    e.preventDefault()
-    if (selectedTaskId) {
-      const cached = findTaskInViewCache(queryClient, selectedTaskId)
-      if (cached?.has_actionable_schedules) {
-        setPendingCompleteConfirmId(selectedTaskId)
-      } else {
-        completeTask.mutate(selectedTaskId)
-      }
-    }
-  }, { enabled })
-
-  // Move to Someday
-  useHotkeys('alt+s', (e) => {
-    e.preventDefault()
-    if (selectedTaskId) {
-      updateTask.mutate({ id: selectedTaskId, data: { when_date: 'someday' } })
-    }
-  }, { enabled })
 
   // Delete task
   useHotkeys('delete', (e) => {
