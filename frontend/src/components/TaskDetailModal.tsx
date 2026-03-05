@@ -1,6 +1,8 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
+import * as Checkbox from '@radix-ui/react-checkbox'
+import { Check } from 'lucide-react'
 import { useAppStore } from '../stores/app'
-import { useTask, useUpdateTask } from '../hooks/queries'
+import { useTask, useUpdateTask, useCompleteTask, useReopenTask } from '../hooks/queries'
 import { useResolveTags } from '../hooks/useResolveTags'
 import { useDetailShortcuts, detectHashTrigger } from '../hooks/useDetailShortcuts'
 import { TaskDetail } from './TaskDetail'
@@ -8,6 +10,8 @@ import { ProjectAutocomplete } from './ProjectAutocomplete'
 import { PriorityAutocomplete } from './PriorityAutocomplete'
 import { AreaProjectPicker } from './AreaProjectPicker'
 import { TagMultiSelect } from './TagMultiSelect'
+import { ConfirmDialog } from './ConfirmDialog'
+import { TaskStatusIcon } from './TaskStatusIcon'
 
 export function TaskDetailModal() {
   const expandedTaskId = useAppStore((s) => s.expandedTaskId)
@@ -73,6 +77,8 @@ export function TaskDetailModal() {
 function ModalContent({ taskId }: { taskId: string }) {
   const { data: task } = useTask(taskId)
   const updateTask = useUpdateTask()
+  const completeTask = useCompleteTask()
+  const reopenTask = useReopenTask()
   const resolveTags = useResolveTags()
   const closeModal = useAppStore((s) => s.closeModal)
   const editingTaskId = useAppStore((s) => s.editingTaskId)
@@ -80,6 +86,7 @@ function ModalContent({ taskId }: { taskId: string }) {
   const setDetailFocusField = useAppStore((s) => s.setDetailFocusField)
 
   const [editing, setEditing] = useState(false)
+  const [scheduleConfirmPending, setScheduleConfirmPending] = useState(false)
   const [title, setTitle] = useState(task?.title ?? '')
   const inputRef = useRef<HTMLInputElement>(null)
   const [toolbarPortalEl, setToolbarPortalEl] = useState<HTMLDivElement | null>(null)
@@ -195,11 +202,43 @@ function ModalContent({ taskId }: { taskId: string }) {
   }
 
   const isDone = task?.status !== 'open'
+  const isCompleted = task?.status === 'completed'
+
+  function handleCheck(checked: boolean | 'indeterminate') {
+    if (!task) return
+    if (checked === true) {
+      if (task.has_actionable_schedules) {
+        setScheduleConfirmPending(true)
+      } else {
+        completeTask.mutate(task.id)
+      }
+    } else {
+      reopenTask.mutate(task.id)
+    }
+  }
 
   return (
     <>
       {/* Modal header — editable title */}
       <div className="flex items-start gap-3 rounded-t-xl border-b border-neutral-200 bg-red-50 px-5 py-4 dark:border-neutral-700 dark:bg-red-900/20">
+        <div className="mt-1 shrink-0" onClick={(e) => e.stopPropagation()}>
+          {task?.status === 'canceled' || task?.status === 'wont_do' ? (
+            <TaskStatusIcon status={task.status} />
+          ) : (
+            <Checkbox.Root
+              checked={isCompleted}
+              disabled={!task}
+              onCheckedChange={handleCheck}
+              className={`flex h-5 w-5 items-center justify-center rounded-full border-2 transition-colors data-[state=checked]:border-red-500 data-[state=checked]:bg-red-500 ${
+                task?.high_priority ? 'border-red-500 dark:border-red-500' : 'border-neutral-300 dark:border-neutral-500'
+              }`}
+            >
+              <Checkbox.Indicator>
+                <Check size={12} className="text-white" />
+              </Checkbox.Indicator>
+            </Checkbox.Root>
+          )}
+        </div>
         <div className="min-w-0 flex-1">
           {editing ? (
             <div className="relative">
@@ -284,6 +323,17 @@ function ModalContent({ taskId }: { taskId: string }) {
 
       {/* Toolbar — pinned at bottom, portaled from TaskDetail */}
       <div ref={setToolbarPortalEl} className="flex items-center gap-0.5 border-t border-neutral-200 px-4 py-1.5 dark:border-neutral-700" />
+      <ConfirmDialog
+        open={scheduleConfirmPending}
+        title="Complete task with scheduled dates?"
+        description="Past scheduled dates will be marked done. Today and future dates will be removed."
+        confirmLabel="Complete"
+        onConfirm={() => {
+          setScheduleConfirmPending(false)
+          if (task) completeTask.mutate(task.id)
+        }}
+        onCancel={() => setScheduleConfirmPending(false)}
+      />
     </>
   )
 }

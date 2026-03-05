@@ -460,12 +460,8 @@ export function useCompleteTask() {
     onError: (_err, _id, context) => {
       if (context?.snapshot) rollbackViews(queryClient, context.snapshot)
     },
-    onSettled: (_data, _err, id) => {
+    onSettled: () => {
       setTimeout(() => {
-        const store = useAppStore.getState()
-        if (store.expandedTaskId === id) {
-          store.expandTask(null)
-        }
         invalidate({ force: true })
         // Clear departingTaskId after invalidation starts so the task
         // doesn't briefly reappear between animation end and fresh data
