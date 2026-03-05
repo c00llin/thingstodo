@@ -5,7 +5,7 @@ import { motion } from 'framer-motion'
 import * as Checkbox from '@radix-ui/react-checkbox'
 import { Check, Calendar, Flag, GripVertical, X, ListChecks, StickyNote, Link, Paperclip, RefreshCw, Bell } from 'lucide-react'
 import type { Task } from '../api/types'
-import { useCompleteTask, useReopenTask, useUpdateTask, useReviewTask, useCancelTask, useDeleteTask, useSettings } from '../hooks/queries'
+import { useCompleteTask, useReopenTask, useUpdateTask, useReviewTask, useCancelTask, useWontDoTask, useDeleteTask, useSettings } from '../hooks/queries'
 import { getTaskContext } from '../hooks/useTaskContext'
 import { formatTime, formatTimeRange } from '../lib/format-time'
 import { formatReminderShort } from '../lib/format-reminder'
@@ -59,6 +59,7 @@ export function SortableTaskItem({
   const updateTask = useUpdateTask()
   const reviewTask = useReviewTask()
   const cancelTask = useCancelTask()
+  const wontDoTask = useWontDoTask()
   const deleteTask = useDeleteTask()
   const resolveTags = useResolveTags()
   const { data: settings } = useSettings()
@@ -450,7 +451,7 @@ export function SortableTaskItem({
         <SwipeActionsTray
           onDismiss={() => setSwipeTrayOpen(false)}
           onCancel={() => { setSwipeTrayOpen(false); cancelTask.mutate(task.id) }}
-          onWontDo={() => { setSwipeTrayOpen(false); updateTask.mutate({ id: task.id, data: { status: 'wont_do' } }) }}
+          onWontDo={() => { setSwipeTrayOpen(false); wontDoTask.mutate(task.id) }}
           onComplete={() => { setSwipeTrayOpen(false); completeTask.mutate(task.id) }}
           onDelete={() => { setSwipeTrayOpen(false); deleteTask.mutate(task.id) }}
         />
