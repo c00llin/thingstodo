@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from 'react'
 import { useDraggable } from '@dnd-kit/core'
 import { motion } from 'framer-motion'
 import * as Checkbox from '@radix-ui/react-checkbox'
-import { Check, Calendar, Flag, GripVertical, X, ListChecks, StickyNote, Link, Paperclip, RefreshCw, Bell } from 'lucide-react'
+import { Check, Calendar, Flag, GripVertical, X, ListChecks, StickyNote, Link, Paperclip, RefreshCw, Bell, ChevronLeft, ChevronRight } from 'lucide-react'
 import type { Task } from '../api/types'
 import { useCompleteTask, useReopenTask, useUpdateTask, useReviewTask, useCancelTask, useWontDoTask, useDeleteTask } from '../hooks/queries'
 import { getTaskContext } from '../hooks/useTaskContext'
@@ -162,7 +162,7 @@ export function TaskItem({ task, showProject = true, hideWhenDate = false, showR
     expandTask(task.id, entryId)
   }
 
-  const swipeHandlers = useSwipe({
+  const { offsetX: swipeOffsetX, ...swipeHandlers } = useSwipe({
     onSwipeLeft: () => expandTask(task.id, entryId),
     onSwipeRight: () => setSwipeTrayOpen(true),
   })
@@ -249,11 +249,31 @@ export function TaskItem({ task, showProject = true, hideWhenDate = false, showR
     >
       <div className="flex items-start gap-2">
       <div className="min-w-0 flex-1">
+      <div className="relative overflow-hidden rounded-lg">
+        {/* Swipe indicator icons behind the task row */}
+        {swipeOffsetX !== 0 && (
+          <div className="pointer-events-none absolute inset-0 flex items-center justify-between px-4">
+            {swipeOffsetX > 0 && (
+              <div className="flex items-center gap-2 text-neutral-400 dark:text-neutral-500">
+                <ChevronRight size={20} />
+                <span className="text-xs">Actions</span>
+              </div>
+            )}
+            {swipeOffsetX < 0 && (
+              <div className="ml-auto flex items-center gap-2 text-neutral-400 dark:text-neutral-500">
+                <span className="text-xs">Details</span>
+                <ChevronLeft size={20} />
+              </div>
+            )}
+          </div>
+        )}
       <div
         className={`relative flex cursor-pointer items-center gap-3 rounded-lg px-3 py-2 transition-colors ${
           isSelected
             ? 'bg-red-50 dark:bg-red-900/20'
-            : 'group-hover/item:bg-neutral-50 dark:group-hover/item:bg-neutral-800'
+            : swipeOffsetX !== 0
+              ? 'bg-neutral-100 dark:bg-neutral-800'
+              : 'bg-white group-hover/item:bg-neutral-50 dark:bg-neutral-900 dark:group-hover/item:bg-neutral-800'
         }`}
         onClick={handleClick}
         onDoubleClick={handleDoubleClick}
@@ -415,6 +435,7 @@ export function TaskItem({ task, showProject = true, hideWhenDate = false, showR
             <p className="mt-0.5 text-xs text-red-500">{siyuanError}</p>
           )}
         </div>
+      </div>
       </div>
       {showDivider && <div className="mx-3 border-b border-neutral-100 dark:border-neutral-800" />}
       {swipeTrayOpen && (

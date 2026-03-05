@@ -3,7 +3,7 @@ import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { motion } from 'framer-motion'
 import * as Checkbox from '@radix-ui/react-checkbox'
-import { Check, Calendar, Flag, GripVertical, X, ListChecks, StickyNote, Link, Paperclip, RefreshCw, Bell } from 'lucide-react'
+import { Check, Calendar, Flag, GripVertical, X, ListChecks, StickyNote, Link, Paperclip, RefreshCw, Bell, ChevronLeft, ChevronRight } from 'lucide-react'
 import type { Task } from '../api/types'
 import { useCompleteTask, useReopenTask, useUpdateTask, useReviewTask, useCancelTask, useWontDoTask, useDeleteTask, useSettings } from '../hooks/queries'
 import { getTaskContext } from '../hooks/useTaskContext'
@@ -180,7 +180,7 @@ export function SortableTaskItem({
     expandTask(task.id, entryId)
   }
 
-  const swipeHandlers = useSwipe({
+  const { offsetX: swipeOffsetX, ...swipeHandlers } = useSwipe({
     onSwipeLeft: () => expandTask(task.id, entryId),
     onSwipeRight: () => setSwipeTrayOpen(true),
   })
@@ -266,11 +266,31 @@ export function SortableTaskItem({
       className={`group/item ${isMultiSelected ? 'ring-2 ring-red-400 ring-inset rounded-lg' : ''}`}
     >
       <div className="flex items-center gap-2">
+      <div className="relative min-w-0 flex-1 overflow-hidden rounded-lg">
+        {/* Swipe indicator icons behind the task row */}
+        {swipeOffsetX !== 0 && (
+          <div className="pointer-events-none absolute inset-0 flex items-center justify-between px-4">
+            {swipeOffsetX > 0 && (
+              <div className="flex items-center gap-2 text-neutral-400 dark:text-neutral-500">
+                <ChevronRight size={20} />
+                <span className="text-xs">Actions</span>
+              </div>
+            )}
+            {swipeOffsetX < 0 && (
+              <div className="ml-auto flex items-center gap-2 text-neutral-400 dark:text-neutral-500">
+                <span className="text-xs">Details</span>
+                <ChevronLeft size={20} />
+              </div>
+            )}
+          </div>
+        )}
       <div
-        className={`relative flex min-w-0 flex-1 cursor-pointer items-center gap-3 rounded-lg px-3 py-2 transition-colors ${
+        className={`relative flex cursor-pointer items-center gap-3 rounded-lg px-3 py-2 transition-colors ${
           isSelected
             ? 'bg-red-50 dark:bg-red-900/20'
-            : 'group-hover/item:bg-neutral-50 dark:group-hover/item:bg-neutral-800'
+            : swipeOffsetX !== 0
+              ? 'bg-neutral-100 dark:bg-neutral-800'
+              : 'bg-white group-hover/item:bg-neutral-50 dark:bg-neutral-900 dark:group-hover/item:bg-neutral-800'
         }`}
         onClick={handleClick}
         onDoubleClick={handleDoubleClick}
@@ -433,6 +453,7 @@ export function SortableTaskItem({
             <p className="mt-0.5 text-xs text-red-500">{siyuanError}</p>
           )}
         </div>
+      </div>
       </div>
       {showReviewCheckbox && (
         <button
