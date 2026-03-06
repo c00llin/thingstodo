@@ -249,7 +249,7 @@ export function TaskItem({ task, showProject = true, hideWhenDate = false, showR
     >
       <div className="flex items-start gap-2">
       <div className="min-w-0 flex-1">
-      <div className="relative overflow-hidden rounded-lg">
+      <div className="relative overflow-hidden md:overflow-visible rounded-lg">
         {/* Swipe indicator icons behind the task row */}
         {swipeOffsetX !== 0 && (
           <div className="pointer-events-none absolute inset-0 flex items-center justify-between px-4">
