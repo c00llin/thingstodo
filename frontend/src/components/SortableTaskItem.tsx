@@ -266,7 +266,7 @@ export function SortableTaskItem({
       className={`group/item ${isMultiSelected ? 'ring-2 ring-red-400 ring-inset rounded-lg' : ''}`}
     >
       <div className="flex items-center gap-2">
-      <div className="relative min-w-0 flex-1 overflow-hidden rounded-lg">
+      <div className="relative min-w-0 flex-1 overflow-hidden md:overflow-visible rounded-lg">
         {/* Swipe indicator icons behind the task row */}
         {swipeOffsetX !== 0 && (
           <div className="pointer-events-none absolute inset-0 flex items-center justify-between px-4">
