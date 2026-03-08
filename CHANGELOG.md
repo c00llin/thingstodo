@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.10.1] - 2026-03-08
+
+### Added
+- Privacy mode setting: blur task titles, notes, checklist items, area/project/tag names, and task context to prevent over-the-shoulder reading
+- Push notification support via ntfy (configurable server, topic, and access token in Settings)
+
+### Fixed
+- Remove verbose VAPID public key OK log message
+
 ## [0.10.0] - 2026-03-05
 
 ### Added
