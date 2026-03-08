@@ -61,8 +61,6 @@ func main() {
 			log.Printf("WARNING: VAPID_PUBLIC_KEY is not valid base64url: %v", err)
 		} else if len(raw) != 65 {
 			log.Printf("WARNING: VAPID_PUBLIC_KEY decoded to %d bytes (expected 65 for uncompressed P-256)", len(raw))
-		} else {
-			log.Printf("VAPID public key OK (%d bytes, %d base64url chars)", len(raw), len(normalized))
 		}
 	}
 
