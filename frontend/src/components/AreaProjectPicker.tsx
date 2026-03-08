@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react'
 import { Command } from 'cmdk'
 import { Check, Blocks, Package, X } from 'lucide-react'
-import { useAreas, useProjects, useUpdateTask, queryKeys } from '../hooks/queries'
+import { useAreas, useProjects, useUpdateTask, useSettings, queryKeys } from '../hooks/queries'
 import { useQueryClient } from '@tanstack/react-query'
 import type { TaskDetail } from '../api/types'
 
@@ -43,6 +43,7 @@ export function AreaProjectPicker(props: AreaProjectPickerProps) {
   const controlledProjectId = isControlled ? props.controlledProjectId : undefined
   const onControlledChange = isControlled ? props.onControlledChange : undefined
 
+  const { data: settings } = useSettings()
   const { data: areasData } = useAreas()
   const { data: projectsData } = useProjects()
   const areas = areasData?.areas
@@ -196,7 +197,7 @@ export function AreaProjectPicker(props: AreaProjectPickerProps) {
         className="flex items-center gap-1.5 rounded-md px-2 py-1 text-sm text-neutral-600 hover:bg-neutral-100 dark:text-neutral-400 dark:hover:bg-neutral-700"
       >
         {currentProjectId ? <Package size={14} /> : <Blocks size={14} />}
-        <span className="max-w-[200px] truncate">{label}</span>
+        <span className={`max-w-[200px] truncate ${settings?.privacy_mode ? 'privacy-blur' : ''}`}>{label}</span>
       </button>
 
       {open && (

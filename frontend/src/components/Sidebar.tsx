@@ -120,6 +120,7 @@ function EditableSidebarItem({
   onEditStart: (id: string) => void
   onEditEnd: () => void
 }) {
+  const { data: settings } = useSettings()
   const navigate = useNavigate()
   const location = useLocation()
   const clickTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -241,7 +242,7 @@ function EditableSidebarItem({
             />
           )}
           {icon}
-          <span className="relative z-10 truncate" title="Double-click to rename">{title}</span>
+          <span className={`relative z-10 truncate ${settings?.privacy_mode ? 'privacy-blur' : ''}`} title="Double-click to rename">{title}</span>
           {badge}
         </>
       )}
@@ -632,6 +633,7 @@ function TagSidebarItem({
   indent?: boolean
   showCounts: boolean
 }) {
+  const { data: settings } = useSettings()
   const navigate = useNavigate()
   const location = useLocation()
   const updateTag = useUpdateTag()
@@ -797,7 +799,7 @@ function TagSidebarItem({
               </button>
             </Popover.Anchor>
             <span
-              className="relative z-10 truncate"
+              className={`relative z-10 truncate ${settings?.privacy_mode ? 'privacy-blur' : ''}`}
               onClick={handleTitleClick}
               title="Double-click to rename"
             >

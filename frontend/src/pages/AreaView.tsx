@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate, Link } from 'react-router'
 import { Trash2, ChevronRight } from 'lucide-react'
-import { useArea, useDeleteArea } from '../hooks/queries'
+import { useArea, useDeleteArea, useSettings } from '../hooks/queries'
 import { SortableTaskList } from '../components/SortableTaskList'
 import { CompletedTasksSection } from '../components/CompletedTasksSection'
 import { ConfirmDialog } from '../components/ConfirmDialog'
@@ -10,6 +10,7 @@ export function AreaView() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
   const { data: area, isLoading } = useArea(id!)
+  const { data: settings } = useSettings()
   const deleteArea = useDeleteArea()
   const [showDelete, setShowDelete] = useState(false)
   const [projectsOpen, setProjectsOpen] = useState(() => localStorage.getItem(`area-projects-${id}`) !== 'false')
@@ -31,7 +32,7 @@ export function AreaView() {
   return (
     <div className="mx-auto max-w-3xl px-4 pt-14 pb-48 md:px-6 md:pt-6">
       <div className="flex items-center justify-between">
-        <h2 className="mb-3 text-2xl font-bold text-neutral-900 dark:text-neutral-100">{area.title}</h2>
+        <h2 className={`mb-3 text-2xl font-bold text-neutral-900 dark:text-neutral-100 ${settings?.privacy_mode ? 'privacy-blur' : ''}`}>{area.title}</h2>
         {!hasProjects && (
           <button
             onClick={() => setShowDelete(true)}
@@ -75,7 +76,7 @@ export function AreaView() {
                         style={{ width: `${progress}%` }}
                       />
                     </div>
-                    <span className="text-sm text-neutral-900 dark:text-neutral-100">{project.title}</span>
+                    <span className={`text-sm text-neutral-900 dark:text-neutral-100 ${settings?.privacy_mode ? 'privacy-blur' : ''}`}>{project.title}</span>
                     <span className="ml-auto text-xs text-neutral-400">
                       {project.completed_task_count}/{project.task_count}
                     </span>

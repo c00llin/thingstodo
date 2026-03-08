@@ -311,7 +311,7 @@ export function TaskDetail({ taskId, isModal, toolbarPortalEl }: TaskDetailProps
       ) : (
         <div
           onClick={() => setEditingNotes(true)}
-          className="cursor-text whitespace-pre-wrap text-sm text-neutral-700 dark:text-neutral-300"
+          className={`cursor-text whitespace-pre-wrap text-sm text-neutral-700 dark:text-neutral-300 ${settings?.privacy_mode ? 'privacy-blur' : ''}`}
         >
           {task.notes || (
             <span className="text-neutral-400">{isModal ? 'Add notes…' : 'Notes'}</span>
@@ -879,10 +879,12 @@ function ChecklistItemRow({
   item,
   onUpdate,
   onDelete,
+  privacyMode,
 }: {
   item: ChecklistItem
   onUpdate: (data: { title?: string; completed?: boolean }) => void
   onDelete: () => void
+  privacyMode?: boolean
 }) {
   const [editing, setEditing] = useState(false)
   const [title, setTitle] = useState(item.title)
@@ -943,7 +945,7 @@ function ChecklistItemRow({
           onClick={() => setEditing(true)}
           className={`flex-1 cursor-text text-sm ${
             item.completed ? 'text-neutral-400 line-through' : 'text-neutral-900 dark:text-neutral-100'
-          }`}
+          } ${privacyMode ? 'privacy-blur' : ''}`}
         >
           {item.title}
         </span>
@@ -965,6 +967,7 @@ function ChecklistEditor({
   taskId: string
   items: ChecklistItem[]
 }) {
+  const { data: settings } = useSettings()
   const [newTitle, setNewTitle] = useState('')
   const createItem = useCreateChecklistItem(taskId)
   const updateItem = useUpdateChecklistItem(taskId)
@@ -993,6 +996,7 @@ function ChecklistEditor({
             item={item}
             onUpdate={(data) => updateItem.mutate({ id: item.id, data })}
             onDelete={() => deleteItem.mutate(item.id)}
+            privacyMode={settings?.privacy_mode}
           />
         ))}
         <div className="flex items-center gap-2">

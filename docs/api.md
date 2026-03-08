@@ -936,7 +936,8 @@ Response (200):
   "ntfy_server_url": "https://ntfy.sh",
   "ntfy_topic": "thingstodo",
   "ntfy_access_token": "",
-  "base_url": ""
+  "base_url": "",
+  "privacy_mode": false
 }
 ```
 
@@ -963,7 +964,8 @@ Request: Partial update (any subset of fields)
   "ntfy_server_url": "string (default https://ntfy.sh)",
   "ntfy_topic": "string (default thingstodo)",
   "ntfy_access_token": "string (optional, Bearer token for authenticated ntfy servers)",
-  "base_url": "string (optional, e.g. https://tasks.example.com, for ntfy click-through links)"
+  "base_url": "string (optional, e.g. https://tasks.example.com, for ntfy click-through links)",
+  "privacy_mode": "boolean (default false)"
 }
 ```
 

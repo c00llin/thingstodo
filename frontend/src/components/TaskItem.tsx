@@ -352,7 +352,7 @@ export function TaskItem({ task, showProject = true, hideWhenDate = false, showR
               <span
                 className={`text-sm leading-5 ${
                   isDone ? 'text-neutral-400 line-through' : 'text-neutral-900 dark:text-neutral-100'
-                }`}
+                } ${settings?.privacy_mode ? 'privacy-blur' : ''}`}
               >
                 {task.title}
               </span>
@@ -413,7 +413,7 @@ export function TaskItem({ task, showProject = true, hideWhenDate = false, showR
           </div>
           {!editing && (taskContext || (settings?.show_time_badge !== false && task.first_schedule_time) || task.has_reminders) && showProject && (
             <p className="mt-0.5 flex items-center gap-1 text-[10px] leading-tight text-neutral-400">
-              {taskContext && <span>{taskContext}</span>}
+              {taskContext && <span className={settings?.privacy_mode ? 'privacy-blur' : ''}>{taskContext}</span>}
               {settings?.show_time_badge !== false && task.first_schedule_time && (
                 <span className="inline-flex items-center gap-0.5">
                   <Calendar size={10} className="shrink-0" />

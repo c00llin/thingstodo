@@ -547,6 +547,7 @@ export interface UserSettings {
   ntfy_topic: string
   ntfy_access_token: string
   base_url: string
+  privacy_mode: boolean
 }
 
 // Saved Filters

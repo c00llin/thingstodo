@@ -17,6 +17,7 @@ A self-hosted, Things 3 / Todoist inspired task manager.
 - **Keyboard-Driven** — full keyboard navigation and shortcuts
 - **Filters** — filter any view by area, project, tag, priority, date, and deadline with saved filter presets
 - **Search** — full-text search across tasks and notes
+- **Privacy Mode** — blur task titles, notes, and project/area/tag names to prevent over-the-shoulder reading
 - **Dark Mode** — automatic or manual theme switching
 - **Reminders** — per-task reminders with relative (e.g. 15 min before) and exact time options, plus configurable defaults
 - **Push Notifications** — reminders via Browser Push (VAPID) or [ntfy](https://ntfy.sh), configurable in Settings

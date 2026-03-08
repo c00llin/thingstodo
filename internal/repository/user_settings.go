@@ -19,9 +19,9 @@ func NewUserSettingsRepository(db *sql.DB) *UserSettingsRepository {
 func (r *UserSettingsRepository) GetOrCreate(userID string) (*model.UserSettings, error) {
 	var s model.UserSettings
 	err := r.db.QueryRow(
-		"SELECT play_complete_sound, show_count_main, show_count_projects, show_count_tags, review_after_days, sort_areas, sort_tags, evening_starts_at, default_time_gap, show_time_badge, time_format, font_size, default_reminder_type, default_reminder_value, copy_reminders_to_recurring, notification_provider, ntfy_server_url, ntfy_topic, ntfy_access_token, base_url FROM user_settings WHERE user_id = ?",
+		"SELECT play_complete_sound, show_count_main, show_count_projects, show_count_tags, review_after_days, sort_areas, sort_tags, evening_starts_at, default_time_gap, show_time_badge, time_format, font_size, default_reminder_type, default_reminder_value, copy_reminders_to_recurring, notification_provider, ntfy_server_url, ntfy_topic, ntfy_access_token, base_url, privacy_mode FROM user_settings WHERE user_id = ?",
 		userID,
-	).Scan(&s.PlayCompleteSound, &s.ShowCountMain, &s.ShowCountProjects, &s.ShowCountTags, &s.ReviewAfterDays, &s.SortAreas, &s.SortTags, &s.EveningStartsAt, &s.DefaultTimeGap, &s.ShowTimeBadge, &s.TimeFormat, &s.FontSize, &s.DefaultReminderType, &s.DefaultReminderValue, &s.CopyRemindersToRecurring, &s.NotificationProvider, &s.NtfyServerURL, &s.NtfyTopic, &s.NtfyAccessToken, &s.BaseURL)
+	).Scan(&s.PlayCompleteSound, &s.ShowCountMain, &s.ShowCountProjects, &s.ShowCountTags, &s.ReviewAfterDays, &s.SortAreas, &s.SortTags, &s.EveningStartsAt, &s.DefaultTimeGap, &s.ShowTimeBadge, &s.TimeFormat, &s.FontSize, &s.DefaultReminderType, &s.DefaultReminderValue, &s.CopyRemindersToRecurring, &s.NotificationProvider, &s.NtfyServerURL, &s.NtfyTopic, &s.NtfyAccessToken, &s.BaseURL, &s.PrivacyMode)
 	if err == sql.ErrNoRows {
 		_, err = r.db.Exec(
 			"INSERT INTO user_settings (user_id) VALUES (?)", userID,
@@ -47,6 +47,7 @@ func (r *UserSettingsRepository) GetOrCreate(userID string) (*model.UserSettings
 			NotificationProvider:     "webpush",
 			NtfyServerURL:            "https://ntfy.sh",
 			NtfyTopic:                "thingstodo",
+			PrivacyMode:              false,
 		}
 		return &s, nil
 	}
@@ -147,6 +148,10 @@ func (r *UserSettingsRepository) Update(userID string, input model.UpdateUserSet
 	if input.BaseURL != nil {
 		setClauses = append(setClauses, "base_url = ?")
 		args = append(args, *input.BaseURL)
+	}
+	if input.PrivacyMode != nil {
+		setClauses = append(setClauses, "privacy_mode = ?")
+		args = append(args, boolToInt(*input.PrivacyMode))
 	}
 
 	if len(setClauses) > 0 {

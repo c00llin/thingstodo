@@ -279,6 +279,18 @@ function GeneralSettings({ settings, updateSettings }: { settings: UserSettings;
       </section>
 
       <div className="mb-8 border-b border-neutral-200 dark:border-neutral-700" />
+      <section className="mb-8">
+        <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-neutral-500 dark:text-neutral-400">
+          Privacy
+        </h2>
+        <SettingsCheckbox
+          label="Blur task titles and notes"
+          checked={settings.privacy_mode}
+          onChange={(v) => updateSettings.mutate({ privacy_mode: v })}
+        />
+      </section>
+
+      <div className="mb-8 border-b border-neutral-200 dark:border-neutral-700" />
       <section>
         <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-neutral-500 dark:text-neutral-400">
           Show task count for

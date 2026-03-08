@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useParams, useNavigate } from 'react-router'
 import { AnimatePresence } from 'framer-motion'
 import { Trash2 } from 'lucide-react'
-import { useTagTasks, useTags, useDeleteTag } from '../hooks/queries'
+import { useTagTasks, useTags, useDeleteTag, useSettings } from '../hooks/queries'
 import { TaskItem } from '../components/TaskItem'
 import { ConfirmDialog } from '../components/ConfirmDialog'
 
@@ -11,6 +11,7 @@ export function TagView() {
   const navigate = useNavigate()
   const { data: tagsData } = useTags()
   const { data, isLoading } = useTagTasks(id!)
+  const { data: settings } = useSettings()
   const deleteTag = useDeleteTag()
   const [showDelete, setShowDelete] = useState(false)
 
@@ -27,7 +28,7 @@ export function TagView() {
   return (
     <div className="mx-auto max-w-3xl px-4 pt-14 pb-48 md:px-6 md:pt-6">
       <div className="flex items-center justify-between">
-        <h2 className="mb-3 text-2xl font-bold text-neutral-900 dark:text-neutral-100">
+        <h2 className={`mb-3 text-2xl font-bold text-neutral-900 dark:text-neutral-100 ${settings?.privacy_mode ? 'privacy-blur' : ''}`}>
           {tag?.title ?? 'Tag'}
         </h2>
         {tag && (

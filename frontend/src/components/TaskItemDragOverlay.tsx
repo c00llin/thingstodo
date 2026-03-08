@@ -1,5 +1,6 @@
 import { Check, Calendar, Flag, StickyNote, Link, Paperclip, RefreshCw } from 'lucide-react'
 import type { Task } from '../api/types'
+import { useSettings } from '../hooks/queries'
 import { getTagPillClasses, getTagIconClass } from '../lib/tag-colors'
 import { isSiYuanTag } from '../lib/siyuan'
 import { SiYuanIcon } from './SiYuanIcon'
@@ -10,6 +11,7 @@ interface TaskItemDragOverlayProps {
 }
 
 export function TaskItemDragOverlay({ task }: TaskItemDragOverlayProps) {
+  const { data: settings } = useSettings()
   const isCompleted = task.status === 'completed'
   const isDone = task.status !== 'open'
 
@@ -38,7 +40,7 @@ export function TaskItemDragOverlay({ task }: TaskItemDragOverlayProps) {
                 isDone
                   ? 'text-neutral-400 line-through'
                   : 'text-neutral-900 dark:text-neutral-100'
-              }`}
+              } ${settings?.privacy_mode ? 'privacy-blur' : ''}`}
             >
               {task.title}
             </span>

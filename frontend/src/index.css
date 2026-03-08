@@ -14,6 +14,12 @@ html.dark { color-scheme: dark; }
   height: 100%;
 }
 
+.privacy-blur {
+  filter: blur(3px);
+  user-select: none;
+  transition: filter 0.15s ease;
+}
+
 @supports (padding-top: env(safe-area-inset-top)) {
   #root {
     padding-top: env(safe-area-inset-top);

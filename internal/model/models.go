@@ -227,6 +227,7 @@ type UserSettings struct {
 	NtfyTopic                string `json:"ntfy_topic"`
 	NtfyAccessToken          string `json:"ntfy_access_token"`
 	BaseURL                  string `json:"base_url"`
+	PrivacyMode              bool   `json:"privacy_mode"`
 }
 
 type UpdateUserSettingsInput struct {
@@ -250,6 +251,7 @@ type UpdateUserSettingsInput struct {
 	NtfyTopic                *string `json:"ntfy_topic"`
 	NtfyAccessToken          *string `json:"ntfy_access_token"`
 	BaseURL                  *string `json:"base_url"`
+	PrivacyMode              *bool   `json:"privacy_mode"`
 	Raw                      map[string]json.RawMessage `json:"-"`
 }
 

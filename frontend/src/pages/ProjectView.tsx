@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useParams, useNavigate } from 'react-router'
 import { Trash2 } from 'lucide-react'
-import { useProject, useDeleteProject } from '../hooks/queries'
+import { useProject, useDeleteProject, useSettings } from '../hooks/queries'
 import { TaskGroup } from '../components/TaskGroup'
 import { SortableTaskList } from '../components/SortableTaskList'
 import { CompletedTasksSection } from '../components/CompletedTasksSection'
@@ -11,6 +11,7 @@ export function ProjectView() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
   const { data: project, isLoading } = useProject(id!)
+  const { data: settings } = useSettings()
   const deleteProject = useDeleteProject()
   const [showDelete, setShowDelete] = useState(false)
 
@@ -30,7 +31,7 @@ export function ProjectView() {
   return (
     <div className="mx-auto max-w-3xl px-4 pt-14 pb-48 md:px-6 md:pt-6">
       <div className="flex items-center justify-between">
-        <h2 className="mb-1 text-2xl font-bold text-neutral-900 dark:text-neutral-100">{project.title}</h2>
+        <h2 className={`mb-1 text-2xl font-bold text-neutral-900 dark:text-neutral-100 ${settings?.privacy_mode ? 'privacy-blur' : ''}`}>{project.title}</h2>
         <button
           onClick={() => setShowDelete(true)}
           className="rounded-md p-1.5 text-neutral-400 hover:bg-neutral-100 hover:text-red-600 dark:hover:bg-neutral-700 dark:hover:text-red-400"
@@ -39,7 +40,7 @@ export function ProjectView() {
         </button>
       </div>
       {project.notes && (
-        <p className="mb-4 text-sm text-neutral-600">{project.notes}</p>
+        <p className={`mb-4 text-sm text-neutral-600 ${settings?.privacy_mode ? 'privacy-blur' : ''}`}>{project.notes}</p>
       )}
       <div className="mb-6 flex items-center gap-3">
         <div className="h-2 flex-1 overflow-hidden rounded-full bg-neutral-200">
