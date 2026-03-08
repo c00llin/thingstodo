@@ -7,16 +7,18 @@ import (
 	"github.com/collinjanssen/thingstodo/internal/config"
 	mw "github.com/collinjanssen/thingstodo/internal/middleware"
 	"github.com/collinjanssen/thingstodo/internal/model"
+	"github.com/collinjanssen/thingstodo/internal/push"
 	"github.com/collinjanssen/thingstodo/internal/repository"
 )
 
 type PushSubscriptionHandler struct {
-	repo *repository.PushSubscriptionRepository
-	cfg  config.Config
+	repo     *repository.PushSubscriptionRepository
+	cfg      config.Config
+	notifier push.Notifier
 }
 
-func NewPushSubscriptionHandler(repo *repository.PushSubscriptionRepository, cfg config.Config) *PushSubscriptionHandler {
-	return &PushSubscriptionHandler{repo: repo, cfg: cfg}
+func NewPushSubscriptionHandler(repo *repository.PushSubscriptionRepository, cfg config.Config, notifier push.Notifier) *PushSubscriptionHandler {
+	return &PushSubscriptionHandler{repo: repo, cfg: cfg, notifier: notifier}
 }
 
 func (h *PushSubscriptionHandler) Subscribe(w http.ResponseWriter, r *http.Request) {
@@ -71,4 +73,25 @@ func (h *PushSubscriptionHandler) VAPIDKey(w http.ResponseWriter, r *http.Reques
 	writeJSON(w, http.StatusOK, map[string]string{
 		"public_key": key,
 	})
+}
+
+func (h *PushSubscriptionHandler) TestNotification(w http.ResponseWriter, r *http.Request) {
+	userID, ok := r.Context().Value(mw.UserIDKey).(string)
+	if !ok || userID == "" {
+		writeError(w, http.StatusUnauthorized, "unauthorized", "UNAUTHORIZED")
+		return
+	}
+	if !h.notifier.Enabled() {
+		writeError(w, http.StatusBadRequest, "no notification provider is configured", "NOT_CONFIGURED")
+		return
+	}
+	err := h.notifier.Send(userID, push.Payload{
+		Title: "ThingsToDo",
+		Body:  "Test notification \u2014 your setup is working!",
+	})
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, err.Error(), "SEND_FAILED")
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]bool{"ok": true})
 }

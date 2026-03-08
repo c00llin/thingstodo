@@ -3,6 +3,7 @@ import { useSettings, useUpdateSettings } from '../hooks/queries'
 import { parseTime } from '../lib/time-parser'
 import { formatTime } from '../lib/format-time'
 import { registerPushSubscription, unregisterPushSubscription, isPushSubscribed } from '../lib/push-registration'
+import { testNotification } from '../api/push'
 import type { UserSettings } from '../api/types'
 
 function SettingsCheckbox({
@@ -162,13 +163,44 @@ function TimeGapSetting({
 export function SettingsView() {
   const { data: settings } = useSettings()
   const updateSettings = useUpdateSettings()
+  const [tab, setTab] = useState<'general' | 'notifications'>('general')
 
   if (!settings) return null
 
+  const tabClass = (active: boolean) =>
+    `px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
+      active
+        ? 'bg-neutral-200 text-neutral-900 dark:bg-neutral-700 dark:text-neutral-100'
+        : 'text-neutral-500 hover:text-neutral-700 dark:text-neutral-400 dark:hover:text-neutral-300'
+    }`
+
   return (
     <div className="mx-auto max-w-3xl px-4 pt-14 pb-48 md:px-6 md:pt-6">
-      <h1 className="mb-6 text-xl font-semibold text-neutral-900 dark:text-neutral-100">Settings</h1>
+      <h1 className="mb-4 text-xl font-semibold text-neutral-900 dark:text-neutral-100">Settings</h1>
 
+      <div className="mb-6 flex gap-1">
+        <button type="button" className={tabClass(tab === 'general')} onClick={() => setTab('general')}>General</button>
+        <button type="button" className={tabClass(tab === 'notifications')} onClick={() => setTab('notifications')}>Notifications</button>
+      </div>
+
+      {tab === 'general' && (
+        <GeneralSettings settings={settings} updateSettings={updateSettings} />
+      )}
+
+      {tab === 'notifications' && (
+        <NotificationSettings settings={settings} updateSettings={updateSettings} />
+      )}
+
+      <p className="mt-12 text-center text-xs text-neutral-400 dark:text-neutral-500">
+        ThingsToDo v{__APP_VERSION__}{__BUILD_SHA__ !== 'dev' ? ` (${__BUILD_SHA__})` : ''}
+      </p>
+    </div>
+  )
+}
+
+function GeneralSettings({ settings, updateSettings }: { settings: UserSettings; updateSettings: ReturnType<typeof useUpdateSettings> }) {
+  return (
+    <>
       <section className="mb-8">
         <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-neutral-500 dark:text-neutral-400">
           Sound
@@ -180,6 +212,7 @@ export function SettingsView() {
         />
       </section>
 
+      <div className="mb-8 border-b border-neutral-200 dark:border-neutral-700" />
       <section className="mb-8">
         <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-neutral-500 dark:text-neutral-400">
           Review
@@ -190,6 +223,7 @@ export function SettingsView() {
         />
       </section>
 
+      <div className="mb-8 border-b border-neutral-200 dark:border-neutral-700" />
       <section className="mb-8">
         <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-neutral-500 dark:text-neutral-400">
           Scheduling
@@ -223,6 +257,7 @@ export function SettingsView() {
         </div>
       </section>
 
+      <div className="mb-8 border-b border-neutral-200 dark:border-neutral-700" />
       <section className="mb-8">
         <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-neutral-500 dark:text-neutral-400">
           Appearance
@@ -243,7 +278,87 @@ export function SettingsView() {
         </div>
       </section>
 
-      <section className="mb-8">
+      <div className="mb-8 border-b border-neutral-200 dark:border-neutral-700" />
+      <section>
+        <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-neutral-500 dark:text-neutral-400">
+          Show task count for
+        </h2>
+        <div className="space-y-1">
+          <SettingsCheckbox
+            label="Main lists"
+            checked={settings.show_count_main}
+            onChange={(v) => updateSettings.mutate({ show_count_main: v })}
+          />
+          <SettingsCheckbox
+            label="Areas & Projects"
+            checked={settings.show_count_projects}
+            onChange={(v) => updateSettings.mutate({ show_count_projects: v })}
+          />
+          <SettingsCheckbox
+            label="Tags"
+            checked={settings.show_count_tags}
+            onChange={(v) => updateSettings.mutate({ show_count_tags: v })}
+          />
+        </div>
+      </section>
+    </>
+  )
+}
+
+function NotificationSettings({ settings, updateSettings }: { settings: UserSettings; updateSettings: ReturnType<typeof useUpdateSettings> }) {
+  const [subscribed, setSubscribed] = useState(false)
+  const [pushLoading, setPushLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const [testStatus, setTestStatus] = useState<'idle' | 'sending' | 'ok' | 'error'>('idle')
+  const webPushSupported = 'PushManager' in window && 'serviceWorker' in navigator
+  const provider = settings.notification_provider ?? 'webpush'
+
+  useEffect(() => {
+    isPushSubscribed().then((v) => { setSubscribed(v); setPushLoading(false) })
+  }, [])
+
+  async function handleProviderChange(value: 'webpush' | 'ntfy' | 'none') {
+    setError(null)
+    if (provider === 'webpush' && value !== 'webpush' && subscribed) {
+      await unregisterPushSubscription()
+      setSubscribed(false)
+    }
+    updateSettings.mutate({ notification_provider: value })
+  }
+
+  async function handleWebPushToggle(enable: boolean) {
+    setPushLoading(true)
+    setError(null)
+    if (enable) {
+      const result = await registerPushSubscription()
+      setSubscribed(result.ok)
+      if (!result.ok && result.error) setError(result.error)
+    } else {
+      await unregisterPushSubscription()
+      setSubscribed(false)
+    }
+    setPushLoading(false)
+  }
+
+  async function handleTest() {
+    setTestStatus('sending')
+    try {
+      await testNotification()
+      setTestStatus('ok')
+      setTimeout(() => setTestStatus('idle'), 3000)
+    } catch {
+      setTestStatus('error')
+      setTimeout(() => setTestStatus('idle'), 3000)
+    }
+  }
+
+  const radioClass = "h-4 w-4 accent-red-500"
+  const labelClass = "flex cursor-pointer items-center gap-3 py-1.5 text-sm text-neutral-700 dark:text-neutral-300"
+  const inputClass = "w-full rounded border border-neutral-200 bg-white px-2 py-1 text-sm dark:border-neutral-600 dark:bg-neutral-800 dark:text-neutral-200"
+
+  return (
+    <div className="space-y-8">
+      <section>
         <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-neutral-500 dark:text-neutral-400">
           Reminders
         </h2>
@@ -287,89 +402,111 @@ export function SettingsView() {
             checked={settings.copy_reminders_to_recurring}
             onChange={(v) => updateSettings.mutate({ copy_reminders_to_recurring: v })}
           />
-          <PushNotificationToggle />
         </div>
       </section>
 
+      <div className="border-b border-neutral-200 dark:border-neutral-700" />
       <section>
         <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-neutral-500 dark:text-neutral-400">
-          Show task count for
+          Delivery
         </h2>
-        <div className="space-y-1">
-          <SettingsCheckbox
-            label="Main lists"
-            checked={settings.show_count_main}
-            onChange={(v) => updateSettings.mutate({ show_count_main: v })}
-          />
-          <SettingsCheckbox
-            label="Areas & Projects"
-            checked={settings.show_count_projects}
-            onChange={(v) => updateSettings.mutate({ show_count_projects: v })}
-          />
-          <SettingsCheckbox
-            label="Tags"
-            checked={settings.show_count_tags}
-            onChange={(v) => updateSettings.mutate({ show_count_tags: v })}
-          />
+        <div className="space-y-3">
+      <div className="space-y-1">
+        <label className={labelClass}>
+          <input type="radio" name="notif-provider" className={radioClass} checked={provider === 'webpush'} onChange={() => handleProviderChange('webpush')} />
+          Browser Push
+        </label>
+        <label className={labelClass}>
+          <input type="radio" name="notif-provider" className={radioClass} checked={provider === 'ntfy'} onChange={() => handleProviderChange('ntfy')} />
+          ntfy
+        </label>
+        <label className={labelClass}>
+          <input type="radio" name="notif-provider" className={radioClass} checked={provider === 'none'} onChange={() => handleProviderChange('none')} />
+          Disabled
+        </label>
+      </div>
+
+      {provider === 'webpush' && (
+        <div className="pl-7">
+          {webPushSupported ? (
+            <label className="flex cursor-pointer items-center gap-3 py-1.5">
+              <input
+                type="checkbox"
+                checked={subscribed}
+                disabled={pushLoading}
+                onChange={(e) => handleWebPushToggle(e.target.checked)}
+                className="h-4 w-4 rounded border-neutral-300 accent-red-500 dark:border-neutral-600"
+              />
+              <span className="text-sm text-neutral-700 dark:text-neutral-300">
+                Subscribe this browser{pushLoading ? '...' : ''}
+              </span>
+            </label>
+          ) : (
+            <p className="text-sm text-neutral-400 dark:text-neutral-500">
+              Push notifications not supported in this browser
+            </p>
+          )}
+        </div>
+      )}
+
+      {provider === 'ntfy' && (
+        <div className="space-y-2 pl-7">
+          <div>
+            <label className="mb-1 block text-xs text-neutral-500 dark:text-neutral-400">Server URL</label>
+            <input
+              type="text"
+              className={inputClass}
+              defaultValue={settings.ntfy_server_url}
+              placeholder="https://ntfy.sh"
+              onBlur={(e) => updateSettings.mutate({ ntfy_server_url: e.target.value })}
+            />
+          </div>
+          <div>
+            <label className="mb-1 block text-xs text-neutral-500 dark:text-neutral-400">Topic</label>
+            <input
+              type="text"
+              className={inputClass}
+              defaultValue={settings.ntfy_topic}
+              placeholder="thingstodo"
+              onBlur={(e) => updateSettings.mutate({ ntfy_topic: e.target.value })}
+            />
+          </div>
+          <div>
+            <label className="mb-1 block text-xs text-neutral-500 dark:text-neutral-400">Access Token (optional)</label>
+            <input
+              type="password"
+              className={inputClass}
+              defaultValue={settings.ntfy_access_token}
+              placeholder="tk_..."
+              onBlur={(e) => updateSettings.mutate({ ntfy_access_token: e.target.value })}
+            />
+          </div>
+          <div>
+            <label className="mb-1 block text-xs text-neutral-500 dark:text-neutral-400">Base URL (for click-through links)</label>
+            <input
+              type="text"
+              className={inputClass}
+              defaultValue={settings.base_url}
+              placeholder="https://tasks.example.com"
+              onBlur={(e) => updateSettings.mutate({ base_url: e.target.value })}
+            />
+          </div>
+          <button
+            type="button"
+            onClick={handleTest}
+            disabled={testStatus === 'sending' || !settings.ntfy_topic}
+            className="mt-1 rounded bg-red-500 px-3 py-1 text-sm text-white hover:bg-red-600 disabled:opacity-50"
+          >
+            {testStatus === 'sending' ? 'Sending...' : testStatus === 'ok' ? 'Sent!' : testStatus === 'error' ? 'Failed' : 'Send Test'}
+          </button>
+        </div>
+      )}
+
+      {error && (
+        <p className="text-xs text-red-500 dark:text-red-400">{error}</p>
+      )}
         </div>
       </section>
-
-      <p className="mt-12 text-center text-xs text-neutral-400 dark:text-neutral-500">
-        ThingsToDo v{__APP_VERSION__}{__BUILD_SHA__ !== 'dev' ? ` (${__BUILD_SHA__})` : ''}
-      </p>
-    </div>
-  )
-}
-
-function PushNotificationToggle() {
-  const [subscribed, setSubscribed] = useState(false)
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-  const supported = 'PushManager' in window && 'serviceWorker' in navigator
-
-  useEffect(() => {
-    isPushSubscribed().then((v) => { setSubscribed(v); setLoading(false) })
-  }, [])
-
-  if (!supported) {
-    return (
-      <div className="py-1.5 text-sm text-neutral-400 dark:text-neutral-500">
-        Push notifications not supported in this browser
-      </div>
-    )
-  }
-
-  async function handleToggle(enable: boolean) {
-    setLoading(true)
-    setError(null)
-    if (enable) {
-      const result = await registerPushSubscription()
-      setSubscribed(result.ok)
-      if (!result.ok && result.error) setError(result.error)
-    } else {
-      await unregisterPushSubscription()
-      setSubscribed(false)
-    }
-    setLoading(false)
-  }
-
-  return (
-    <div>
-      <label className="flex cursor-pointer items-center gap-3 py-1.5">
-        <input
-          type="checkbox"
-          checked={subscribed}
-          disabled={loading}
-          onChange={(e) => handleToggle(e.target.checked)}
-          className="h-4 w-4 rounded border-neutral-300 accent-red-500 dark:border-neutral-600"
-        />
-        <span className="text-sm text-neutral-700 dark:text-neutral-300">
-          Enable push notifications{loading ? '...' : ''}
-        </span>
-      </label>
-      {error && (
-        <p className="mt-1 text-xs text-red-500 dark:text-red-400">{error}</p>
-      )}
     </div>
   )
 }

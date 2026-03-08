@@ -16,3 +16,7 @@ export function subscribePush(data: {
 export function unsubscribePush(endpoint: string) {
   return api.delete('/push/subscribe', { endpoint })
 }
+
+export function testNotification() {
+  return api.post<{ ok: boolean }>('/push/test', {})
+}

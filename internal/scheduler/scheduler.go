@@ -24,14 +24,14 @@ type Scheduler struct {
 	reminderRepo  *repository.ReminderRepository
 	settingsRepo  *repository.UserSettingsRepository
 	userRepo      *repository.UserRepository
-	pushSender    *push.Sender
+	pushSender    push.Notifier
 	broker        *sse.Broker
 	db            *sql.DB
 	engine        *recurrence.Engine
 	loc           *time.Location
 }
 
-func New(db *sql.DB, taskRepo *repository.TaskRepository, ruleRepo *repository.RepeatRuleRepository, checklistRepo *repository.ChecklistRepository, attachRepo *repository.AttachmentRepository, scheduleRepo *repository.ScheduleRepository, reminderRepo *repository.ReminderRepository, settingsRepo *repository.UserSettingsRepository, userRepo *repository.UserRepository, pushSender *push.Sender, broker *sse.Broker, loc *time.Location) *Scheduler {
+func New(db *sql.DB, taskRepo *repository.TaskRepository, ruleRepo *repository.RepeatRuleRepository, checklistRepo *repository.ChecklistRepository, attachRepo *repository.AttachmentRepository, scheduleRepo *repository.ScheduleRepository, reminderRepo *repository.ReminderRepository, settingsRepo *repository.UserSettingsRepository, userRepo *repository.UserRepository, pushSender push.Notifier, broker *sse.Broker, loc *time.Location) *Scheduler {
 	return &Scheduler{
 		cron:          cron.New(),
 		taskRepo:      taskRepo,

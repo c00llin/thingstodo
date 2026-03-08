@@ -222,6 +222,11 @@ type UserSettings struct {
 	DefaultReminderType     *string `json:"default_reminder_type"`
 	DefaultReminderValue    int     `json:"default_reminder_value"`
 	CopyRemindersToRecurring bool   `json:"copy_reminders_to_recurring"`
+	NotificationProvider     string `json:"notification_provider"`
+	NtfyServerURL            string `json:"ntfy_server_url"`
+	NtfyTopic                string `json:"ntfy_topic"`
+	NtfyAccessToken          string `json:"ntfy_access_token"`
+	BaseURL                  string `json:"base_url"`
 }
 
 type UpdateUserSettingsInput struct {
@@ -240,6 +245,11 @@ type UpdateUserSettingsInput struct {
 	DefaultReminderType      *string `json:"default_reminder_type"`
 	DefaultReminderValue     *int    `json:"default_reminder_value"`
 	CopyRemindersToRecurring *bool   `json:"copy_reminders_to_recurring"`
+	NotificationProvider     *string `json:"notification_provider"`
+	NtfyServerURL            *string `json:"ntfy_server_url"`
+	NtfyTopic                *string `json:"ntfy_topic"`
+	NtfyAccessToken          *string `json:"ntfy_access_token"`
+	BaseURL                  *string `json:"base_url"`
 	Raw                      map[string]json.RawMessage `json:"-"`
 }
 

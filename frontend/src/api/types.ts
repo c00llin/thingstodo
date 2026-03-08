@@ -542,6 +542,11 @@ export interface UserSettings {
   default_reminder_type: ReminderType | null
   default_reminder_value: number
   copy_reminders_to_recurring: boolean
+  notification_provider: 'webpush' | 'ntfy' | 'none'
+  ntfy_server_url: string
+  ntfy_topic: string
+  ntfy_access_token: string
+  base_url: string
 }
 
 // Saved Filters

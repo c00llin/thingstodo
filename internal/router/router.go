@@ -15,6 +15,7 @@ import (
 	"github.com/collinjanssen/thingstodo/internal/frontend"
 	"github.com/collinjanssen/thingstodo/internal/handler"
 	mw "github.com/collinjanssen/thingstodo/internal/middleware"
+	"github.com/collinjanssen/thingstodo/internal/push"
 	"github.com/collinjanssen/thingstodo/internal/recurrence"
 	"github.com/collinjanssen/thingstodo/internal/repository"
 	"github.com/collinjanssen/thingstodo/internal/scheduler"
@@ -62,7 +63,10 @@ func New(db *sql.DB, cfg config.Config, broker *sse.Broker, sched *scheduler.Sch
 	savedFilterH := handler.NewSavedFilterHandler(savedFilterRepo, broker)
 	scheduleH := handler.NewScheduleHandler(scheduleRepo, taskRepo, broker)
 	reminderH := handler.NewReminderHandler(reminderRepo, broker)
-	pushSubH := handler.NewPushSubscriptionHandler(pushSubRepo, cfg)
+	pushSender := push.NewSender(pushSubRepo, cfg.VAPIDPrivateKey, cfg.VAPIDPublicKey, cfg.VAPIDContact)
+	ntfySender := push.NewNtfySender(settingsRepo, userRepo)
+	notifier := push.NewDispatcher(pushSender, ntfySender, settingsRepo, userRepo)
+	pushSubH := handler.NewPushSubscriptionHandler(pushSubRepo, cfg, notifier)
 	eventH := handler.NewEventHandler(broker)
 
 	var oidcH *handler.OIDCHandler
@@ -162,6 +166,7 @@ func New(db *sql.DB, cfg config.Config, broker *sse.Broker, sched *scheduler.Sch
 			r.Post("/push/subscribe", pushSubH.Subscribe)
 			r.Delete("/push/subscribe", pushSubH.Unsubscribe)
 			r.Get("/push/vapid-key", pushSubH.VAPIDKey)
+			r.Post("/push/test", pushSubH.TestNotification)
 
 			// Projects
 			r.Get("/projects", projectH.List)

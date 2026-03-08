@@ -18,6 +18,8 @@ A self-hosted, Things 3 / Todoist inspired task manager.
 - **Filters** — filter any view by area, project, tag, priority, date, and deadline with saved filter presets
 - **Search** — full-text search across tasks and notes
 - **Dark Mode** — automatic or manual theme switching
+- **Reminders** — per-task reminders with relative (e.g. 15 min before) and exact time options, plus configurable defaults
+- **Push Notifications** — reminders via Browser Push (VAPID) or [ntfy](https://ntfy.sh), configurable in Settings
 - **PWA** — installable on mobile and desktop
 - **Single Binary** — Go backend with embedded SPA frontend, SQLite database
 
@@ -54,6 +56,7 @@ Open [http://localhost:2999](http://localhost:2999) and log in with the password
 | `LOG_LEVEL` | `info` | Log level |
 | `MAX_UPLOAD_SIZE` | `26214400` | Max file upload size in bytes (25 MB) |
 | `AUTH_MODE` | `builtin` | Auth mode: `builtin`, `proxy`, or `oidc` |
+| `TZ` | `UTC` | Timezone for reminder scheduling (e.g. `Europe/Amsterdam`) |
 
 ### Builtin Auth
 
@@ -81,6 +84,41 @@ Log in via any OpenID Connect provider (Google, Keycloak, Authelia, etc.). On fi
 | `OIDC_CLIENT_ID` | — | OAuth2 client ID |
 | `OIDC_CLIENT_SECRET` | — | OAuth2 client secret |
 | `OIDC_REDIRECT_URI` | — | Callback URL: `https://your-domain/api/auth/oidc/callback` |
+
+### API Key
+
+Enable external access (e.g. iOS Shortcuts) with a static API key alongside any auth mode.
+
+| Variable | Default | Description |
+|---|---|---|
+| `API_KEY` | — | Static bearer token for `Authorization: Bearer <key>` |
+
+### Notifications
+
+Push notifications for task reminders can be delivered via **Browser Push** (default) or **[ntfy](https://ntfy.sh)**. Configure the provider in **Settings > Notifications > Delivery**.
+
+> **Important:** Set the `TZ` environment variable (e.g. `TZ=America/Chicago`) so reminders fire at the correct local time. The Docker scratch image defaults to UTC.
+
+#### Browser Push (VAPID)
+
+VAPID keys are auto-generated on first start and stored in the database. You can also set them explicitly:
+
+| Variable | Default | Description |
+|---|---|---|
+| `VAPID_PRIVATE_KEY` | auto-generated | VAPID private key |
+| `VAPID_PUBLIC_KEY` | auto-generated | VAPID public key |
+| `VAPID_CONTACT` | — | Contact email for VAPID (e.g. `mailto:you@example.com`) |
+
+#### ntfy
+
+No env vars required — ntfy is configured entirely from the Settings UI:
+
+- **Server URL** — defaults to `https://ntfy.sh` (or your self-hosted instance)
+- **Topic** — defaults to `thingstodo`; subscribe to this topic in the ntfy app on your phone/desktop
+- **Access Token** — only needed if your ntfy server requires authentication
+- **Base URL** — your app's public URL (e.g. `https://tasks.example.com`) for click-through links in notifications
+
+Use the **Send Test** button to verify your setup.
 
 ## Development
 

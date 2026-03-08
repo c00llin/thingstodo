@@ -465,6 +465,17 @@ Request:
 ```
 Response (204): No content
 
+### POST /api/push/test
+Sends a test notification using the user's currently configured provider (webpush or ntfy).
+
+Request: `{}` (empty body)
+
+Response (200):
+```json
+{ "ok": true }
+```
+Response (400): If no notification provider is configured
+
 ---
 
 ## Projects
@@ -920,7 +931,12 @@ Response (200):
   "font_size": 16,
   "default_reminder_type": "minutes_before",
   "default_reminder_value": 15,
-  "copy_reminders_to_recurring": true
+  "copy_reminders_to_recurring": true,
+  "notification_provider": "webpush",
+  "ntfy_server_url": "https://ntfy.sh",
+  "ntfy_topic": "thingstodo",
+  "ntfy_access_token": "",
+  "base_url": ""
 }
 ```
 
@@ -942,7 +958,12 @@ Request: Partial update (any subset of fields)
   "font_size": "integer (12|14|16|18|20, default 16)",
   "default_reminder_type": "at_start|on_day|minutes_before|hours_before|days_before|null (default null)",
   "default_reminder_value": "integer 0-99 (default 0)",
-  "copy_reminders_to_recurring": "boolean (default true)"
+  "copy_reminders_to_recurring": "boolean (default true)",
+  "notification_provider": "webpush|ntfy|none (default webpush)",
+  "ntfy_server_url": "string (default https://ntfy.sh)",
+  "ntfy_topic": "string (default thingstodo)",
+  "ntfy_access_token": "string (optional, Bearer token for authenticated ntfy servers)",
+  "base_url": "string (optional, e.g. https://tasks.example.com, for ntfy click-through links)"
 }
 ```
 
