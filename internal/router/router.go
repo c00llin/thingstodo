@@ -131,6 +131,7 @@ func New(db *sql.DB, cfg config.Config, broker *sse.Broker, sched *scheduler.Sch
 			r.Patch("/tasks/{id}/review", taskH.Review)
 			r.Patch("/tasks/{id}/move", taskH.Move)
 			r.Patch("/tasks/reorder", taskH.Reorder)
+			r.Post("/tasks/bulk", taskH.BulkAction)
 
 			// Checklist
 			r.Get("/tasks/{id}/checklist", checklistH.List)

@@ -311,6 +311,36 @@ Response (200):
 { "ok": true }
 ```
 
+### POST /api/tasks/bulk
+Perform an action on multiple tasks in a single transaction.
+
+Request:
+```json
+{
+  "task_ids": ["string"],
+  "action": "complete|cancel|wontdo|delete|set_when|set_deadline|set_priority|move_project|add_tags|remove_tags",
+  "params": {}
+}
+```
+
+| Action | Params |
+|--------|--------|
+| set_when | `when_date` (string), `when_time` (string, optional) |
+| set_deadline | `deadline` (string) |
+| set_priority | `priority` (number, 0 or 1) |
+| move_project | `project_id` (string or null) |
+| add_tags | `tag_ids` (string[]) |
+| remove_tags | `tag_ids` (string[]) |
+
+Limits: max 100 tasks per request.
+
+Response (200):
+```json
+{ "ok": true, "affected": 3 }
+```
+
+SSE: Broadcasts `bulk_change` event with `{ type, entity: "task", ids }`.
+
 ---
 
 ## Checklist Items

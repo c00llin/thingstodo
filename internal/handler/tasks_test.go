@@ -37,6 +37,7 @@ func setupTaskRouter(t *testing.T) (*testutil.TestClient, *sql.DB) {
 		r.Get("/", taskHandler.List)
 		r.Post("/", taskHandler.Create)
 		r.Patch("/reorder", taskHandler.Reorder)
+		r.Post("/bulk", taskHandler.BulkAction)
 		r.Route("/{id}", func(r chi.Router) {
 			r.Get("/", taskHandler.Get)
 			r.Patch("/", taskHandler.Update)

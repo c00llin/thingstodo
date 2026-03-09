@@ -345,6 +345,61 @@ func (h *TaskHandler) Reorder(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, map[string]bool{"ok": true})
 }
 
+func (h *TaskHandler) BulkAction(w http.ResponseWriter, r *http.Request) {
+	var input model.BulkActionInput
+	if err := decodeJSON(r, &input); err != nil {
+		writeError(w, http.StatusBadRequest, "invalid JSON", "BAD_REQUEST")
+		return
+	}
+	if len(input.TaskIDs) == 0 {
+		writeError(w, http.StatusBadRequest, "task_ids required", "BAD_REQUEST")
+		return
+	}
+	if len(input.TaskIDs) > 100 {
+		writeError(w, http.StatusBadRequest, "maximum 100 tasks per bulk action", "BAD_REQUEST")
+		return
+	}
+
+	validActions := map[string]bool{
+		"complete": true, "cancel": true, "wontdo": true, "delete": true,
+		"set_when": true, "set_deadline": true, "set_priority": true,
+		"move_project": true, "add_tags": true, "remove_tags": true,
+	}
+	if !validActions[input.Action] {
+		writeError(w, http.StatusBadRequest, "invalid action: "+input.Action, "BAD_REQUEST")
+		return
+	}
+
+	if input.Action == "complete" || input.Action == "cancel" || input.Action == "wontdo" {
+		for _, id := range input.TaskIDs {
+			h.cleanupSchedules(id)
+		}
+	}
+
+	affected, err := h.repo.BulkAction(input)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, err.Error(), "INTERNAL")
+		return
+	}
+
+	if h.scheduler != nil && (input.Action == "complete" || input.Action == "cancel" || input.Action == "wontdo") {
+		for _, id := range input.TaskIDs {
+			h.scheduler.HandleTaskDone(id)
+		}
+	}
+
+	h.broker.BroadcastJSON("bulk_change", map[string]interface{}{
+		"type":   input.Action,
+		"entity": "task",
+		"ids":    input.TaskIDs,
+	})
+
+	writeJSON(w, http.StatusOK, map[string]interface{}{
+		"ok":       true,
+		"affected": affected,
+	})
+}
+
 // cleanupSchedules completes past uncompleted schedule entries and deletes
 // today + future entries when a task is completed/canceled/wontdo.
 func (h *TaskHandler) cleanupSchedules(taskID string) {
