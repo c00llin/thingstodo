@@ -193,16 +193,36 @@ export function useTaskShortcuts() {
     }
   }, { enabled })
 
-  // Escape closes modal; if no modal, deselects
+  // Escape closes modal; if multi-selected, clears selection first; if no modal, deselects
   useHotkeys('escape', (e) => {
     if (isFocusInFilterBar()) return
     e.preventDefault()
+    const { selectedTaskIds, clearSelection } = useAppStore.getState()
+    if (selectedTaskIds.size > 0) {
+      clearSelection()
+      return
+    }
     if (expandedTaskId) {
       closeModal()
     } else if (selectedTaskId) {
       selectTask(null)
     }
-  }, { enabled: !!expandedTaskId || !!selectedTaskId })
+  }, { enabled: !!expandedTaskId || !!selectedTaskId || useAppStore.getState().selectedTaskIds.size > 0 })
+
+  // Cmd+A selects all visible tasks (unless focused in input/textarea)
+  useHotkeys('mod+a', (e) => {
+    const active = document.activeElement
+    if (active && (active.tagName === 'INPUT' || active.tagName === 'TEXTAREA' || (active as HTMLElement).isContentEditable)) {
+      return
+    }
+    e.preventDefault()
+    const allTaskEls = document.querySelectorAll<HTMLElement>('[data-task-id]')
+    const ids = new Set<string>()
+    allTaskEls.forEach((el) => {
+      if (el.dataset.taskId) ids.add(el.dataset.taskId)
+    })
+    useAppStore.setState({ selectedTaskIds: ids, lastSelectedTaskId: null })
+  })
 
   // Arrow down — select next task (wraps around); if modal open, switch modal task
   useHotkeys('down', (e) => {

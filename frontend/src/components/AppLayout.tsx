@@ -47,7 +47,7 @@ export function AppLayout() {
   // Close task detail modal, clear selection, filter bar, and reset filters when navigating to a different page
   useEffect(() => {
     closeModal()
-    useAppStore.setState({ selectedTaskId: null, selectedScheduleEntryId: null, filterBarOpen: false })
+    useAppStore.setState({ selectedTaskId: null, selectedScheduleEntryId: null, filterBarOpen: false, selectedTaskIds: new Set(), lastSelectedTaskId: null })
     useFilterStore.getState().clearAll()
   }, [location.pathname, closeModal])
 
