@@ -280,7 +280,7 @@ export function SortableTaskItem({
           : { opacity: 0, height: 0, transition: { duration: 0.2 } }
       }
       transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-      className={`group/item ${isMultiSelected ? 'ring-2 ring-red-400 ring-inset rounded-lg bg-red-50 dark:bg-red-900/20' : ''}`}
+      className="group/item"
     >
       <div className="flex items-center gap-2">
       <div className="relative min-w-0 flex-1 overflow-hidden md:overflow-visible rounded-lg">
@@ -301,11 +301,13 @@ export function SortableTaskItem({
         )}
       <div
         className={`relative flex cursor-pointer items-center gap-3 rounded-lg px-3 py-2 transition-colors ${
-          isSelected
-            ? 'bg-red-50 dark:bg-red-900/20'
-            : swipeOffsetX !== 0
-              ? 'bg-neutral-100 dark:bg-neutral-800'
-              : 'bg-white group-hover/item:bg-neutral-50 dark:bg-neutral-900 dark:group-hover/item:bg-neutral-800'
+          isMultiSelected
+            ? 'ring-2 ring-red-400 ring-inset bg-red-50 dark:bg-red-900/20'
+            : isSelected
+              ? 'bg-red-50 dark:bg-red-900/20'
+              : swipeOffsetX !== 0
+                ? 'bg-neutral-100 dark:bg-neutral-800'
+                : 'bg-white group-hover/item:bg-neutral-50 dark:bg-neutral-900 dark:group-hover/item:bg-neutral-800'
         }`}
         onClick={handleClick}
         onDoubleClick={handleDoubleClick}
