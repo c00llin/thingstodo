@@ -263,6 +263,7 @@ export function SortableTaskItem({
     <motion.div
       ref={setNodeRef}
       data-task-id={isDragOverlay ? undefined : task.id}
+      aria-selected={isMultiSelected || undefined}
       data-schedule-entry-id={isDragOverlay ? undefined : (task.schedule_entry_id ?? undefined)}
       data-departing={isDeparting ? 'true' : undefined}
       style={style}

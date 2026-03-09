@@ -574,7 +574,7 @@ function AppDndContextInner({ children }: AppDndContextProps) {
         })
       }
     },
-    [queryClient, projects, areas, allTags, registry],
+    [queryClient, projects, areas, allTags, registry, draggedTaskIds],
   )
 
   return (

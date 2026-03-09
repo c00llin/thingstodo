@@ -42,7 +42,7 @@ export function BulkActionToolbar() {
             aria-label={`Bulk actions for ${count} tasks`}
             className="flex items-center gap-1 rounded-full bg-neutral-900 px-4 py-2 text-white shadow-2xl dark:bg-neutral-100 dark:text-neutral-900"
           >
-            <span className="mr-2 text-sm font-medium tabular-nums">
+            <span aria-live="polite" className="mr-2 text-sm font-medium tabular-nums">
               {count} selected
             </span>
             <button

@@ -173,6 +173,7 @@ export function useTaskShortcuts() {
   // Space opens/closes modal for selected task
   useHotkeys('space', (e) => {
     if (isFocusInFilterBar()) return
+    if (useAppStore.getState().selectedTaskIds.size > 1) return
     e.preventDefault()
     if (selectedTaskId) {
       if (expandedTaskId === selectedTaskId) {
@@ -186,6 +187,7 @@ export function useTaskShortcuts() {
   // Enter opens modal + focuses title for editing
   useHotkeys('enter', (e) => {
     if (isFocusInFilterBar()) return
+    if (useAppStore.getState().selectedTaskIds.size > 1) return
     e.preventDefault()
     if (selectedTaskId) {
       expandTask(selectedTaskId, selectedScheduleEntryId)
@@ -271,22 +273,45 @@ export function useTaskShortcuts() {
     }
   }, { enabled: true })
 
-  // Delete task
+  // Delete task (or bulk delete if multi-selected)
+  const handleBulkDelete = useCallback(() => {
+    const { selectedTaskIds } = useAppStore.getState()
+    if (selectedTaskIds.size > 1) {
+      useAppStore.setState({ departingTaskIds: new Set(selectedTaskIds) })
+      import('../api/tasks').then(({ bulkAction }) => {
+        bulkAction({ task_ids: Array.from(selectedTaskIds), action: 'delete' }).then(() => {
+          const remaining = new Set(useAppStore.getState().selectedTaskIds)
+          for (const id of selectedTaskIds) remaining.delete(id)
+          useAppStore.setState({ selectedTaskIds: remaining })
+          setTimeout(() => {
+            useAppStore.setState({ departingTaskIds: new Set() })
+            // Force invalidation will be handled by SSE or next interaction
+            window.dispatchEvent(new Event('bulk-action-complete'))
+          }, 800)
+        })
+      })
+      return true
+    }
+    return false
+  }, [])
+
   useHotkeys('delete', (e) => {
     if (isFocusInFilterBar()) return
     e.preventDefault()
+    if (handleBulkDelete()) return
     if (selectedTaskId) {
       deleteTask.mutate(selectedTaskId)
       selectTask(null)
     }
-  }, { enabled })
+  }, { enabled: enabled || useAppStore.getState().selectedTaskIds.size > 0 })
 
   useHotkeys('backspace', (e) => {
     if (isFocusInFilterBar()) return
     e.preventDefault()
+    if (handleBulkDelete()) return
     if (selectedTaskId) {
       deleteTask.mutate(selectedTaskId)
       selectTask(null)
     }
-  }, { enabled })
+  }, { enabled: enabled || useAppStore.getState().selectedTaskIds.size > 0 })
 }
