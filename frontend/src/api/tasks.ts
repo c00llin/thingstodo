@@ -6,6 +6,8 @@ import type {
   UpdateTaskRequest,
   ReorderItem,
   TaskQueryParams,
+  BulkActionRequest,
+  BulkActionResponse,
 } from './types'
 
 export function listTasks(params?: TaskQueryParams) {
@@ -67,4 +69,8 @@ export function reviewTask(id: string) {
 
 export function reorderTasks(items: ReorderItem[]) {
   return api.patch<{ ok: boolean }>('/tasks/reorder', { items })
+}
+
+export function bulkAction(data: BulkActionRequest) {
+  return api.post<BulkActionResponse>('/tasks/bulk', data)
 }
