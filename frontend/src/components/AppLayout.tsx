@@ -9,6 +9,7 @@ import { useTheme } from '../hooks/useTheme'
 import { useSSE } from '../hooks/useSSE'
 import { useMe, useSettings, useFlushPendingInvalidation } from '../hooks/queries'
 import { usePullToRefresh } from '../hooks/usePullToRefresh'
+import { BulkActionToolbar } from './BulkActionToolbar'
 import { useAppStore } from '../stores/app'
 import { useFilterStore } from '../stores/filters'
 
@@ -117,6 +118,7 @@ export function AppLayout() {
         <Suspense>
           <TaskDetailModal />
         </Suspense>
+        <BulkActionToolbar />
       </div>
     </AppDndContext>
   )
