@@ -16,7 +16,6 @@ import {
 import { sortableKeyboardCoordinates } from '@dnd-kit/sortable'
 import { Package } from 'lucide-react'
 import { updateTask, reopenTask, restoreTask, deleteTask, completeTask, reorderTasks, bulkAction } from '../api/tasks'
-import { useAppStore } from '../stores/app'
 import { updateProject, reorderProjects } from '../api/projects'
 import { reorderAreas } from '../api/areas'
 import { reorderTags } from '../api/tags'

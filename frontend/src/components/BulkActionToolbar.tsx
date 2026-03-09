@@ -146,8 +146,10 @@ function DeadlinePopover({ onAction }: { onAction: (action: BulkActionType, para
 }
 
 function ProjectPopover({ onAction }: { onAction: (action: BulkActionType, params?: Record<string, unknown>) => void }) {
-  const { data: areas } = useAreas()
-  const { data: projects } = useProjects()
+  const { data: areasData } = useAreas()
+  const { data: projectsData } = useProjects()
+  const areas = areasData?.areas
+  const projects = projectsData?.projects
 
   return (
     <Popover.Root>
@@ -195,7 +197,8 @@ function ProjectPopover({ onAction }: { onAction: (action: BulkActionType, param
 }
 
 function TagPopover({ onAction }: { onAction: (action: BulkActionType, params?: Record<string, unknown>) => void }) {
-  const { data: tags } = useTags()
+  const { data: tagsData } = useTags()
+  const tags = tagsData?.tags
 
   return (
     <Popover.Root>
