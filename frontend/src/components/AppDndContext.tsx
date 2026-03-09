@@ -15,7 +15,8 @@ import {
 } from '@dnd-kit/core'
 import { sortableKeyboardCoordinates } from '@dnd-kit/sortable'
 import { Package } from 'lucide-react'
-import { updateTask, reopenTask, restoreTask, deleteTask, completeTask, reorderTasks } from '../api/tasks'
+import { updateTask, reopenTask, restoreTask, deleteTask, completeTask, reorderTasks, bulkAction } from '../api/tasks'
+import { useAppStore } from '../stores/app'
 import { updateProject, reorderProjects } from '../api/projects'
 import { reorderAreas } from '../api/areas'
 import { reorderTags } from '../api/tags'
@@ -153,6 +154,7 @@ interface AppDndContextProps {
 function AppDndContextInner({ children }: AppDndContextProps) {
   const [activeTask, setActiveTask] = useState<Task | null>(null)
   const [activeProjectName, setActiveProjectName] = useState<string | null>(null)
+  const [draggedTaskIds, setDraggedTaskIds] = useState<Set<string>>(new Set())
   const { data: projectsData } = useProjects()
   const projects = useMemo(() => projectsData?.projects ?? [], [projectsData?.projects])
   const { data: areasData } = useAreas()
@@ -184,6 +186,14 @@ function AppDndContextInner({ children }: AppDndContextProps) {
       if (activeId.startsWith('sort-')) return // areas/tags: no overlay needed
       const task = event.active.data.current?.task as Task | undefined
       setActiveTask(task ?? null)
+
+      // Multi-drag: if dragged task is in the multi-selection, drag all selected
+      const { selectedTaskIds } = useAppStore.getState()
+      if (task && selectedTaskIds.has(task.id) && selectedTaskIds.size > 1) {
+        setDraggedTaskIds(new Set(selectedTaskIds))
+      } else {
+        setDraggedTaskIds(new Set())
+      }
     },
     [projects],
   )
@@ -192,11 +202,67 @@ function AppDndContextInner({ children }: AppDndContextProps) {
     (event: DragEndEvent) => {
       setActiveTask(null)
       setActiveProjectName(null)
+
+      const forceInvalidate = () => {
+        queryClient.invalidateQueries({ queryKey: ['views'] })
+        queryClient.invalidateQueries({ queryKey: ['projects'] })
+        queryClient.invalidateQueries({ queryKey: ['areas'] })
+        queryClient.invalidateQueries({ queryKey: ['tags'] })
+      }
+
       const { active, over } = event
-      if (!over) return
+      if (!over) {
+        setDraggedTaskIds(new Set())
+        return
+      }
 
       const activeId = String(active.id)
       const overId = String(over.id)
+
+      // Multi-task drag to sidebar targets — use bulk API
+      if (draggedTaskIds.size > 1 && !activeId.startsWith('sort-')) {
+        const ids = Array.from(draggedTaskIds)
+        const today = new Date().toISOString().split('T')[0]
+        let handled = false
+
+        if (overId === 'sidebar-today') {
+          bulkAction({ task_ids: ids, action: 'set_when', params: { when_date: today } })
+            .then(() => forceInvalidate())
+          handled = true
+        } else if (overId === 'sidebar-someday') {
+          bulkAction({ task_ids: ids, action: 'set_when', params: { when_date: 'someday' } })
+            .then(() => forceInvalidate())
+          handled = true
+        } else if (overId === 'sidebar-anytime') {
+          bulkAction({ task_ids: ids, action: 'set_when', params: { when_date: '' } })
+            .then(() => forceInvalidate())
+          handled = true
+        } else if (overId.startsWith('sidebar-project-')) {
+          const projectId = overId.replace('sidebar-project-', '')
+          bulkAction({ task_ids: ids, action: 'move_project', params: { project_id: projectId } })
+            .then(() => forceInvalidate())
+          handled = true
+        } else if (overId.startsWith('sidebar-tag-')) {
+          const tagId = overId.replace('sidebar-tag-', '')
+          bulkAction({ task_ids: ids, action: 'add_tags', params: { tag_ids: [tagId] } })
+            .then(() => forceInvalidate())
+          handled = true
+        } else if (overId === 'sidebar-trash') {
+          bulkAction({ task_ids: ids, action: 'delete' })
+            .then(() => forceInvalidate())
+          handled = true
+        } else if (overId === 'sidebar-completed') {
+          bulkAction({ task_ids: ids, action: 'complete' })
+            .then(() => forceInvalidate())
+          handled = true
+        }
+
+        if (handled) {
+          setDraggedTaskIds(new Set())
+          return
+        }
+      }
+      setDraggedTaskIds(new Set())
 
       // Sidebar sort reorder: areas
       if (activeId.startsWith('sort-area-') && overId.startsWith('sort-area-')) {
@@ -520,7 +586,7 @@ function AppDndContextInner({ children }: AppDndContextProps) {
     >
       {children}
       <DragOverlay dropAnimation={null}>
-        {activeTask ? <TaskItemDragOverlay task={activeTask} /> : null}
+        {activeTask ? <TaskItemDragOverlay task={activeTask} count={draggedTaskIds.size > 1 ? draggedTaskIds.size : undefined} /> : null}
         {activeProjectName ? (
           <div className="flex items-center gap-2 rounded-lg border border-neutral-200 bg-white px-3 py-2 shadow-lg dark:border-neutral-600 dark:bg-neutral-800">
             <Package size={14} className="text-neutral-400" />

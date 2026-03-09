@@ -8,15 +8,25 @@ import { TaskStatusIcon } from './TaskStatusIcon'
 
 interface TaskItemDragOverlayProps {
   task: Task
+  count?: number
 }
 
-export function TaskItemDragOverlay({ task }: TaskItemDragOverlayProps) {
+export function TaskItemDragOverlay({ task, count = 1 }: TaskItemDragOverlayProps) {
   const { data: settings } = useSettings()
   const isCompleted = task.status === 'completed'
   const isDone = task.status !== 'open'
 
   return (
-    <div className="rounded-lg border border-neutral-200 bg-white px-3 py-2 shadow-lg dark:border-neutral-600 dark:bg-neutral-800">
+    <div className="relative">
+      {count > 1 && (
+        <>
+          <div className="absolute inset-0 translate-x-1 translate-y-1 rounded-lg bg-neutral-200 dark:bg-neutral-700" />
+          <div className="absolute -right-2 -top-2 z-10 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-xs font-bold text-white">
+            {count}
+          </div>
+        </>
+      )}
+    <div className="relative rounded-lg border border-neutral-200 bg-white px-3 py-2 shadow-lg dark:border-neutral-600 dark:bg-neutral-800">
       <div className="flex items-center gap-3">
         {task.status === 'canceled' || task.status === 'wont_do' ? (
           <TaskStatusIcon status={task.status} />
@@ -80,6 +90,7 @@ export function TaskItemDragOverlay({ task }: TaskItemDragOverlayProps) {
           </div>
         </div>
       </div>
+    </div>
     </div>
   )
 }
