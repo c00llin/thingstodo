@@ -55,7 +55,8 @@ export function SortableTaskItem({
   const clearSelection = useAppStore((s) => s.clearSelection)
   const lastSelectedTaskId = useAppStore((s) => s.lastSelectedTaskId)
   const selectTaskRange = useAppStore((s) => s.selectTaskRange)
-  const isDeparting = useAppStore((s) => s.departingTaskId) === task.id
+  const departingTaskIds = useAppStore((s) => s.departingTaskIds)
+  const isDeparting = useAppStore((s) => s.departingTaskId) === task.id || departingTaskIds.has(task.id)
   const pendingCompleteConfirmId = useAppStore((s) => s.pendingCompleteConfirmId)
   const setPendingCompleteConfirmId = useAppStore((s) => s.setPendingCompleteConfirmId)
   const completeTask = useCompleteTask()

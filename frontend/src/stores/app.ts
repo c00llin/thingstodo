@@ -66,6 +66,8 @@ interface AppStore {
   // Task departing animation — task ID fading out before view refresh
   departingTaskId: string | null
   setDepartingTaskId: (id: string | null) => void
+  departingTaskIds: Set<string>
+  setDepartingTaskIds: (ids: Set<string>) => void
 
   // Signal TaskDetail to auto-focus a specific field after expanding
   detailFocusField: 'notes' | 'when' | 'deadline' | 'title' | 'tags' | 'area' | 'checklist' | 'reminder' | 'link' | 'file' | 'priority' | null
@@ -166,6 +168,8 @@ export const useAppStore = create<AppStore>((set) => ({
 
   departingTaskId: null,
   setDepartingTaskId: (id) => set({ departingTaskId: id }),
+  departingTaskIds: new Set(),
+  setDepartingTaskIds: (ids) => set({ departingTaskIds: ids }),
 
   detailFocusField: null,
   setDetailFocusField: (field) => set({ detailFocusField: field }),

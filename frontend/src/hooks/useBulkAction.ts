@@ -11,6 +11,13 @@ export function useBulkAction() {
 
   return useMutation({
     mutationFn: (data: BulkActionRequest) => bulkAction(data),
+    onMutate: (variables) => {
+      if (DESTRUCTIVE_ACTIONS.has(variables.action)) {
+        useAppStore.setState({
+          departingTaskIds: new Set(variables.task_ids),
+        })
+      }
+    },
     onSuccess: (_data, variables) => {
       const { selectedTaskIds } = useAppStore.getState()
 
@@ -18,9 +25,14 @@ export function useBulkAction() {
         const next = new Set(selectedTaskIds)
         for (const id of variables.task_ids) next.delete(id)
         useAppStore.setState({ selectedTaskIds: next })
-      }
 
-      forceInvalidateViewQueries(queryClient)
+        setTimeout(() => {
+          useAppStore.setState({ departingTaskIds: new Set() })
+          forceInvalidateViewQueries(queryClient)
+        }, 800)
+      } else {
+        forceInvalidateViewQueries(queryClient)
+      }
     },
   })
 }
