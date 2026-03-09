@@ -153,6 +153,7 @@ export function useSSE() {
           case 'bulk_change':
             queryClient.invalidateQueries({ queryKey: queryKeys.projects.all, ...refetch })
             queryClient.invalidateQueries({ queryKey: queryKeys.areas.all, ...refetch })
+            queryClient.invalidateQueries({ queryKey: queryKeys.tags.all, ...refetch })
             invalidateViewQueries(queryClient, refetch)
             break
 
