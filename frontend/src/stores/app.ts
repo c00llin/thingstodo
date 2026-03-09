@@ -56,6 +56,8 @@ interface AppStore {
   selectedTaskIds: Set<string>
   toggleTaskSelection: (id: string, multi: boolean) => void
   clearSelection: () => void
+  lastSelectedTaskId: string | null
+  selectTaskRange: (fromId: string | null, toId: string) => void
 
   // Deferred view invalidation while detail panel is open
   hasPendingInvalidation: boolean
@@ -188,9 +190,31 @@ export const useAppStore = create<AppStore>((set) => ({
         } else {
           next.add(id)
         }
-        return { selectedTaskIds: next }
+        return { selectedTaskIds: next, lastSelectedTaskId: id }
       }
-      return { selectedTaskIds: new Set([id]) }
+      return { selectedTaskIds: new Set([id]), lastSelectedTaskId: id }
     }),
-  clearSelection: () => set({ selectedTaskIds: new Set() }),
+  clearSelection: () => set({ selectedTaskIds: new Set(), lastSelectedTaskId: null }),
+  lastSelectedTaskId: null,
+  selectTaskRange: (fromId, toId) =>
+    set((s) => {
+      if (!fromId) {
+        return { selectedTaskIds: new Set([toId]), lastSelectedTaskId: toId }
+      }
+      const allTaskEls = Array.from(
+        document.querySelectorAll<HTMLElement>('[data-task-id]'),
+      )
+      const ids = allTaskEls.map((el) => el.dataset.taskId!)
+      const fromIdx = ids.indexOf(fromId)
+      const toIdx = ids.indexOf(toId)
+      if (fromIdx === -1 || toIdx === -1) {
+        return { selectedTaskIds: new Set([toId]), lastSelectedTaskId: toId }
+      }
+      const start = Math.min(fromIdx, toIdx)
+      const end = Math.max(fromIdx, toIdx)
+      const rangeIds = ids.slice(start, end + 1)
+      const next = new Set(s.selectedTaskIds)
+      for (const id of rangeIds) next.add(id)
+      return { selectedTaskIds: next, lastSelectedTaskId: toId }
+    }),
 }))

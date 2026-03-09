@@ -51,6 +51,10 @@ export function SortableTaskItem({
   const editingTaskId = useAppStore((s) => s.editingTaskId)
   const startEditingTask = useAppStore((s) => s.startEditingTask)
   const selectedTaskIds = useAppStore((s) => s.selectedTaskIds)
+  const toggleTaskSelection = useAppStore((s) => s.toggleTaskSelection)
+  const clearSelection = useAppStore((s) => s.clearSelection)
+  const lastSelectedTaskId = useAppStore((s) => s.lastSelectedTaskId)
+  const selectTaskRange = useAppStore((s) => s.selectTaskRange)
   const isDeparting = useAppStore((s) => s.departingTaskId) === task.id
   const pendingCompleteConfirmId = useAppStore((s) => s.pendingCompleteConfirmId)
   const setPendingCompleteConfirmId = useAppStore((s) => s.setPendingCompleteConfirmId)
@@ -166,11 +170,22 @@ export function SortableTaskItem({
   }
 
   function handleClick(e: React.MouseEvent) {
-    if (e.metaKey || e.ctrlKey) {
-      selectTask(isSelected ? null : task.id, entryId)
+    // Shift+Click: range select
+    if (e.shiftKey) {
+      e.preventDefault()
+      selectTaskRange(lastSelectedTaskId, task.id)
       return
     }
-    // Single click = select task (highlight only)
+    // Cmd/Ctrl+Click: toggle multi-select
+    if (e.metaKey || e.ctrlKey) {
+      e.preventDefault()
+      toggleTaskSelection(task.id, true)
+      return
+    }
+    // Plain click while multi-selected: clear selection, then normal behavior
+    if (selectedTaskIds.size > 0) {
+      clearSelection()
+    }
     selectTask(task.id, entryId)
   }
 
@@ -263,7 +278,7 @@ export function SortableTaskItem({
           : { opacity: 0, height: 0, transition: { duration: 0.2 } }
       }
       transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-      className={`group/item ${isMultiSelected ? 'ring-2 ring-red-400 ring-inset rounded-lg' : ''}`}
+      className={`group/item ${isMultiSelected ? 'ring-2 ring-red-400 ring-inset rounded-lg bg-red-50 dark:bg-red-900/20' : ''}`}
     >
       <div className="flex items-center gap-2">
       <div className="relative min-w-0 flex-1 overflow-hidden md:overflow-visible rounded-lg">
