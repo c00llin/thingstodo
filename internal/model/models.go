@@ -399,6 +399,12 @@ type CreateRepeatRuleInput struct {
 	DayConstraints []string           `json:"day_constraints,omitempty"`
 }
 
+type BulkActionInput struct {
+	TaskIDs []string               `json:"task_ids"`
+	Action  string                 `json:"action"`
+	Params  map[string]interface{} `json:"params"`
+}
+
 type TaskFilters struct {
 	Status      *string
 	ProjectID   *string

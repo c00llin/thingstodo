@@ -383,6 +383,102 @@ func (r *TaskRepository) Reorder(items []model.ReorderItem) error {
 	return tx.Commit()
 }
 
+func (r *TaskRepository) BulkAction(input model.BulkActionInput) (int, error) {
+	tx, err := r.db.Begin()
+	if err != nil {
+		return 0, err
+	}
+	defer func() { _ = tx.Rollback() }()
+
+	affected := 0
+	now := "datetime('now')"
+
+	for _, id := range input.TaskIDs {
+		var execErr error
+		switch input.Action {
+		case "complete":
+			_, execErr = tx.Exec(
+				"UPDATE tasks SET status = 'completed', completed_at = "+now+", updated_at = "+now+" WHERE id = ? AND deleted_at IS NULL", id)
+		case "cancel":
+			_, execErr = tx.Exec(
+				"UPDATE tasks SET status = 'canceled', canceled_at = "+now+", updated_at = "+now+" WHERE id = ? AND deleted_at IS NULL", id)
+		case "wontdo":
+			_, execErr = tx.Exec(
+				"UPDATE tasks SET status = 'wont_do', updated_at = "+now+" WHERE id = ? AND deleted_at IS NULL", id)
+		case "delete":
+			_, execErr = tx.Exec(
+				"UPDATE tasks SET deleted_at = "+now+", updated_at = "+now+" WHERE id = ? AND deleted_at IS NULL", id)
+		case "set_when":
+			whenDate, _ := input.Params["when_date"].(string)
+			whenTime, _ := input.Params["when_time"].(string)
+			_, execErr = tx.Exec(
+				"UPDATE tasks SET when_date = ?, start_time = ?, updated_at = "+now+" WHERE id = ? AND deleted_at IS NULL",
+				bulkNilIfEmpty(whenDate), bulkNilIfEmpty(whenTime), id)
+		case "set_deadline":
+			deadline, _ := input.Params["deadline"].(string)
+			_, execErr = tx.Exec(
+				"UPDATE tasks SET deadline = ?, updated_at = "+now+" WHERE id = ? AND deleted_at IS NULL",
+				bulkNilIfEmpty(deadline), id)
+		case "set_priority":
+			priority, _ := input.Params["priority"].(float64)
+			p := int(priority)
+			_, execErr = tx.Exec(
+				"UPDATE tasks SET high_priority = ?, updated_at = "+now+" WHERE id = ? AND deleted_at IS NULL", p, id)
+		case "move_project":
+			projectID, _ := input.Params["project_id"].(string)
+			_, execErr = tx.Exec(
+				"UPDATE tasks SET project_id = ?, updated_at = "+now+" WHERE id = ? AND deleted_at IS NULL",
+				bulkNilIfEmpty(projectID), id)
+		case "add_tags":
+			tagIDs, ok := input.Params["tag_ids"].([]interface{})
+			if ok {
+				for _, rawTagID := range tagIDs {
+					tagID, _ := rawTagID.(string)
+					if tagID != "" {
+						_, execErr = tx.Exec(
+							"INSERT OR IGNORE INTO task_tags (task_id, tag_id) VALUES (?, ?)", id, tagID)
+						if execErr != nil {
+							break
+						}
+					}
+				}
+			}
+		case "remove_tags":
+			tagIDs, ok := input.Params["tag_ids"].([]interface{})
+			if ok {
+				for _, rawTagID := range tagIDs {
+					tagID, _ := rawTagID.(string)
+					if tagID != "" {
+						_, execErr = tx.Exec(
+							"DELETE FROM task_tags WHERE task_id = ? AND tag_id = ?", id, tagID)
+						if execErr != nil {
+							break
+						}
+					}
+				}
+			}
+		default:
+			return 0, fmt.Errorf("unknown bulk action: %s", input.Action)
+		}
+		if execErr != nil {
+			return 0, execErr
+		}
+		affected++
+	}
+
+	if err := tx.Commit(); err != nil {
+		return 0, err
+	}
+	return affected, nil
+}
+
+func bulkNilIfEmpty(s string) interface{} {
+	if s == "" {
+		return nil
+	}
+	return s
+}
+
 // --- helpers ---
 
 func (r *TaskRepository) getTaskTags(taskID string) ([]model.TagRef, error) {
