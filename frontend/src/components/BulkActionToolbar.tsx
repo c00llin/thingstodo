@@ -1,11 +1,12 @@
+import { useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import * as Popover from '@radix-ui/react-popover'
-import { addDays, format } from 'date-fns'
 import {
   Calendar, Flag, FolderOpen, Tag, CircleAlert,
   CheckCircle, CircleMinus, CircleX, Trash2, X, Check,
 } from 'lucide-react'
 import { useQueryClient } from '@tanstack/react-query'
+import { DateInput } from './DateInput'
 import { useAppStore } from '../stores/app'
 import { useBulkAction } from '../hooks/useBulkAction'
 import { useAreas, useProjects, useTags, findTaskInViewCache } from '../hooks/queries'
@@ -102,40 +103,33 @@ function Divider() {
 }
 
 function WhenPopover({ onAction }: { onAction: (action: BulkActionType, params?: Record<string, unknown>) => void }) {
+  const [open, setOpen] = useState(false)
+
   return (
-    <Popover.Root>
+    <Popover.Root open={open} onOpenChange={setOpen}>
       <Popover.Trigger asChild>
         <button className="rounded-full p-2 hover:bg-black/10 dark:hover:bg-white/10" aria-label="Set when" title="Set when">
           <Calendar size={16} />
         </button>
       </Popover.Trigger>
       <Popover.Portal>
-        <Popover.Content side="top" sideOffset={8} className={popoverContentClass}>
-          <div className="flex flex-col gap-0.5">
-            <button className={popoverItemClass}
-              onClick={() => onAction('set_when', { when_date: format(new Date(), 'yyyy-MM-dd') })}>
-              Today
-            </button>
-            <button className={popoverItemClass}
-              onClick={() => onAction('set_when', { when_date: format(addDays(new Date(), 1), 'yyyy-MM-dd') })}>
-              Tomorrow
-            </button>
-            <button className={popoverItemClass}
-              onClick={() => onAction('set_when', { when_date: 'someday' })}>
-              Someday
-            </button>
-            <input
-              type="date"
-              className="rounded border px-2 py-1 text-sm dark:border-neutral-600 dark:bg-neutral-700"
-              onChange={(e) => {
-                if (e.target.value) onAction('set_when', { when_date: e.target.value })
-              }}
-            />
-            <button className={popoverItemClass}
-              onClick={() => onAction('set_when', { when_date: '' })}>
-              Clear date
-            </button>
-          </div>
+        <Popover.Content side="top" sideOffset={8} className={popoverContentClass} style={{ minWidth: 224 }} onOpenAutoFocus={(e) => e.preventDefault()}>
+          <DateInput
+            value=""
+            variant="when"
+            autoFocus
+            onChange={(date) => {
+              if (date !== null) {
+                onAction('set_when', { when_date: date })
+                setOpen(false)
+              }
+            }}
+            onComplete={() => setOpen(false)}
+          />
+          <button className={popoverItemClass + ' mt-1'}
+            onClick={() => { onAction('set_when', { when_date: '' }); setOpen(false) }}>
+            Clear date
+          </button>
         </Popover.Content>
       </Popover.Portal>
     </Popover.Root>
@@ -143,28 +137,33 @@ function WhenPopover({ onAction }: { onAction: (action: BulkActionType, params?:
 }
 
 function DeadlinePopover({ onAction }: { onAction: (action: BulkActionType, params?: Record<string, unknown>) => void }) {
+  const [open, setOpen] = useState(false)
+
   return (
-    <Popover.Root>
+    <Popover.Root open={open} onOpenChange={setOpen}>
       <Popover.Trigger asChild>
         <button className="rounded-full p-2 hover:bg-black/10 dark:hover:bg-white/10" aria-label="Set deadline" title="Set deadline">
           <Flag size={16} />
         </button>
       </Popover.Trigger>
       <Popover.Portal>
-        <Popover.Content side="top" sideOffset={8} className={popoverContentClass}>
-          <div className="flex flex-col gap-1">
-            <input
-              type="date"
-              className="rounded border px-2 py-1 text-sm dark:border-neutral-600 dark:bg-neutral-700"
-              onChange={(e) => {
-                if (e.target.value) onAction('set_deadline', { deadline: e.target.value })
-              }}
-            />
-            <button className={popoverItemClass}
-              onClick={() => onAction('set_deadline', { deadline: '' })}>
-              Clear deadline
-            </button>
-          </div>
+        <Popover.Content side="top" sideOffset={8} className={popoverContentClass} style={{ minWidth: 224 }} onOpenAutoFocus={(e) => e.preventDefault()}>
+          <DateInput
+            value=""
+            variant="deadline"
+            autoFocus
+            onChange={(date) => {
+              if (date !== null) {
+                onAction('set_deadline', { deadline: date })
+                setOpen(false)
+              }
+            }}
+            onComplete={() => setOpen(false)}
+          />
+          <button className={popoverItemClass + ' mt-1'}
+            onClick={() => { onAction('set_deadline', { deadline: '' }); setOpen(false) }}>
+            Clear deadline
+          </button>
         </Popover.Content>
       </Popover.Portal>
     </Popover.Root>
