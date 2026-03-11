@@ -1,7 +1,9 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { format, addDays, addMonths, nextMonday, startOfMonth } from 'date-fns'
+import { Calendar } from 'lucide-react'
 import { parseNaturalDate } from '../lib/date-parser'
 import { formatRelativeDate } from '../lib/format-date'
+import { DateCalendar } from './DateCalendar'
 
 interface DateInputProps {
   value: string
@@ -61,6 +63,7 @@ export function DateInput({ value, onChange, variant, autoFocus, onComplete, hid
   const [active, setActive] = useState(false)
   const [text, setText] = useState('')
   const [highlightIndex, setHighlightIndex] = useState(0)
+  const [showCalendar, setShowCalendar] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
   const containerRef = useRef<HTMLDivElement>(null)
 
@@ -94,6 +97,7 @@ export function DateInput({ value, onChange, variant, autoFocus, onComplete, hid
     onChange(s.date)
     setActive(false)
     setText('')
+    setShowCalendar(false)
     inputRef.current?.blur()
     onComplete?.(s.date)
   }, [onChange, onComplete])
@@ -112,6 +116,7 @@ export function DateInput({ value, onChange, variant, autoFocus, onComplete, hid
       if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
         setActive(false)
         setText('')
+        setShowCalendar(false)
         onComplete?.(value || null)
       }
     }
@@ -143,6 +148,7 @@ export function DateInput({ value, onChange, variant, autoFocus, onComplete, hid
       e.stopPropagation()
       setActive(false)
       setText('')
+      setShowCalendar(false)
       inputRef.current?.blur()
       onComplete?.(value || null)
     }
@@ -151,34 +157,61 @@ export function DateInput({ value, onChange, variant, autoFocus, onComplete, hid
   // Display mode: show friendly text when not active
   if (!active && value) {
     return (
-      <button
-        type="button"
-        onClick={() => {
-          setActive(true)
-          requestAnimationFrame(() => inputRef.current?.focus())
-        }}
-        className={`w-full rounded-md border px-2 py-1 text-left text-sm ${fieldClassName ?? 'border-neutral-200 bg-white dark:border-neutral-600 dark:bg-neutral-800 dark:text-neutral-100'}`}
-      >
-        {formatRelativeDate(value)}
-      </button>
+      <div ref={containerRef} className="relative">
+        <div className={`flex w-full items-center rounded-md border text-sm ${fieldClassName ?? 'border-neutral-200 bg-white dark:border-neutral-600 dark:bg-neutral-800 dark:text-neutral-100'}`}>
+          <button
+            type="button"
+            onClick={() => {
+              setShowCalendar(false)
+              setActive(true)
+              requestAnimationFrame(() => inputRef.current?.focus())
+            }}
+            className="flex-1 px-2 py-1 text-left"
+          >
+            {formatRelativeDate(value)}
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setShowCalendar(true)
+              setActive(true)
+            }}
+            className="px-1.5 py-1 text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-300"
+            aria-label="Open calendar"
+          >
+            <Calendar size={14} />
+          </button>
+        </div>
+      </div>
     )
   }
 
   return (
     <div ref={containerRef} className="relative">
-      <input
-        ref={inputRef}
-        type="text"
-        value={text}
-        onChange={(e) => setText(e.target.value)}
-        onFocus={() => setActive(true)}
-        onKeyDown={handleKeyDown}
-        placeholder={variant === 'when' ? 'When...' : 'Deadline...'}
-        className="w-full rounded-md border border-neutral-200 bg-white px-2 py-1 text-sm focus:border-red-400 focus:outline-none dark:border-neutral-600 dark:bg-neutral-800 dark:text-neutral-100"
-        autoFocus={autoFocus}
-      />
+      <div className="flex items-center rounded-md border border-neutral-200 bg-white dark:border-neutral-600 dark:bg-neutral-800 focus-within:border-red-400">
+        <input
+          ref={inputRef}
+          type="text"
+          value={text}
+          onChange={(e) => { setText(e.target.value); setShowCalendar(false) }}
+          onFocus={() => setActive(true)}
+          onKeyDown={handleKeyDown}
+          placeholder={variant === 'when' ? 'When...' : 'Deadline...'}
+          className="flex-1 bg-transparent px-2 py-1 text-sm focus:outline-none dark:text-neutral-100"
+          autoFocus={autoFocus}
+        />
+        <button
+          type="button"
+          onMouseDown={(e) => e.preventDefault()}
+          onClick={() => setShowCalendar((v) => !v)}
+          className="px-1.5 py-1 text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-300"
+          aria-label="Open calendar"
+        >
+          <Calendar size={14} />
+        </button>
+      </div>
 
-      {active && suggestions.length > 0 && (
+      {active && !showCalendar && suggestions.length > 0 && (
         <div className="absolute left-0 top-full z-50 mt-1 min-w-[200px] overflow-y-auto rounded-lg border border-neutral-200 bg-white py-1 shadow-lg dark:border-neutral-600 dark:bg-neutral-800">
           {suggestions.map((s, i) => (
             <button
@@ -201,6 +234,15 @@ export function DateInput({ value, onChange, variant, autoFocus, onComplete, hid
               )}
             </button>
           ))}
+        </div>
+      )}
+
+      {active && showCalendar && (
+        <div className="absolute left-0 top-full z-50 mt-1 rounded-lg border border-neutral-200 bg-white shadow-lg dark:border-neutral-600 dark:bg-neutral-800">
+          <DateCalendar
+            value={value}
+            onSelect={(date) => select({ label: '', date })}
+          />
         </div>
       )}
     </div>
