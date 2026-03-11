@@ -1,5 +1,24 @@
 # Changelog
 
+## [0.11.0] - 2026-03-11
+
+### Added
+- Multi-task selection: Cmd+Click, Shift+Click, Cmd+A to select tasks with visual indicators
+- Bulk action toolbar: floating toolbar appears when multiple tasks are selected
+- Bulk actions: complete, cancel, won't do, delete, set when/deadline, move to project, assign tags, toggle priority
+- Bulk drag & drop: drag multiple selected tasks with stacked overlay, drop onto sidebar targets
+- Section-scoped multi-select with contextual review toolbar for Inbox review tasks
+- Alt+key shortcuts for bulk toolbar: Alt+W (when), Alt+D (deadline), Alt+A (project), Alt+T (tags), Alt+H (priority)
+- Calendar date picker component (DateCalendar) for single-date selection
+- Calendar toggle button in DateInput component
+- Departing animations for bulk destructive actions
+- SSE `bulk_change` event for cross-tab sync of bulk operations
+- Keyboard shortcuts: Escape clears multi-select, Delete/Backspace bulk-deletes selected tasks
+
+### Fixed
+- Date dropdowns in bulk toolbar now open upward to avoid clipping
+- Use formatRelativeDate in TaskItem tests to avoid date-dependent failures
+
 ## [0.10.1] - 2026-03-08
 
 ### Added
