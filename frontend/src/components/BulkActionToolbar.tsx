@@ -7,12 +7,13 @@ import {
 } from 'lucide-react'
 import { useQueryClient } from '@tanstack/react-query'
 import { DateInput } from './DateInput'
+import { AreaProjectPicker } from './AreaProjectPicker'
+import { TagMultiSelect } from './TagMultiSelect'
 import { useAppStore } from '../stores/app'
 import { useBulkAction } from '../hooks/useBulkAction'
-import { useAreas, useProjects, useTags, findTaskInViewCache } from '../hooks/queries'
+import { findTaskInViewCache } from '../hooks/queries'
 import type { BulkActionType } from '../api/types'
 
-const popoverContentClass = 'z-50 rounded-lg bg-white p-2 shadow-lg dark:bg-neutral-800 max-h-64 overflow-y-auto'
 const popoverDateContentClass = 'z-50 rounded-lg bg-white p-2 shadow-lg dark:bg-neutral-800'
 const popoverItemClass = 'rounded px-3 py-1.5 text-left text-sm hover:bg-neutral-100 dark:hover:bg-neutral-700 w-full'
 
@@ -82,8 +83,8 @@ export function BulkActionToolbar() {
               <>
                 <WhenPopover onAction={handleAction} />
                 <DeadlinePopover onAction={handleAction} />
-                <ProjectPopover onAction={handleAction} />
-                <TagPopover onAction={handleAction} />
+                <ProjectPickerButton onAction={handleAction} />
+                <TagPickerButton onAction={handleAction} />
                 <ToolbarButton icon={CircleAlert} label="Toggle priority" onClick={handleTogglePriority} />
                 <Divider />
                 <ToolbarButton icon={CheckCircle} label="Complete" onClick={() => handleAction('complete')} />
@@ -173,99 +174,94 @@ function DeadlinePopover({ onAction }: { onAction: (action: BulkActionType, para
   )
 }
 
-function ProjectPopover({ onAction }: { onAction: (action: BulkActionType, params?: Record<string, unknown>) => void }) {
-  const { data: areasData } = useAreas()
-  const { data: projectsData } = useProjects()
-  const areas = areasData?.areas
-  const projects = projectsData?.projects
+function ProjectPickerButton({ onAction }: { onAction: (action: BulkActionType, params?: Record<string, unknown>) => void }) {
+  const [open, setOpen] = useState(false)
 
   return (
-    <Popover.Root>
-      <Popover.Trigger asChild>
-        <button className="rounded-full p-2 hover:bg-black/10 dark:hover:bg-white/10" aria-label="Move to project" title="Move to project">
-          <FolderOpen size={16} />
-        </button>
-      </Popover.Trigger>
-      <Popover.Portal>
-        <Popover.Content side="top" sideOffset={8} className={popoverContentClass} style={{ minWidth: 200 }}>
-          <div className="flex flex-col gap-0.5">
-            <button className={popoverItemClass}
-              onClick={() => onAction('move_project', { project_id: '' })}>
-              No project
-            </button>
-            {areas?.map((area) => {
-              const areaProjects = projects?.filter((p) => p.area_id === area.id && p.status === 'open') ?? []
-              if (areaProjects.length === 0) return null
-              return (
-                <div key={area.id}>
-                  <div className="px-3 py-1 text-xs font-semibold text-neutral-500 dark:text-neutral-400 uppercase">
-                    {area.title}
-                  </div>
-                  {areaProjects.map((project) => (
-                    <button key={project.id} className={popoverItemClass}
-                      onClick={() => onAction('move_project', { project_id: project.id })}>
-                      {project.title}
-                    </button>
-                  ))}
-                </div>
-              )
-            })}
-            {/* Projects without an area */}
-            {projects?.filter((p) => !p.area_id && p.status === 'open').map((project) => (
-              <button key={project.id} className={popoverItemClass}
-                onClick={() => onAction('move_project', { project_id: project.id })}>
-                {project.title}
-              </button>
-            ))}
-          </div>
-        </Popover.Content>
-      </Popover.Portal>
-    </Popover.Root>
+    <div className="relative">
+      <button
+        className="rounded-full p-2 hover:bg-black/10 dark:hover:bg-white/10"
+        aria-label="Move to project"
+        title="Move to project"
+        onClick={() => setOpen(!open)}
+      >
+        <FolderOpen size={16} />
+      </button>
+      {open && (
+        <AreaProjectPicker
+          controlledAreaId={null}
+          controlledProjectId={null}
+          externalOpen={true}
+          onExternalOpenChange={setOpen}
+          dropdownPosition="up"
+          hideTrigger
+          onControlledChange={(areaId, projectId) => {
+            onAction('move_project', { project_id: projectId ?? '', area_id: areaId ?? '' })
+          }}
+          onClose={() => setOpen(false)}
+          onSelect={() => setOpen(false)}
+        />
+      )}
+    </div>
   )
 }
 
-function TagPopover({ onAction }: { onAction: (action: BulkActionType, params?: Record<string, unknown>) => void }) {
-  const { data: tagsData } = useTags()
-  const tags = tagsData?.tags
+function TagPickerButton({ onAction }: { onAction: (action: BulkActionType, params?: Record<string, unknown>) => void }) {
+  const [open, setOpen] = useState(false)
   const selectedTaskIds = useAppStore((s) => s.selectedTaskIds)
   const queryClient = useQueryClient()
 
-  function handleTagClick(tagId: string) {
+  // Collect the union of tag IDs across all selected tasks
+  const commonTagIds: string[] = []
+  if (open) {
     const ids = Array.from(selectedTaskIds)
-    const allHaveTag = ids.every((taskId) => {
+    const tagCounts = new Map<string, number>()
+    ids.forEach((taskId) => {
       const task = findTaskInViewCache(queryClient, taskId)
-      return task?.tags?.some((t) => t.id === tagId)
+      task?.tags?.forEach((t) => {
+        tagCounts.set(t.id, (tagCounts.get(t.id) ?? 0) + 1)
+      })
     })
-    if (allHaveTag) {
-      onAction('remove_tags', { tag_ids: [tagId] })
-    } else {
-      onAction('add_tags', { tag_ids: [tagId] })
-    }
+    // Show tags that ALL selected tasks have as "selected"
+    tagCounts.forEach((count, tagId) => {
+      if (count === ids.length) commonTagIds.push(tagId)
+    })
   }
 
   return (
-    <Popover.Root>
-      <Popover.Trigger asChild>
-        <button className="rounded-full p-2 hover:bg-black/10 dark:hover:bg-white/10" aria-label="Assign tags" title="Assign tags">
-          <Tag size={16} />
-        </button>
-      </Popover.Trigger>
-      <Popover.Portal>
-        <Popover.Content side="top" sideOffset={8} className={popoverContentClass} style={{ minWidth: 180 }}>
-          <div className="flex flex-col gap-0.5">
-            {tags?.map((tag) => (
-              <button key={tag.id} className={popoverItemClass}
-                onClick={() => handleTagClick(tag.id)}>
-                {tag.title}
-              </button>
-            ))}
-            {(!tags || tags.length === 0) && (
-              <div className="px-3 py-1.5 text-sm text-neutral-500">No tags</div>
-            )}
-          </div>
-        </Popover.Content>
-      </Popover.Portal>
-    </Popover.Root>
+    <div className="relative">
+      <button
+        className="rounded-full p-2 hover:bg-black/10 dark:hover:bg-white/10"
+        aria-label="Assign tags"
+        title="Assign tags"
+        onClick={() => setOpen(!open)}
+      >
+        <Tag size={16} />
+      </button>
+      {open && (
+        <TagMultiSelect
+          controlledTagIds={commonTagIds}
+          externalOpen={true}
+          onExternalOpenChange={setOpen}
+          dropdownPosition="up"
+          hideTrigger
+          onControlledChange={(newTagIds) => {
+            // Determine which tags were added vs removed
+            const oldSet = new Set(commonTagIds)
+            const newSet = new Set(newTagIds)
+            const added = newTagIds.filter((id) => !oldSet.has(id))
+            const removed = commonTagIds.filter((id) => !newSet.has(id))
+            if (added.length > 0) {
+              onAction('add_tags', { tag_ids: added })
+            }
+            if (removed.length > 0) {
+              onAction('remove_tags', { tag_ids: removed })
+            }
+          }}
+          onClose={() => setOpen(false)}
+        />
+      )}
+    </div>
   )
 }
 

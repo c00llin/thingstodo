@@ -428,9 +428,10 @@ func (r *TaskRepository) BulkAction(input model.BulkActionInput) (int, error) {
 				"UPDATE tasks SET high_priority = CASE WHEN high_priority = 1 THEN 0 ELSE 1 END, updated_at = "+now+" WHERE id = ? AND deleted_at IS NULL", id)
 		case "move_project":
 			projectID, _ := input.Params["project_id"].(string)
+			areaID, _ := input.Params["area_id"].(string)
 			_, execErr = tx.Exec(
-				"UPDATE tasks SET project_id = ?, updated_at = "+now+" WHERE id = ? AND deleted_at IS NULL",
-				bulkNilIfEmpty(projectID), id)
+				"UPDATE tasks SET project_id = ?, area_id = ?, updated_at = "+now+" WHERE id = ? AND deleted_at IS NULL",
+				bulkNilIfEmpty(projectID), bulkNilIfEmpty(areaID), id)
 		case "add_tags":
 			tagIDs, ok := input.Params["tag_ids"].([]interface{})
 			if ok {

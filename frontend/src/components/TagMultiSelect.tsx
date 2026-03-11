@@ -9,6 +9,10 @@ interface TagMultiSelectBaseProps {
   onExternalOpenChange?: (open: boolean) => void
   /** Called when the dropdown closes (Escape or outside click). */
   onClose?: () => void
+  /** Position the dropdown above or below the trigger. Default: 'down' */
+  dropdownPosition?: 'up' | 'down'
+  /** Hide the trigger (pills + add button), useful when embedding in another component. */
+  hideTrigger?: boolean
 }
 
 interface TagMultiSelectTaskProps extends TagMultiSelectBaseProps {
@@ -26,7 +30,7 @@ interface TagMultiSelectControlledProps extends TagMultiSelectBaseProps {
 type TagMultiSelectProps = TagMultiSelectTaskProps | TagMultiSelectControlledProps
 
 export function TagMultiSelect(props: TagMultiSelectProps) {
-  const { externalOpen, onExternalOpenChange, onClose } = props
+  const { externalOpen, onExternalOpenChange, onClose, dropdownPosition = 'down', hideTrigger = false } = props
 
   const [internalOpen, setInternalOpen] = useState(false)
   const [search, setSearch] = useState('')
@@ -193,34 +197,36 @@ export function TagMultiSelect(props: TagMultiSelectProps) {
   return (
     <div ref={ref} className="relative">
       {/* Current tags as pills + add button */}
-      <div className="flex flex-wrap items-center gap-1.5">
-        {currentTags.map((tag) => (
-          <span
-            key={tag.id}
-            className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium ${getTagPillClasses(tag.color)}`}
-          >
-            {tag.title}
-            <button
-              onClick={() => removeTag(tag.id)}
-              className="rounded-full p-0.5 opacity-60 hover:opacity-100"
-              aria-label={`Remove ${tag.title}`}
+      {!hideTrigger && (
+        <div className="flex flex-wrap items-center gap-1.5">
+          {currentTags.map((tag) => (
+            <span
+              key={tag.id}
+              className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium ${getTagPillClasses(tag.color)}`}
             >
-              <X size={10} />
-            </button>
-          </span>
-        ))}
-        <button
-          onClick={() => open ? doClose() : doOpen()}
-          className="flex items-center gap-1 rounded-md px-2 py-1 text-sm text-neutral-500 hover:bg-neutral-100 dark:text-neutral-400 dark:hover:bg-neutral-700"
-        >
-          <Tag size={14} />
-          <span>{currentTags.length === 0 ? 'Add tag' : '+'}</span>
-        </button>
-      </div>
+              {tag.title}
+              <button
+                onClick={() => removeTag(tag.id)}
+                className="rounded-full p-0.5 opacity-60 hover:opacity-100"
+                aria-label={`Remove ${tag.title}`}
+              >
+                <X size={10} />
+              </button>
+            </span>
+          ))}
+          <button
+            onClick={() => open ? doClose() : doOpen()}
+            className="flex items-center gap-1 rounded-md px-2 py-1 text-sm text-neutral-500 hover:bg-neutral-100 dark:text-neutral-400 dark:hover:bg-neutral-700"
+          >
+            <Tag size={14} />
+            <span>{currentTags.length === 0 ? 'Add tag' : '+'}</span>
+          </button>
+        </div>
+      )}
 
       {/* Dropdown */}
       {open && allTags && (
-        <div className="absolute left-0 top-full z-10 mt-1 w-56 rounded-lg border border-neutral-200 bg-white shadow-xl dark:border-neutral-700 dark:bg-neutral-800">
+        <div className={`absolute left-0 z-10 w-56 rounded-lg border border-neutral-200 bg-white shadow-xl dark:border-neutral-700 dark:bg-neutral-800 ${dropdownPosition === 'up' ? 'bottom-full mb-1' : 'top-full mt-1'}`}>
           {/* Search / create input */}
           <div className="border-b border-neutral-100 px-3 py-2 dark:border-neutral-700">
             <input
