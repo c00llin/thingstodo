@@ -16,6 +16,8 @@ interface DateInputProps {
   hideSomeday?: boolean
   /** Extra classes applied to the button/input field */
   fieldClassName?: string
+  /** Direction for the dropdown/calendar to open. Default is 'down'. */
+  dropdownPosition?: 'up' | 'down'
 }
 
 interface Suggestion {
@@ -59,7 +61,7 @@ function getTypedSuggestion(text: string): Suggestion | null {
   }
 }
 
-export function DateInput({ value, onChange, variant, autoFocus, onComplete, hideSomeday, fieldClassName }: DateInputProps) {
+export function DateInput({ value, onChange, variant, autoFocus, onComplete, hideSomeday, fieldClassName, dropdownPosition = 'down' }: DateInputProps) {
   const [active, setActive] = useState(false)
   const [text, setText] = useState('')
   const [highlightIndex, setHighlightIndex] = useState(0)
@@ -212,7 +214,7 @@ export function DateInput({ value, onChange, variant, autoFocus, onComplete, hid
       </div>
 
       {active && !showCalendar && suggestions.length > 0 && (
-        <div className="absolute left-0 top-full z-50 mt-1 min-w-[200px] overflow-y-auto rounded-lg border border-neutral-200 bg-white py-1 shadow-lg dark:border-neutral-600 dark:bg-neutral-800">
+        <div className={`absolute left-0 z-50 min-w-[200px] overflow-y-auto rounded-lg border border-neutral-200 bg-white py-1 shadow-lg dark:border-neutral-600 dark:bg-neutral-800 ${dropdownPosition === 'up' ? 'bottom-full mb-1' : 'top-full mt-1'}`}>
           {suggestions.map((s, i) => (
             <button
               key={s.label}
@@ -238,7 +240,7 @@ export function DateInput({ value, onChange, variant, autoFocus, onComplete, hid
       )}
 
       {active && showCalendar && (
-        <div className="absolute left-0 top-full z-50 mt-1 rounded-lg border border-neutral-200 bg-white shadow-lg dark:border-neutral-600 dark:bg-neutral-800">
+        <div className={`absolute left-0 z-50 rounded-lg border border-neutral-200 bg-white shadow-lg dark:border-neutral-600 dark:bg-neutral-800 ${dropdownPosition === 'up' ? 'bottom-full mb-1' : 'top-full mt-1'}`}>
           <DateCalendar
             value={value}
             onSelect={(date) => select({ label: '', date })}

@@ -13,6 +13,7 @@ import { useAreas, useProjects, useTags, findTaskInViewCache } from '../hooks/qu
 import type { BulkActionType } from '../api/types'
 
 const popoverContentClass = 'z-50 rounded-lg bg-white p-2 shadow-lg dark:bg-neutral-800 max-h-64 overflow-y-auto'
+const popoverDateContentClass = 'z-50 rounded-lg bg-white p-2 shadow-lg dark:bg-neutral-800'
 const popoverItemClass = 'rounded px-3 py-1.5 text-left text-sm hover:bg-neutral-100 dark:hover:bg-neutral-700 w-full'
 
 export function BulkActionToolbar() {
@@ -113,10 +114,11 @@ function WhenPopover({ onAction }: { onAction: (action: BulkActionType, params?:
         </button>
       </Popover.Trigger>
       <Popover.Portal>
-        <Popover.Content side="top" sideOffset={8} className={popoverContentClass} style={{ minWidth: 224 }} onOpenAutoFocus={(e) => e.preventDefault()}>
+        <Popover.Content side="top" sideOffset={8} className={popoverDateContentClass} style={{ minWidth: 224 }} onOpenAutoFocus={(e) => e.preventDefault()}>
           <DateInput
             value=""
             variant="when"
+            dropdownPosition="up"
             autoFocus
             onChange={(date) => {
               if (date !== null) {
@@ -147,10 +149,11 @@ function DeadlinePopover({ onAction }: { onAction: (action: BulkActionType, para
         </button>
       </Popover.Trigger>
       <Popover.Portal>
-        <Popover.Content side="top" sideOffset={8} className={popoverContentClass} style={{ minWidth: 224 }} onOpenAutoFocus={(e) => e.preventDefault()}>
+        <Popover.Content side="top" sideOffset={8} className={popoverDateContentClass} style={{ minWidth: 224 }} onOpenAutoFocus={(e) => e.preventDefault()}>
           <DateInput
             value=""
             variant="deadline"
+            dropdownPosition="up"
             autoFocus
             onChange={(date) => {
               if (date !== null) {
