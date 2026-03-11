@@ -6,6 +6,7 @@ import {
   CheckCircle, CircleMinus, CircleX, Trash2, X, Check,
 } from 'lucide-react'
 import { useQueryClient } from '@tanstack/react-query'
+import { useHotkeys } from 'react-hotkeys-hook'
 import { DateInput } from './DateInput'
 import { AreaProjectPicker } from './AreaProjectPicker'
 import { TagMultiSelect } from './TagMultiSelect'
@@ -33,6 +34,14 @@ export function BulkActionToolbar() {
     })
   }
 
+  const isRegularSection = selectionSection !== 'review'
+
+  // Lifted open state for popovers so hotkeys can toggle them
+  const [whenOpen, setWhenOpen] = useState(false)
+  const [deadlineOpen, setDeadlineOpen] = useState(false)
+  const [projectOpen, setProjectOpen] = useState(false)
+  const [tagOpen, setTagOpen] = useState(false)
+
   function handleTogglePriority() {
     const ids = Array.from(selectedTaskIds)
     const allHighPriority = ids.every((taskId) => {
@@ -41,6 +50,14 @@ export function BulkActionToolbar() {
     })
     handleAction('set_priority', { priority: allHighPriority ? 0 : 1 })
   }
+
+  // Alt+key shortcuts — only active when bulk toolbar is visible and not in review section
+  const shortcutsEnabled = count > 0 && isRegularSection
+  useHotkeys('alt+w', (e) => { e.preventDefault(); setWhenOpen((v) => !v) }, { enabled: shortcutsEnabled })
+  useHotkeys('alt+d', (e) => { e.preventDefault(); setDeadlineOpen((v) => !v) }, { enabled: shortcutsEnabled })
+  useHotkeys('alt+a', (e) => { e.preventDefault(); setProjectOpen((v) => !v) }, { enabled: shortcutsEnabled })
+  useHotkeys('alt+t', (e) => { e.preventDefault(); setTagOpen((v) => !v) }, { enabled: shortcutsEnabled })
+  useHotkeys('alt+h', (e) => { e.preventDefault(); handleTogglePriority() }, { enabled: shortcutsEnabled })
 
   return (
     <AnimatePresence>
@@ -70,7 +87,7 @@ export function BulkActionToolbar() {
 
             <Divider />
 
-            {selectionSection === 'review' ? (
+            {!isRegularSection ? (
               <>
                 <ToolbarButton icon={Check} label="Mark reviewed" onClick={() => handleAction('mark_reviewed')} />
                 <Divider />
@@ -81,10 +98,10 @@ export function BulkActionToolbar() {
               </>
             ) : (
               <>
-                <WhenPopover onAction={handleAction} />
-                <DeadlinePopover onAction={handleAction} />
-                <ProjectPickerButton onAction={handleAction} />
-                <TagPickerButton onAction={handleAction} />
+                <WhenPopover onAction={handleAction} open={whenOpen} onOpenChange={setWhenOpen} />
+                <DeadlinePopover onAction={handleAction} open={deadlineOpen} onOpenChange={setDeadlineOpen} />
+                <ProjectPickerButton onAction={handleAction} open={projectOpen} onOpenChange={setProjectOpen} />
+                <TagPickerButton onAction={handleAction} open={tagOpen} onOpenChange={setTagOpen} />
                 <ToolbarButton icon={CircleAlert} label="Toggle priority" onClick={handleTogglePriority} />
                 <Divider />
                 <ToolbarButton icon={CheckCircle} label="Complete" onClick={() => handleAction('complete')} />
@@ -104,11 +121,9 @@ function Divider() {
   return <div className="mx-1 h-5 w-px bg-black/20 dark:bg-white/20" />
 }
 
-function WhenPopover({ onAction }: { onAction: (action: BulkActionType, params?: Record<string, unknown>) => void }) {
-  const [open, setOpen] = useState(false)
-
+function WhenPopover({ onAction, open, onOpenChange }: { onAction: (action: BulkActionType, params?: Record<string, unknown>) => void; open: boolean; onOpenChange: (v: boolean) => void }) {
   return (
-    <Popover.Root open={open} onOpenChange={setOpen}>
+    <Popover.Root open={open} onOpenChange={onOpenChange}>
       <Popover.Trigger asChild>
         <button className="rounded-full p-2 hover:bg-black/10 dark:hover:bg-white/10" aria-label="Set when" title="Set when">
           <Calendar size={16} />
@@ -124,13 +139,13 @@ function WhenPopover({ onAction }: { onAction: (action: BulkActionType, params?:
             onChange={(date) => {
               if (date !== null) {
                 onAction('set_when', { when_date: date })
-                setOpen(false)
+                onOpenChange(false)
               }
             }}
-            onComplete={() => setOpen(false)}
+            onComplete={() => onOpenChange(false)}
           />
           <button className={popoverItemClass + ' mt-1'}
-            onClick={() => { onAction('set_when', { when_date: '' }); setOpen(false) }}>
+            onClick={() => { onAction('set_when', { when_date: '' }); onOpenChange(false) }}>
             Clear date
           </button>
         </Popover.Content>
@@ -139,11 +154,9 @@ function WhenPopover({ onAction }: { onAction: (action: BulkActionType, params?:
   )
 }
 
-function DeadlinePopover({ onAction }: { onAction: (action: BulkActionType, params?: Record<string, unknown>) => void }) {
-  const [open, setOpen] = useState(false)
-
+function DeadlinePopover({ onAction, open, onOpenChange }: { onAction: (action: BulkActionType, params?: Record<string, unknown>) => void; open: boolean; onOpenChange: (v: boolean) => void }) {
   return (
-    <Popover.Root open={open} onOpenChange={setOpen}>
+    <Popover.Root open={open} onOpenChange={onOpenChange}>
       <Popover.Trigger asChild>
         <button className="rounded-full p-2 hover:bg-black/10 dark:hover:bg-white/10" aria-label="Set deadline" title="Set deadline">
           <Flag size={16} />
@@ -159,13 +172,13 @@ function DeadlinePopover({ onAction }: { onAction: (action: BulkActionType, para
             onChange={(date) => {
               if (date !== null) {
                 onAction('set_deadline', { deadline: date })
-                setOpen(false)
+                onOpenChange(false)
               }
             }}
-            onComplete={() => setOpen(false)}
+            onComplete={() => onOpenChange(false)}
           />
           <button className={popoverItemClass + ' mt-1'}
-            onClick={() => { onAction('set_deadline', { deadline: '' }); setOpen(false) }}>
+            onClick={() => { onAction('set_deadline', { deadline: '' }); onOpenChange(false) }}>
             Clear deadline
           </button>
         </Popover.Content>
@@ -174,16 +187,14 @@ function DeadlinePopover({ onAction }: { onAction: (action: BulkActionType, para
   )
 }
 
-function ProjectPickerButton({ onAction }: { onAction: (action: BulkActionType, params?: Record<string, unknown>) => void }) {
-  const [open, setOpen] = useState(false)
-
+function ProjectPickerButton({ onAction, open, onOpenChange }: { onAction: (action: BulkActionType, params?: Record<string, unknown>) => void; open: boolean; onOpenChange: (v: boolean) => void }) {
   return (
     <div className="relative">
       <button
         className="rounded-full p-2 hover:bg-black/10 dark:hover:bg-white/10"
         aria-label="Move to project"
         title="Move to project"
-        onClick={() => setOpen(!open)}
+        onClick={() => onOpenChange(!open)}
       >
         <FolderOpen size={16} />
       </button>
@@ -192,22 +203,21 @@ function ProjectPickerButton({ onAction }: { onAction: (action: BulkActionType, 
           controlledAreaId={null}
           controlledProjectId={null}
           externalOpen={true}
-          onExternalOpenChange={setOpen}
+          onExternalOpenChange={onOpenChange}
           dropdownPosition="up"
           hideTrigger
           onControlledChange={(areaId, projectId) => {
             onAction('move_project', { project_id: projectId ?? '', area_id: areaId ?? '' })
           }}
-          onClose={() => setOpen(false)}
-          onSelect={() => setOpen(false)}
+          onClose={() => onOpenChange(false)}
+          onSelect={() => onOpenChange(false)}
         />
       )}
     </div>
   )
 }
 
-function TagPickerButton({ onAction }: { onAction: (action: BulkActionType, params?: Record<string, unknown>) => void }) {
-  const [open, setOpen] = useState(false)
+function TagPickerButton({ onAction, open, onOpenChange }: { onAction: (action: BulkActionType, params?: Record<string, unknown>) => void; open: boolean; onOpenChange: (v: boolean) => void }) {
   const selectedTaskIds = useAppStore((s) => s.selectedTaskIds)
   const queryClient = useQueryClient()
 
@@ -234,7 +244,7 @@ function TagPickerButton({ onAction }: { onAction: (action: BulkActionType, para
         className="rounded-full p-2 hover:bg-black/10 dark:hover:bg-white/10"
         aria-label="Assign tags"
         title="Assign tags"
-        onClick={() => setOpen(!open)}
+        onClick={() => onOpenChange(!open)}
       >
         <Tag size={16} />
       </button>
@@ -242,7 +252,7 @@ function TagPickerButton({ onAction }: { onAction: (action: BulkActionType, para
         <TagMultiSelect
           controlledTagIds={commonTagIds}
           externalOpen={true}
-          onExternalOpenChange={setOpen}
+          onExternalOpenChange={onOpenChange}
           dropdownPosition="up"
           hideTrigger
           onControlledChange={(newTagIds) => {
@@ -258,7 +268,7 @@ function TagPickerButton({ onAction }: { onAction: (action: BulkActionType, para
               onAction('remove_tags', { tag_ids: removed })
             }
           }}
-          onClose={() => setOpen(false)}
+          onClose={() => onOpenChange(false)}
         />
       )}
     </div>
