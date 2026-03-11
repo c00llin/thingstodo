@@ -29,9 +29,10 @@ interface TaskItemProps {
   hideWhenDate?: boolean
   showReviewCheckbox?: boolean
   showDivider?: boolean
+  taskSection?: string
 }
 
-export function TaskItem({ task, showProject = true, hideWhenDate = false, showReviewCheckbox = false, showDivider = false }: TaskItemProps) {
+export function TaskItem({ task, showProject = true, hideWhenDate = false, showReviewCheckbox = false, showDivider = false, taskSection }: TaskItemProps) {
   const selectedTaskId = useAppStore((s) => s.selectedTaskId)
   const selectedScheduleEntryId = useAppStore((s) => s.selectedScheduleEntryId)
   const selectTask = useAppStore((s) => s.selectTask)
@@ -43,7 +44,13 @@ export function TaskItem({ task, showProject = true, hideWhenDate = false, showR
   const setDetailFocusField = useAppStore((s) => s.setDetailFocusField)
   const detailFieldCompleted = useAppStore((s) => s.detailFieldCompleted)
   const setDetailFieldCompleted = useAppStore((s) => s.setDetailFieldCompleted)
-  const isDeparting = useAppStore((s) => s.departingTaskId) === task.id
+  const selectedTaskIds = useAppStore((s) => s.selectedTaskIds)
+  const toggleTaskSelection = useAppStore((s) => s.toggleTaskSelection)
+  const clearSelection = useAppStore((s) => s.clearSelection)
+  const lastSelectedTaskId = useAppStore((s) => s.lastSelectedTaskId)
+  const selectTaskRange = useAppStore((s) => s.selectTaskRange)
+  const departingTaskIds = useAppStore((s) => s.departingTaskIds)
+  const isDeparting = useAppStore((s) => s.departingTaskId) === task.id || departingTaskIds.has(task.id)
   const pendingCompleteConfirmId = useAppStore((s) => s.pendingCompleteConfirmId)
   const setPendingCompleteConfirmId = useAppStore((s) => s.setPendingCompleteConfirmId)
   const completeTask = useCompleteTask()
@@ -61,6 +68,7 @@ export function TaskItem({ task, showProject = true, hideWhenDate = false, showR
   const isExpanded = expandedTaskId === task.id && expandedScheduleEntryId === (entryId ?? null)
   const isCompleted = task.status === 'completed'
   const isDone = task.status !== 'open'
+  const isMultiSelected = selectedTaskIds.has(task.id)
 
   const {
     attributes,
@@ -148,11 +156,22 @@ export function TaskItem({ task, showProject = true, hideWhenDate = false, showR
   }
 
   function handleClick(e: React.MouseEvent) {
-    if (e.metaKey || e.ctrlKey) {
-      selectTask(isSelected ? null : task.id, entryId)
+    // Shift+Click: range select
+    if (e.shiftKey) {
+      e.preventDefault()
+      selectTaskRange(lastSelectedTaskId, task.id, taskSection)
       return
     }
-    // Single click = select task (highlight only)
+    // Cmd/Ctrl+Click: toggle multi-select
+    if (e.metaKey || e.ctrlKey) {
+      e.preventDefault()
+      toggleTaskSelection(task.id, true, taskSection)
+      return
+    }
+    // Plain click while multi-selected: clear selection, then normal behavior
+    if (selectedTaskIds.size > 0) {
+      clearSelection()
+    }
     selectTask(task.id, entryId)
   }
 
@@ -229,6 +248,8 @@ export function TaskItem({ task, showProject = true, hideWhenDate = false, showR
     <motion.div
       ref={setNodeRef}
       data-task-id={task.id}
+      data-task-section={taskSection ?? undefined}
+      aria-selected={isMultiSelected || undefined}
       data-schedule-entry-id={task.schedule_entry_id ?? undefined}
       data-departing={isDeparting ? 'true' : undefined}
       className="group/item"
@@ -267,11 +288,13 @@ export function TaskItem({ task, showProject = true, hideWhenDate = false, showR
         )}
       <div
         className={`relative flex cursor-pointer items-center gap-3 rounded-lg px-3 py-2 transition-colors ${
-          isSelected
-            ? 'bg-red-50 dark:bg-red-900/20'
-            : swipeOffsetX !== 0
-              ? 'bg-neutral-100 dark:bg-neutral-800'
-              : 'bg-white group-hover/item:bg-neutral-50 dark:bg-neutral-900 dark:group-hover/item:bg-neutral-800'
+          isMultiSelected
+            ? 'ring-2 ring-red-400 ring-inset bg-red-50 dark:bg-red-900/20'
+            : isSelected
+              ? 'bg-red-50 dark:bg-red-900/20'
+              : swipeOffsetX !== 0
+                ? 'bg-neutral-100 dark:bg-neutral-800'
+                : 'bg-white group-hover/item:bg-neutral-50 dark:bg-neutral-900 dark:group-hover/item:bg-neutral-800'
         }`}
         onClick={handleClick}
         onDoubleClick={handleDoubleClick}

@@ -32,6 +32,7 @@ interface SortableTaskItemProps {
   showReviewCheckbox?: boolean
   showDivider?: boolean
   isDragOverlay: boolean
+  taskSection?: string
 }
 
 export function SortableTaskItem({
@@ -41,6 +42,7 @@ export function SortableTaskItem({
   showReviewCheckbox = false,
   showDivider = false,
   isDragOverlay,
+  taskSection,
 }: SortableTaskItemProps) {
   const selectedTaskId = useAppStore((s) => s.selectedTaskId)
   const selectedScheduleEntryId = useAppStore((s) => s.selectedScheduleEntryId)
@@ -170,17 +172,27 @@ export function SortableTaskItem({
     }
   }
 
-  function handleClick(e: React.MouseEvent) {
+  function handlePointerUp(e: React.PointerEvent) {
     // Shift+Click: range select
     if (e.shiftKey) {
       e.preventDefault()
-      selectTaskRange(lastSelectedTaskId, task.id)
+      e.stopPropagation()
+      selectTaskRange(lastSelectedTaskId, task.id, taskSection)
       return
     }
     // Cmd/Ctrl+Click: toggle multi-select
     if (e.metaKey || e.ctrlKey) {
       e.preventDefault()
-      toggleTaskSelection(task.id, true)
+      e.stopPropagation()
+      toggleTaskSelection(task.id, true, taskSection)
+      return
+    }
+  }
+
+  function handleClick(e: React.MouseEvent) {
+    // Multi-select handled in onPointerUp (more reliable for Cmd+Click)
+    if (e.shiftKey || e.metaKey || e.ctrlKey) {
+      e.preventDefault()
       return
     }
     // Plain click while multi-selected: clear selection, then normal behavior
@@ -263,6 +275,7 @@ export function SortableTaskItem({
     <motion.div
       ref={setNodeRef}
       data-task-id={isDragOverlay ? undefined : task.id}
+      data-task-section={!isDragOverlay && taskSection ? taskSection : undefined}
       aria-selected={isMultiSelected || undefined}
       data-schedule-entry-id={isDragOverlay ? undefined : (task.schedule_entry_id ?? undefined)}
       data-departing={isDeparting ? 'true' : undefined}
@@ -312,6 +325,10 @@ export function SortableTaskItem({
         onClick={handleClick}
         onDoubleClick={handleDoubleClick}
         {...swipeHandlers}
+        onPointerUp={(e) => {
+          handlePointerUp(e)
+          swipeHandlers.onPointerUp(e)
+        }}
       >
         {/* Drag handle */}
         <button

@@ -54,10 +54,13 @@ interface AppStore {
 
   // Multi-select for DnD
   selectedTaskIds: Set<string>
-  toggleTaskSelection: (id: string, multi: boolean) => void
+  toggleTaskSelection: (id: string, multi: boolean, section?: string) => void
   clearSelection: () => void
   lastSelectedTaskId: string | null
-  selectTaskRange: (fromId: string | null, toId: string) => void
+  selectTaskRange: (fromId: string | null, toId: string, section?: string) => void
+  selectionSection: string | null
+  crossSectionBlocked: boolean
+  setCrossSectionBlocked: (v: boolean) => void
 
   // Deferred view invalidation while detail panel is open
   hasPendingInvalidation: boolean
@@ -185,40 +188,60 @@ export const useAppStore = create<AppStore>((set) => ({
   closeMobileSidebar: () => set({ mobileSidebarOpen: false }),
 
   selectedTaskIds: new Set(),
-  toggleTaskSelection: (id, multi) =>
+  selectionSection: null,
+  crossSectionBlocked: false,
+  setCrossSectionBlocked: (v) => set({ crossSectionBlocked: v }),
+  toggleTaskSelection: (id, multi, section) =>
     set((s) => {
       if (multi) {
+        // Block cross-section selection
+        if (section && s.selectionSection && section !== s.selectionSection) {
+          return { crossSectionBlocked: true }
+        }
         const next = new Set(s.selectedTaskIds)
         if (next.has(id)) {
           next.delete(id)
+          if (next.size === 0) return { selectedTaskIds: next, lastSelectedTaskId: null, selectionSection: null }
         } else {
           next.add(id)
         }
-        return { selectedTaskIds: next, lastSelectedTaskId: id }
+        return {
+          selectedTaskIds: next,
+          lastSelectedTaskId: id,
+          selectionSection: s.selectionSection ?? section ?? null,
+        }
       }
-      return { selectedTaskIds: new Set([id]), lastSelectedTaskId: id }
+      return { selectedTaskIds: new Set([id]), lastSelectedTaskId: id, selectionSection: section ?? null }
     }),
-  clearSelection: () => set({ selectedTaskIds: new Set(), lastSelectedTaskId: null }),
+  clearSelection: () => set({ selectedTaskIds: new Set(), lastSelectedTaskId: null, selectionSection: null, crossSectionBlocked: false }),
   lastSelectedTaskId: null,
-  selectTaskRange: (fromId, toId) =>
+  selectTaskRange: (fromId, toId, section) =>
     set((s) => {
+      // Block cross-section range selection
+      if (section && s.selectionSection && section !== s.selectionSection) {
+        return { crossSectionBlocked: true }
+      }
+      const effectiveSection = s.selectionSection ?? section
+      const selector = effectiveSection
+        ? `[data-task-section="${effectiveSection}"][data-task-id]`
+        : '[data-task-id]'
       if (!fromId) {
-        return { selectedTaskIds: new Set([toId]), lastSelectedTaskId: toId }
+        return { selectedTaskIds: new Set([toId]), lastSelectedTaskId: toId, selectionSection: effectiveSection ?? null }
       }
       const allTaskEls = Array.from(
-        document.querySelectorAll<HTMLElement>('[data-task-id]'),
+        document.querySelectorAll<HTMLElement>(selector),
       )
       const ids = allTaskEls.map((el) => el.dataset.taskId!)
       const fromIdx = ids.indexOf(fromId)
       const toIdx = ids.indexOf(toId)
       if (fromIdx === -1 || toIdx === -1) {
-        return { selectedTaskIds: new Set([toId]), lastSelectedTaskId: toId }
+        return { selectedTaskIds: new Set([toId]), lastSelectedTaskId: toId, selectionSection: effectiveSection ?? null }
       }
       const start = Math.min(fromIdx, toIdx)
       const end = Math.max(fromIdx, toIdx)
       const rangeIds = ids.slice(start, end + 1)
       const next = new Set(s.selectedTaskIds)
-      for (const id of rangeIds) next.add(id)
-      return { selectedTaskIds: next, lastSelectedTaskId: toId }
+      for (const rid of rangeIds) next.add(rid)
+      return { selectedTaskIds: next, lastSelectedTaskId: toId, selectionSection: effectiveSection ?? s.selectionSection ?? null }
     }),
 }))

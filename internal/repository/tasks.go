@@ -410,10 +410,9 @@ func (r *TaskRepository) BulkAction(input model.BulkActionInput) (int, error) {
 				"UPDATE tasks SET deleted_at = "+now+", updated_at = "+now+" WHERE id = ? AND deleted_at IS NULL", id)
 		case "set_when":
 			whenDate, _ := input.Params["when_date"].(string)
-			whenTime, _ := input.Params["when_time"].(string)
 			_, execErr = tx.Exec(
-				"UPDATE tasks SET when_date = ?, start_time = ?, updated_at = "+now+" WHERE id = ? AND deleted_at IS NULL",
-				bulkNilIfEmpty(whenDate), bulkNilIfEmpty(whenTime), id)
+				"UPDATE tasks SET when_date = ?, updated_at = "+now+" WHERE id = ? AND deleted_at IS NULL",
+				bulkNilIfEmpty(whenDate), id)
 		case "set_deadline":
 			deadline, _ := input.Params["deadline"].(string)
 			_, execErr = tx.Exec(
@@ -424,6 +423,9 @@ func (r *TaskRepository) BulkAction(input model.BulkActionInput) (int, error) {
 			p := int(priority)
 			_, execErr = tx.Exec(
 				"UPDATE tasks SET high_priority = ?, updated_at = "+now+" WHERE id = ? AND deleted_at IS NULL", p, id)
+		case "toggle_priority":
+			_, execErr = tx.Exec(
+				"UPDATE tasks SET high_priority = CASE WHEN high_priority = 1 THEN 0 ELSE 1 END, updated_at = "+now+" WHERE id = ? AND deleted_at IS NULL", id)
 		case "move_project":
 			projectID, _ := input.Params["project_id"].(string)
 			_, execErr = tx.Exec(
@@ -457,6 +459,28 @@ func (r *TaskRepository) BulkAction(input model.BulkActionInput) (int, error) {
 					}
 				}
 			}
+		case "toggle_tags":
+			tagIDs, ok := input.Params["tag_ids"].([]interface{})
+			if ok {
+				for _, rawTagID := range tagIDs {
+					tagID, _ := rawTagID.(string)
+					if tagID != "" {
+						var exists int
+						_ = tx.QueryRow("SELECT COUNT(*) FROM task_tags WHERE task_id = ? AND tag_id = ?", id, tagID).Scan(&exists)
+						if exists > 0 {
+							_, execErr = tx.Exec("DELETE FROM task_tags WHERE task_id = ? AND tag_id = ?", id, tagID)
+						} else {
+							_, execErr = tx.Exec("INSERT OR IGNORE INTO task_tags (task_id, tag_id) VALUES (?, ?)", id, tagID)
+						}
+						if execErr != nil {
+							break
+						}
+					}
+				}
+			}
+		case "mark_reviewed":
+			_, execErr = tx.Exec(
+				"UPDATE tasks SET updated_at = "+now+" WHERE id = ? AND deleted_at IS NULL AND status = 'open'", id)
 		default:
 			return 0, fmt.Errorf("unknown bulk action: %s", input.Action)
 		}
@@ -469,6 +493,16 @@ func (r *TaskRepository) BulkAction(input model.BulkActionInput) (int, error) {
 	if err := tx.Commit(); err != nil {
 		return 0, err
 	}
+
+	// Sync schedule entries after commit for date changes
+	if input.Action == "set_when" {
+		whenDate, _ := input.Params["when_date"].(string)
+		for _, id := range input.TaskIDs {
+			wd := whenDate
+			_ = r.syncFirstScheduleDate(id, &wd)
+		}
+	}
+
 	return affected, nil
 }
 

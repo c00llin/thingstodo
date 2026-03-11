@@ -292,19 +292,12 @@ export interface SimpleReorderItem {
   sort_order: number
 }
 
-export type BulkActionType = 'complete' | 'cancel' | 'wontdo' | 'delete' | 'set_when' | 'set_deadline' | 'set_priority' | 'move_project' | 'add_tags' | 'remove_tags'
+export type BulkActionType = 'complete' | 'cancel' | 'wontdo' | 'delete' | 'set_when' | 'set_deadline' | 'set_priority' | 'toggle_priority' | 'move_project' | 'add_tags' | 'remove_tags' | 'toggle_tags' | 'mark_reviewed'
 
 export interface BulkActionRequest {
   task_ids: string[]
   action: BulkActionType
-  params?: {
-    when_date?: string
-    when_time?: string
-    deadline?: string
-    priority?: number
-    project_id?: string | null
-    tag_ids?: string[]
-  }
+  params?: Record<string, unknown>
 }
 
 export interface BulkActionResponse {

@@ -318,7 +318,7 @@ Request:
 ```json
 {
   "task_ids": ["string"],
-  "action": "complete|cancel|wontdo|delete|set_when|set_deadline|set_priority|move_project|add_tags|remove_tags",
+  "action": "complete|cancel|wontdo|delete|set_when|set_deadline|set_priority|move_project|add_tags|remove_tags|mark_reviewed",
   "params": {}
 }
 ```
@@ -331,6 +331,7 @@ Request:
 | move_project | `project_id` (string or null) |
 | add_tags | `tag_ids` (string[]) |
 | remove_tags | `tag_ids` (string[]) |
+| mark_reviewed | _(none)_ — bumps `updated_at` to now |
 
 Limits: max 100 tasks per request.
 

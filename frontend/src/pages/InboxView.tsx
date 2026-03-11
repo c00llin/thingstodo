@@ -1,12 +1,26 @@
-import { AnimatePresence } from 'framer-motion'
+import { useEffect } from 'react'
+import { AnimatePresence, motion } from 'framer-motion'
 import { useInbox } from '../hooks/queries'
 import { SortableTaskList } from '../components/SortableTaskList'
 import { TaskItem } from '../components/TaskItem'
+import { useAppStore } from '../stores/app'
 
 export function InboxView() {
   const { data, isLoading } = useInbox()
   const hasTasks = (data?.tasks.length ?? 0) > 0
   const hasReview = (data?.review.length ?? 0) > 0
+  const selectionSection = useAppStore((s) => s.selectionSection)
+  const crossSectionBlocked = useAppStore((s) => s.crossSectionBlocked)
+  const setCrossSectionBlocked = useAppStore((s) => s.setCrossSectionBlocked)
+
+  // Auto-clear the blocked indicator after animation
+  useEffect(() => {
+    if (!crossSectionBlocked) return
+    const timer = setTimeout(() => setCrossSectionBlocked(false), 600)
+    return () => clearTimeout(timer)
+  }, [crossSectionBlocked, setCrossSectionBlocked])
+
+  const shakeKeyframes = [0, -4, 4, -4, 4, 0]
 
   return (
     <div className="mx-auto max-w-3xl px-4 pt-14 pb-48 md:px-6 md:pt-6">
@@ -20,25 +34,34 @@ export function InboxView() {
       ) : (
         <>
           {hasTasks && (
-            <div className={hasReview ? 'pr-[36px]' : ''}>
+            <motion.div
+              className={hasReview ? 'pr-[36px]' : ''}
+              animate={{ x: crossSectionBlocked && selectionSection === 'review' ? shakeKeyframes : 0 }}
+              transition={{ duration: 0.4, ease: 'easeInOut' }}
+            >
               <SortableTaskList
                 tasks={data?.tasks ?? []}
                 sortField="sort_order_today"
                 showProject={false}
+                taskSection="inbox"
               />
-            </div>
+            </motion.div>
           )}
           {hasReview && (
-            <div className="mt-6">
+            <motion.div
+              className="mt-6"
+              animate={{ x: crossSectionBlocked && selectionSection === 'inbox' ? shakeKeyframes : 0 }}
+              transition={{ duration: 0.4, ease: 'easeInOut' }}
+            >
               <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-neutral-500 dark:text-neutral-400">
                 Review
               </h3>
               <AnimatePresence initial={false}>
                 {data!.review.map((task) => (
-                  <TaskItem key={task.id} task={task} showProject showReviewCheckbox showDivider />
+                  <TaskItem key={task.id} task={task} showProject showReviewCheckbox showDivider taskSection="review" />
                 ))}
               </AnimatePresence>
-            </div>
+            </motion.div>
           )}
         </>
       )}

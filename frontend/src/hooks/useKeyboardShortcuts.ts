@@ -167,6 +167,7 @@ export function useTaskShortcuts() {
   const closeModal = useAppStore((s) => s.closeModal)
   const startEditingTask = useAppStore((s) => s.startEditingTask)
   const deleteTask = useDeleteTask()
+  const hasMultiSelection = useAppStore((s) => s.selectedTaskIds.size > 0)
 
   const enabled = !!selectedTaskId
 
@@ -209,21 +210,35 @@ export function useTaskShortcuts() {
     } else if (selectedTaskId) {
       selectTask(null)
     }
-  }, { enabled: !!expandedTaskId || !!selectedTaskId || useAppStore.getState().selectedTaskIds.size > 0 })
+  }, { enabled: !!expandedTaskId || !!selectedTaskId || hasMultiSelection })
 
-  // Cmd+A selects all visible tasks (unless focused in input/textarea)
+  // Cmd+A selects all visible tasks in the current section (unless focused in input/textarea)
   useHotkeys('mod+a', (e) => {
     const active = document.activeElement
     if (active && (active.tagName === 'INPUT' || active.tagName === 'TEXTAREA' || (active as HTMLElement).isContentEditable)) {
       return
     }
     e.preventDefault()
-    const allTaskEls = document.querySelectorAll<HTMLElement>('[data-task-id]')
+    const { selectionSection, selectedTaskId } = useAppStore.getState()
+    let section = selectionSection
+    if (!section && selectedTaskId) {
+      const el = document.querySelector<HTMLElement>(`[data-task-id="${selectedTaskId}"]`)
+      section = el?.dataset.taskSection ?? null
+    }
+    // If no section can be inferred, default to the section of the first visible task
+    if (!section) {
+      const firstEl = document.querySelector<HTMLElement>('[data-task-id][data-task-section]')
+      section = firstEl?.dataset.taskSection ?? null
+    }
+    const selector = section
+      ? `[data-task-section="${section}"][data-task-id]`
+      : '[data-task-id]'
+    const allTaskEls = document.querySelectorAll<HTMLElement>(selector)
     const ids = new Set<string>()
     allTaskEls.forEach((el) => {
       if (el.dataset.taskId) ids.add(el.dataset.taskId)
     })
-    useAppStore.setState({ selectedTaskIds: ids, lastSelectedTaskId: null })
+    useAppStore.setState({ selectedTaskIds: ids, lastSelectedTaskId: null, selectionSection: section })
   })
 
   // Arrow down — select next task (wraps around); if modal open, switch modal task
@@ -303,7 +318,7 @@ export function useTaskShortcuts() {
       deleteTask.mutate(selectedTaskId)
       selectTask(null)
     }
-  }, { enabled: enabled || useAppStore.getState().selectedTaskIds.size > 0 })
+  }, { enabled: enabled || hasMultiSelection })
 
   useHotkeys('backspace', (e) => {
     if (isFocusInFilterBar()) return
@@ -313,5 +328,5 @@ export function useTaskShortcuts() {
       deleteTask.mutate(selectedTaskId)
       selectTask(null)
     }
-  }, { enabled: enabled || useAppStore.getState().selectedTaskIds.size > 0 })
+  }, { enabled: enabled || hasMultiSelection })
 }

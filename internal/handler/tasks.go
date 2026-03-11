@@ -362,8 +362,9 @@ func (h *TaskHandler) BulkAction(w http.ResponseWriter, r *http.Request) {
 
 	validActions := map[string]bool{
 		"complete": true, "cancel": true, "wontdo": true, "delete": true,
-		"set_when": true, "set_deadline": true, "set_priority": true,
-		"move_project": true, "add_tags": true, "remove_tags": true,
+		"set_when": true, "set_deadline": true, "set_priority": true, "toggle_priority": true,
+		"move_project": true, "add_tags": true, "remove_tags": true, "toggle_tags": true,
+		"mark_reviewed": true,
 	}
 	if !validActions[input.Action] {
 		writeError(w, http.StatusBadRequest, "invalid action: "+input.Action, "BAD_REQUEST")

@@ -14,9 +14,10 @@ interface SortableTaskListProps {
   sortField: SortField
   showProject?: boolean
   hideWhenDate?: boolean
+  taskSection?: string
 }
 
-export function SortableTaskList({ tasks, sortField, showProject, hideWhenDate }: SortableTaskListProps) {
+export function SortableTaskList({ tasks, sortField, showProject, hideWhenDate, taskSection }: SortableTaskListProps) {
   const listId = useId()
   const registry = useSortableListRegistry()
 
@@ -65,6 +66,7 @@ export function SortableTaskList({ tasks, sortField, showProject, hideWhenDate }
             hideWhenDate={hideWhenDate}
             isDragOverlay={false}
             showDivider
+            taskSection={taskSection}
           />
         ))}
       </AnimatePresence>
