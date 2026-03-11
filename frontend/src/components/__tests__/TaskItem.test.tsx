@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest'
 import { render, screen, waitFor } from '../../test/test-utils'
 import { TaskItem } from '../TaskItem'
 import { mockTask, mockTaskWithTags } from '../../test/mocks/data'
+import { formatRelativeDate } from '../../lib/format-date'
 
 describe('TaskItem', () => {
   it('renders task title', () => {
@@ -16,14 +17,12 @@ describe('TaskItem', () => {
 
   it('renders deadline indicator', () => {
     render(<TaskItem task={mockTaskWithTags} />)
-    // formatRelativeDate renders "Sun, Mar 15" for 2026-03-15
-    expect(screen.getByText('Sun, Mar 15')).toBeInTheDocument()
+    expect(screen.getByText(formatRelativeDate(mockTaskWithTags.deadline!))).toBeInTheDocument()
   })
 
   it('renders when_date', () => {
     render(<TaskItem task={mockTaskWithTags} />)
-    // formatRelativeDate renders "Tue, Mar 10" for 2026-03-10
-    expect(screen.getByText('Tue, Mar 10')).toBeInTheDocument()
+    expect(screen.getByText(formatRelativeDate(mockTaskWithTags.when_date!))).toBeInTheDocument()
   })
 
   it('renders checklist progress', () => {
