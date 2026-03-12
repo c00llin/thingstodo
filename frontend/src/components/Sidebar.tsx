@@ -333,20 +333,26 @@ function SmartListNav() {
 function SortButtons({ onSort }: { onSort: (direction: 'a-z' | 'z-a') => void }) {
   return (
     <span className="flex items-center gap-0.5 opacity-0 transition-opacity group-hover/section:opacity-100">
-      <button
-        onClick={(e) => { e.stopPropagation(); onSort('a-z') }}
-        className="flex h-5 w-5 items-center justify-center text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-300"
+      <span
+        role="button"
+        tabIndex={-1}
+        onClick={(e) => { e.stopPropagation(); e.preventDefault(); onSort('a-z') }}
+        onKeyDown={(e) => { if (e.key === 'Enter') { e.stopPropagation(); e.preventDefault(); onSort('a-z') } }}
+        className="flex h-5 w-5 cursor-pointer items-center justify-center text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-300"
         title="Sort A-Z"
       >
         <ArrowDownAZ size={12} />
-      </button>
-      <button
-        onClick={(e) => { e.stopPropagation(); onSort('z-a') }}
-        className="flex h-5 w-5 items-center justify-center text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-300"
+      </span>
+      <span
+        role="button"
+        tabIndex={-1}
+        onClick={(e) => { e.stopPropagation(); e.preventDefault(); onSort('z-a') }}
+        onKeyDown={(e) => { if (e.key === 'Enter') { e.stopPropagation(); e.preventDefault(); onSort('z-a') } }}
+        className="flex h-5 w-5 cursor-pointer items-center justify-center text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-300"
         title="Sort Z-A"
       >
         <ArrowDownZA size={12} />
-      </button>
+      </span>
     </span>
   )
 }
