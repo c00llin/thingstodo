@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.11.1] - 2026-03-12
+
+### Fixed
+- Restore Alt+key shortcuts in task detail modal
+- Fix nested button DOM warning in sidebar sort buttons
+
 ## [0.11.0] - 2026-03-11
 
 ### Added
