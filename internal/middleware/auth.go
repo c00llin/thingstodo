@@ -45,7 +45,12 @@ func Auth(cfg config.Config, apiKeyUserLookup UserLookupFunc) func(http.Handler)
 			switch cfg.AuthMode {
 			case "none":
 				// No authentication — for development use only
-				ctx := context.WithValue(r.Context(), UserIDKey, "dev-user")
+				userID, err := apiKeyUserLookup()
+				if err != nil || userID == "" {
+					http.Error(w, `{"error":"no users found","code":"INTERNAL"}`, http.StatusInternalServerError)
+					return
+				}
+				ctx := context.WithValue(r.Context(), UserIDKey, userID)
 				next.ServeHTTP(w, r.WithContext(ctx))
 				return
 

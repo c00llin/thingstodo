@@ -1,12 +1,19 @@
 import { useEffect, useRef, useCallback } from 'react'
 import { useHotkeys } from 'react-hotkeys-hook'
-import { useNavigate } from 'react-router'
+import { useNavigate, useLocation } from 'react-router'
 import { useAppStore } from '../stores/app'
 import { useFilterStore } from '../stores/filters'
 import { hasFilters } from '../lib/filter-tasks'
-import { useDeleteTask } from './queries'
+import { useDeleteTask, useSavedFilters } from './queries'
 
-const VIEW_ROUTES = ['/inbox', '/today', '/upcoming', '/anytime', '/someday', '/logbook']
+/** Maps route pathname to the view name used for saved filters. */
+const FILTERABLE_VIEWS: Record<string, string> = {
+  '/today': 'today',
+  '/upcoming': 'upcoming',
+  '/anytime': 'anytime',
+  '/someday': 'someday',
+  '/logbook': 'logbook',
+}
 
 /** Timeout in ms for the second key in a sequence (g + key). */
 const SEQUENCE_TIMEOUT = 500
@@ -104,15 +111,29 @@ export function useGlobalShortcuts() {
     }
   })
 
-  // Navigate to views Alt+1 through Alt+6
-  useHotkeys(VIEW_ROUTES.map((_, i) => `alt+${i + 1}`).join(','), (e) => {
+  // Alt+1 through Alt+6: toggle saved filters for the current view
+  const { pathname } = useLocation()
+  const currentViewName = FILTERABLE_VIEWS[pathname] ?? null
+  const { data: savedFiltersData } = useSavedFilters(currentViewName ?? '')
+
+  useHotkeys('alt+1,alt+2,alt+3,alt+4,alt+5,alt+6', (e) => {
+    if (!currentViewName) return
+    const filters = savedFiltersData?.saved_filters ?? []
+    // On macOS, Alt+number produces special chars (e.g. ¡™£), so use e.code
+    const match = e.code.match(/^Digit(\d)$/)
+    if (!match) return
+    const idx = parseInt(match[1], 10) - 1
+    if (idx < 0 || idx >= filters.length) return
     e.preventDefault()
-    const key = e.key
-    const idx = parseInt(key, 10) - 1
-    if (idx >= 0 && idx < VIEW_ROUTES.length) {
-      navigate(VIEW_ROUTES[idx])
+    const sf = filters[idx]
+    const { activeFilterId, clearAll, applyFilterConfig } = useFilterStore.getState()
+    if (sf.id === activeFilterId) {
+      clearAll()
+    } else {
+      const config = JSON.parse(sf.config)
+      applyFilterConfig(config, sf.id)
     }
-  })
+  }, { enabled: !!currentViewName })
 
   // Help overlay — listen for '?' directly since shift+/ doesn't work on all layouts
   useEffect(() => {

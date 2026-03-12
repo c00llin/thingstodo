@@ -17,6 +17,7 @@ const navigationShortcuts = [
 
 const globalShortcuts = [
   { keys: 'Q', action: 'Quick Entry' },
+  { keys: 'Alt + 1–6', action: 'Toggle saved filter' },
   { keys: 'Alt + X', action: 'Clear all filters' },
   { keys: '?', action: 'Show this help' },
 ]

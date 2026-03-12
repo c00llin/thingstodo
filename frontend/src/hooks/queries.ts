@@ -1091,6 +1091,7 @@ export function useSavedFilters(view: string) {
     queryKey: queryKeys.savedFilters(view),
     queryFn: () => savedFiltersApi.listSavedFilters(view),
     staleTime: 30_000,
+    enabled: view !== '',
   })
 }
 
