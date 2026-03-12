@@ -62,7 +62,6 @@ function suppressNextDeadKey() {
  */
 export function useDetailShortcuts(config: DetailShortcutConfig) {
   const enabled = config.enabled ?? true
-
   useHotkeys('alt+e', (e) => {
     e.preventDefault()
     suppressNextDeadKey()

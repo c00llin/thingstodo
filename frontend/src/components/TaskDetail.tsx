@@ -107,29 +107,48 @@ export function TaskDetail({ taskId, isModal, toolbarPortalEl }: TaskDetailProps
       setShowWhen(true)
       requestAnimationFrame(() => {
         const container = whenDateInputRef.current
-        // If date already set, DateInput renders a button — click it to activate input mode
-        const btn = container?.querySelector('button')
-        if (btn) {
-          btn.click()
+        // Try focusing the text input first; if not present, click the date display button
+        const input = container?.querySelector('input')
+        if (input) {
+          input.focus()
         } else {
-          container?.querySelector('input')?.focus()
+          // In display mode, click the date button (first button with text-left class) to activate input
+          const btn = container?.querySelector<HTMLButtonElement>('button.text-left') ?? container?.querySelector('button')
+          btn?.click()
         }
       })
     } else if (field === 'deadline') {
       setShowDeadline(true)
       requestAnimationFrame(() => {
         const container = deadlineDateInputRef.current
-        const btn = container?.querySelector('button')
-        if (btn) {
-          btn.click()
+        const input = container?.querySelector('input')
+        if (input) {
+          input.focus()
         } else {
-          container?.querySelector('input')?.focus()
+          const btn = container?.querySelector<HTMLButtonElement>('button.text-left') ?? container?.querySelector('button')
+          btn?.click()
         }
       })
     } else if (field === 'checklist') {
       setShowChecklist(true)
+      // In modal, checklist is always visible — focus the add-item input
+      if (isModal) {
+        requestAnimationFrame(() => {
+          const input = document.querySelector<HTMLInputElement>('.task-detail-modal input[placeholder="Add item..."]')
+          input?.scrollIntoView({ block: 'nearest' })
+          input?.focus()
+        })
+      }
     } else if (field === 'reminder') {
       setShowReminders(true)
+      // In modal, reminders are always visible — click the "Add reminder" button
+      if (isModal) {
+        requestAnimationFrame(() => {
+          const btn = document.querySelector<HTMLButtonElement>('.task-detail-modal button[aria-label="Add reminder"]')
+          btn?.scrollIntoView({ block: 'nearest' })
+          btn?.click()
+        })
+      }
     } else if (field === 'file') {
       // Click the file upload button in toolbar
       requestAnimationFrame(() => {
@@ -985,6 +1004,12 @@ function ChecklistEditor({
       e.preventDefault()
       handleAdd()
     }
+    if (e.key === 'Escape') {
+      e.preventDefault()
+      e.stopPropagation()
+      setNewTitle('')
+      ;(e.target as HTMLElement)?.blur()
+    }
   }
 
   return (
@@ -1030,23 +1055,38 @@ function ReminderFormRow({
   exactAt,
   onSave,
   onCancel,
+  autoFocus,
 }: {
   type: ReminderType
   value: number
   exactAt: string
   onSave: (type: ReminderType, value: number, exactAt: string) => void
   onCancel: () => void
+  autoFocus?: boolean
 }) {
   const [editType, setEditType] = useState(type)
   const [editValue, setEditValue] = useState(value)
   const [editExactAt, setEditExactAt] = useState(exactAt)
+  const selectRef = useRef<HTMLSelectElement>(null)
   const needsValue = editType === 'minutes_before' || editType === 'hours_before' || editType === 'days_before'
+
+  useEffect(() => {
+    if (autoFocus) selectRef.current?.focus()
+  }, [autoFocus])
 
   return (
     <div className="flex flex-wrap items-center gap-2">
       <select
+        ref={selectRef}
         value={editType}
         onChange={(e) => setEditType(e.target.value as ReminderType)}
+        onKeyDown={(e) => {
+          if (e.key === 'Escape') {
+            e.preventDefault()
+            e.stopPropagation()
+            onCancel()
+          }
+        }}
         className="rounded border border-neutral-200 bg-white px-2 py-1 text-sm dark:border-neutral-600 dark:bg-neutral-800 dark:text-neutral-200"
       >
         {(Object.keys(REMINDER_TYPE_LABELS) as ReminderType[]).map((t) => (
@@ -1157,12 +1197,14 @@ function ReminderEditor({ taskId, reminders, timeFormat }: { taskId: string; rem
             exactAt=""
             onSave={(type, value, exactAt) => handleSave(type, value, exactAt)}
             onCancel={() => setAdding(false)}
+            autoFocus
           />
         </div>
       ) : (
         <button
           onClick={() => { setAdding(true); setEditingId(null) }}
           className="mt-1 flex items-center gap-2 text-sm text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-300"
+          aria-label="Add reminder"
         >
           <Plus size={14} />
           <span>Add reminder...</span>

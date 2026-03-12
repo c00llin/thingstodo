@@ -41,9 +41,11 @@ export function TaskDetailModal() {
         style={{ maxHeight: '85vh' }}
         onKeyDown={(e) => {
           if (e.key === 'Escape') {
-            // Don't close modal if focus is inside an input (let it blur/cancel edit first)
+            // Don't close if a child already handled this Escape
+            if (e.defaultPrevented) return
+            // Don't close modal if focus is inside a form element (let it blur/cancel edit first)
             const tag = (e.target as HTMLElement)?.tagName
-            if (tag === 'INPUT' || tag === 'TEXTAREA') return
+            if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return
             e.preventDefault()
             e.stopPropagation()
             closeModal()
