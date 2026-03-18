@@ -27,7 +27,8 @@ func TestHealthEndpoint(t *testing.T) {
 	userRepo := repository.NewUserRepository(db)
 	pushSubRepo := repository.NewPushSubscriptionRepository(db)
 	pushSender := push.NewSender(pushSubRepo, "", "", "")
-	sched := scheduler.New(db, taskRepo, ruleRepo, checklistRepo, attachRepo, scheduleRepo, reminderRepo, settingsRepo, userRepo, pushSender, broker, time.UTC)
+	changeLogRepo := repository.NewChangeLogRepository(db)
+	sched := scheduler.New(db, taskRepo, ruleRepo, checklistRepo, attachRepo, scheduleRepo, reminderRepo, settingsRepo, userRepo, changeLogRepo, pushSender, broker, time.UTC)
 
 	handler := router.New(db, cfg, broker, sched)
 	client := testutil.NewTestClient(t, handler)
