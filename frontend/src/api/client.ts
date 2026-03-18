@@ -10,9 +10,13 @@ export class ApiError extends Error {
   }
 }
 
+// A promise that never resolves — used to "pause" requests when offline
+// so TanStack Query doesn't enter error/retry loops
+const neverResolve = new Promise<never>(() => {})
+
 async function request<T>(path: string, options?: RequestInit): Promise<T> {
   if (!navigator.onLine) {
-    throw new ApiError(0, 'offline')
+    return neverResolve as Promise<T>
   }
   const res = await fetch(`${BASE_URL}${path}`, {
     ...options,
