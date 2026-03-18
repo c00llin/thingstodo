@@ -1,6 +1,7 @@
 package handler_test
 
 import (
+	"database/sql"
 	"fmt"
 	"net/http"
 	"testing"
@@ -13,6 +14,11 @@ import (
 )
 
 func setupSyncRouter(t *testing.T) (*testutil.TestClient, *repository.ChangeLogRepository, *repository.TaskRepository) {
+	client, changeLog, taskRepo, _ := setupSyncRouterWithDB(t)
+	return client, changeLog, taskRepo
+}
+
+func setupSyncRouterWithDB(t *testing.T) (*testutil.TestClient, *repository.ChangeLogRepository, *repository.TaskRepository, *sql.DB) {
 	t.Helper()
 	db := testutil.SetupTestDB(t)
 
@@ -47,7 +53,7 @@ func setupSyncRouter(t *testing.T) (*testutil.TestClient, *repository.ChangeLogR
 	})
 
 	client := testutil.NewTestClient(t, r)
-	return client, changeLogRepo, taskRepo
+	return client, changeLogRepo, taskRepo, db
 }
 
 // --- Pull tests ---
