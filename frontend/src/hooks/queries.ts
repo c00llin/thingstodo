@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useSyncExternalStore } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useAppStore } from '../stores/app'
 import * as tasksApi from '../api/tasks'
@@ -44,6 +44,21 @@ import type {
 } from '../api/types'
 
 // --- Query Keys ---
+
+// Reactive online status hook — prevents server queries when offline
+function subscribeOnline(cb: () => void) {
+  window.addEventListener('online', cb)
+  window.addEventListener('offline', cb)
+  return () => {
+    window.removeEventListener('online', cb)
+    window.removeEventListener('offline', cb)
+  }
+}
+function getOnline() { return navigator.onLine }
+function getOnlineServer() { return true } // SSR fallback
+function useSyncOnline() {
+  return useSyncExternalStore(subscribeOnline, getOnline, getOnlineServer)
+}
 
 export const queryKeys = {
   tasks: {
@@ -845,10 +860,12 @@ export function useSearch(query: string) {
 // --- Auth ---
 
 export function useMe() {
+  const online = useSyncOnline()
   return useQuery({
     queryKey: queryKeys.auth.me,
     queryFn: () => authApi.getMe(),
     retry: false,
+    enabled: online, // don't fetch when offline — use cached data
   })
 }
 
@@ -876,11 +893,12 @@ export function useLogout() {
 // --- Settings ---
 
 export function useSettings() {
+  const online = useSyncOnline()
   return useQuery({
     queryKey: queryKeys.settings,
     queryFn: () => settingsApi.getSettings(),
-    retry: navigator.onLine ? 1 : false, // don't retry when offline
-    networkMode: 'offlineFirst', // use cache when offline, fetch when online
+    enabled: online, // don't fetch when offline — use cached data
+    retry: 1,
   })
 }
 
