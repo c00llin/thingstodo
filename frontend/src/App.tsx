@@ -1,20 +1,19 @@
-import { lazy, Suspense } from 'react'
+import { Suspense } from 'react'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router'
 import { AppLayout } from './components/AppLayout'
-
-const InboxView = lazy(() => import('./pages/InboxView').then(m => ({ default: m.InboxView })))
-const TodayView = lazy(() => import('./pages/TodayView').then(m => ({ default: m.TodayView })))
-const UpcomingView = lazy(() => import('./pages/UpcomingView').then(m => ({ default: m.UpcomingView })))
-const AnytimeView = lazy(() => import('./pages/AnytimeView').then(m => ({ default: m.AnytimeView })))
-const SomedayView = lazy(() => import('./pages/SomedayView').then(m => ({ default: m.SomedayView })))
-const LogbookView = lazy(() => import('./pages/LogbookView').then(m => ({ default: m.LogbookView })))
-const TrashView = lazy(() => import('./pages/TrashView').then(m => ({ default: m.TrashView })))
-const ProjectView = lazy(() => import('./pages/ProjectView').then(m => ({ default: m.ProjectView })))
-const AreaView = lazy(() => import('./pages/AreaView').then(m => ({ default: m.AreaView })))
-const TagView = lazy(() => import('./pages/TagView').then(m => ({ default: m.TagView })))
-const TaskPermalinkView = lazy(() => import('./pages/TaskPermalinkView').then(m => ({ default: m.TaskPermalinkView })))
-const SettingsView = lazy(() => import('./pages/SettingsView').then(m => ({ default: m.SettingsView })))
-const LoginView = lazy(() => import('./pages/LoginView').then(m => ({ default: m.LoginView })))
+import { InboxView } from './pages/InboxView'
+import { TodayView } from './pages/TodayView'
+import { UpcomingView } from './pages/UpcomingView'
+import { AnytimeView } from './pages/AnytimeView'
+import { SomedayView } from './pages/SomedayView'
+import { LogbookView } from './pages/LogbookView'
+import { TrashView } from './pages/TrashView'
+import { ProjectView } from './pages/ProjectView'
+import { AreaView } from './pages/AreaView'
+import { TagView } from './pages/TagView'
+import { TaskPermalinkView } from './pages/TaskPermalinkView'
+import { SettingsView } from './pages/SettingsView'
+import { LoginView } from './pages/LoginView'
 
 function App() {
   return (

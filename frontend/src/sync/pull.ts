@@ -142,7 +142,8 @@ export async function fullSync(): Promise<void> {
   const response = await api.get<FullSyncResponse>('/sync/full')
 
   // Clear all entity tables (not syncQueue or syncMeta)
-  await localDb.transaction(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  await (localDb as any).transaction(
     'rw',
     [
       localDb.tasks,

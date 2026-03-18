@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect, useRef, useState } from 'react'
+import { Suspense, useEffect, useRef, useState } from 'react'
 import { Outlet, Navigate, useLocation } from 'react-router'
 import { Menu, Plus, RefreshCw } from 'lucide-react'
 import { Sidebar } from './Sidebar'
@@ -19,10 +19,10 @@ import { OfflineBanner } from './OfflineBanner'
 import { MissedRemindersToast } from './MissedRemindersToast'
 import { SyncingOverlay } from './SyncingOverlay'
 
-const QuickEntry = lazy(() => import('./QuickEntry').then(m => ({ default: m.QuickEntry })))
-const CommandPalette = lazy(() => import('./CommandPalette').then(m => ({ default: m.CommandPalette })))
-const SearchOverlay = lazy(() => import('./SearchOverlay').then(m => ({ default: m.SearchOverlay })))
-const TaskDetailModal = lazy(() => import('./TaskDetailModal').then(m => ({ default: m.TaskDetailModal })))
+import { QuickEntry } from './QuickEntry'
+import { CommandPalette } from './CommandPalette'
+import { SearchOverlay } from './SearchOverlay'
+import { TaskDetailModal } from './TaskDetailModal'
 
 export function AppLayout() {
   const { isLoading, error } = useMe()

@@ -21,6 +21,7 @@ import type {
   LocalSchedule,
   LocalReminder,
   LocalRepeatRule,
+  LocalHeading,
 } from '../db/schema'
 import type {
   Task,
@@ -638,22 +639,22 @@ export function useLocalProjectDetail(projectId: string): ProjectDetail | undefi
         .sortBy('sort_order'),
     ])
 
-    const openTasks = allTasks.filter((t) => t.status === 'open')
+    const openTasks = allTasks.filter((t: LocalTask) => t.status === 'open')
     const completedTasks = allTasks.filter(
-      (t) => t.status === 'completed' || t.status === 'canceled' || t.status === 'wont_do',
+      (t: LocalTask) => t.status === 'completed' || t.status === 'canceled' || t.status === 'wont_do',
     )
 
     // Split open tasks by heading
     const tasksWithoutHeading = openTasks
-      .filter((t) => !t.heading_id)
-      .sort((a, b) => (a.sort_order_project ?? 0) - (b.sort_order_project ?? 0))
+      .filter((t: LocalTask) => !t.heading_id)
+      .sort((a: LocalTask, b: LocalTask) => (a.sort_order_project ?? 0) - (b.sort_order_project ?? 0))
       .map(taskToPlain)
 
-    const headingsWithTasks: HeadingWithTasks[] = headings.map((h) => ({
+    const headingsWithTasks: HeadingWithTasks[] = headings.map((h: LocalHeading) => ({
       ...stripSyncMeta(h),
       tasks: openTasks
-        .filter((t) => t.heading_id === h.id)
-        .sort((a, b) => (a.sort_order_project ?? 0) - (b.sort_order_project ?? 0))
+        .filter((t: LocalTask) => t.heading_id === h.id)
+        .sort((a: LocalTask, b: LocalTask) => (a.sort_order_project ?? 0) - (b.sort_order_project ?? 0))
         .map(taskToPlain),
     }))
 
@@ -689,31 +690,31 @@ export function useLocalAreaDetail(areaId: string): AreaDetail | undefined {
       localDb.projects
         .where('area_id')
         .equals(areaId)
-        .filter((p) => p.status === 'open')
+        .filter((p: LocalProject) => p.status === 'open')
         .sortBy('sort_order'),
       localDb.tasks
         .where('area_id')
         .equals(areaId)
-        .filter((t) => !t.deleted_at && !t.project_id)
+        .filter((t: LocalTask) => !t.deleted_at && !t.project_id)
         .toArray(),
     ])
 
     const openTasks = allTasks
-      .filter((t) => t.status === 'open')
-      .sort((a, b) => (a.sort_order_today ?? 0) - (b.sort_order_today ?? 0))
+      .filter((t: LocalTask) => t.status === 'open')
+      .sort((a: LocalTask, b: LocalTask) => (a.sort_order_today ?? 0) - (b.sort_order_today ?? 0))
     const completedTasks = allTasks.filter(
-      (t) => t.status === 'completed' || t.status === 'canceled' || t.status === 'wont_do',
+      (t: LocalTask) => t.status === 'completed' || t.status === 'canceled' || t.status === 'wont_do',
     )
 
     // Get task counts per project
     const projectsWithCounts = await Promise.all(
-      projects.map(async (p) => {
+      projects.map(async (p: LocalProject) => {
         const pTasks = await localDb.tasks
           .where('project_id')
           .equals(p.id)
-          .filter((t) => !t.deleted_at)
+          .filter((t: LocalTask) => !t.deleted_at)
           .toArray()
-        const openCount = pTasks.filter((t) => t.status === 'open').length
+        const openCount = pTasks.filter((t: LocalTask) => t.status === 'open').length
         const completedCount = pTasks.length - openCount
         return {
           ...projectToPlain(p),

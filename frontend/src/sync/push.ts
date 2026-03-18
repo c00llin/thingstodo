@@ -26,7 +26,7 @@ export async function pushChanges(deviceId: string): Promise<number> {
 
   if (entries.length === 0) return 0
 
-  const changes: ClientChange[] = entries.map((entry) => ({
+  const changes: ClientChange[] = entries.map((entry: SyncQueueEntry) => ({
     entity: entry.entity,
     entityId: entry.entityId,
     action: entry.action,
@@ -42,13 +42,13 @@ export async function pushChanges(deviceId: string): Promise<number> {
 
   // Remove successfully pushed entries from queue
   const successfulIds = response.results
-    .filter((r) => r.success)
-    .map((r) => r.entityId)
+    .filter((r: PushResult) => r.success)
+    .map((r: PushResult) => r.entityId)
 
   const idsToRemove = entries
-    .filter((e) => successfulIds.includes(e.entityId))
-    .map((e) => e.id!)
-    .filter((id) => id !== undefined)
+    .filter((e: SyncQueueEntry) => successfulIds.includes(e.entityId))
+    .map((e: SyncQueueEntry) => e.id!)
+    .filter((id: number) => id !== undefined)
 
   if (idsToRemove.length > 0) {
     await localDb.syncQueue.bulkDelete(idsToRemove)
