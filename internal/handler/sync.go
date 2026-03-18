@@ -318,7 +318,15 @@ func (h *SyncHandler) applyTaskChange(change SyncChange) SyncPushResult {
 
 	switch change.Action {
 	case "create":
+		// Check if task already exists (idempotency — client may re-push)
+		existing, _ := h.tasks.GetByID(change.EntityID)
+		if existing != nil {
+			result.Status = "applied"
+			return result
+		}
+
 		input := model.CreateTaskInput{
+			ID:    change.EntityID, // use client-provided ID
 			Title: stringFromData(change.Data, "title"),
 			Notes: stringFromData(change.Data, "notes"),
 		}

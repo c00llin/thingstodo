@@ -181,7 +181,10 @@ func (r *TaskRepository) GetByID(id string) (*model.TaskDetail, error) {
 }
 
 func (r *TaskRepository) Create(input model.CreateTaskInput) (*model.TaskDetail, error) {
-	id := model.NewID()
+	id := input.ID
+	if id == "" {
+		id = model.NewID()
+	}
 
 	var maxSort float64
 	_ = r.db.QueryRow("SELECT COALESCE(MAX(sort_order_today), 0) FROM tasks").Scan(&maxSort)

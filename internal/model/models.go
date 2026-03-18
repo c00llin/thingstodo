@@ -258,6 +258,7 @@ type UpdateUserSettingsInput struct {
 // --- Input types ---
 
 type CreateTaskInput struct {
+	ID           string   `json:"id"`    // optional: if set, use this ID instead of generating
 	Title        string   `json:"title"`
 	Notes        string   `json:"notes"`
 	WhenDate     *string  `json:"when_date"`
