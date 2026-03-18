@@ -21,7 +21,7 @@ export function SavedFiltersBar({ viewName }: SavedFiltersBarProps) {
 
   const [confirmDelete, setConfirmDelete] = useState<SavedFilter | null>(null)
 
-  const savedFilters = data?.saved_filters ?? []
+  const savedFilters: SavedFilter[] = data?.saved_filters ?? []
 
   const validAreaIds = useMemo(() => new Set((areasArr ?? []).map((a) => a.id)), [areasArr])
   const validProjectIds = useMemo(() => new Set((projectsArr ?? []).map((p) => p.id)), [projectsArr])

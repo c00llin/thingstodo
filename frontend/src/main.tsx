@@ -1,6 +1,6 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
-import { QueryClient, QueryClientProvider, onlineManager } from '@tanstack/react-query'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { registerSW } from 'virtual:pwa-register'
 import './index.css'
 import App from './App.tsx'
@@ -19,21 +19,11 @@ registerSW({
   },
 })
 
-// Tell TanStack Query we're always "online" — we manage offline behavior ourselves
-// via IndexedDB (Dexie) for data and the sync engine for server communication.
-// This prevents TQ from pausing queries/mutations or entering retry loops when offline.
-onlineManager.setOnline(true)
-
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
       staleTime: 1000 * 30,
-      retry: (failureCount, error) => {
-        // Don't retry network errors at all — our API client returns neverResolve when offline
-        if (error instanceof Error && error.message === 'offline') return false
-        if (error instanceof TypeError && error.message.includes('fetch')) return false
-        return failureCount < 1
-      },
+      retry: false,  // never retry — prevents error cascades when offline
     },
     mutations: {
       networkMode: 'always',
