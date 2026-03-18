@@ -11,8 +11,8 @@ import (
 func setupTaskForChecklist(t *testing.T) (*repository.ChecklistRepository, *repository.TaskRepository, string) {
 	t.Helper()
 	db := testutil.SetupTestDB(t)
-	checkRepo := repository.NewChecklistRepository(db)
-	taskRepo := repository.NewTaskRepository(db)
+	checkRepo := repository.NewChecklistRepository(db, nil)
+	taskRepo := repository.NewTaskRepository(db, nil)
 	task, err := taskRepo.Create(model.CreateTaskInput{Title: "Parent task"})
 	if err != nil {
 		t.Fatalf("failed to create task: %v", err)

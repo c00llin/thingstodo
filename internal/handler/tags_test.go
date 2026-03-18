@@ -15,7 +15,7 @@ func setupTagRouter(t *testing.T) *testutil.TestClient {
 	t.Helper()
 	db := testutil.SetupTestDB(t)
 	broker := sse.NewBroker()
-	tagRepo := repository.NewTagRepository(db)
+	tagRepo := repository.NewTagRepository(db, nil)
 	tagHandler := handler.NewTagHandler(tagRepo, broker)
 
 	r := chi.NewRouter()

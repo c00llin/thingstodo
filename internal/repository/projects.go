@@ -13,11 +13,12 @@ func isUniqueConstraintError(err error) bool {
 }
 
 type ProjectRepository struct {
-	db *sql.DB
+	db        *sql.DB
+	changeLog *ChangeLogRepository
 }
 
-func NewProjectRepository(db *sql.DB) *ProjectRepository {
-	return &ProjectRepository{db: db}
+func NewProjectRepository(db *sql.DB, changeLog *ChangeLogRepository) *ProjectRepository {
+	return &ProjectRepository{db: db, changeLog: changeLog}
 }
 
 func (r *ProjectRepository) List(areaID, status *string) ([]model.ProjectListItem, error) {
@@ -172,7 +173,11 @@ func (r *ProjectRepository) Create(input model.CreateProjectInput) (*model.Proje
 			return nil, fmt.Errorf("set project tags: %w", err)
 		}
 	}
-	return r.GetByID(id)
+	project, err := r.GetByID(id)
+	if err == nil && project != nil {
+		logChange(r.changeLog, "project", id, "create", nil, project, "", "")
+	}
+	return project, err
 }
 
 func (r *ProjectRepository) Update(id string, input model.UpdateProjectInput) (*model.ProjectDetail, error) {
@@ -220,11 +225,25 @@ func (r *ProjectRepository) Update(id string, input model.UpdateProjectInput) (*
 			return nil, fmt.Errorf("set project tags: %w", err)
 		}
 	}
-	return r.GetByID(id)
+	project, err := r.GetByID(id)
+	if err == nil && project != nil {
+		var changedFields []string
+		for k := range input.Raw {
+			changedFields = append(changedFields, k)
+		}
+		if input.TagIDs != nil {
+			changedFields = append(changedFields, "tag_ids")
+		}
+		logChange(r.changeLog, "project", id, "update", changedFields, project, "", "")
+	}
+	return project, err
 }
 
 func (r *ProjectRepository) Delete(id string) error {
 	_, err := r.db.Exec("DELETE FROM projects WHERE id = ?", id)
+	if err == nil {
+		logChange(r.changeLog, "project", id, "delete", nil, map[string]string{"id": id}, "", "")
+	}
 	return err
 }
 
@@ -250,7 +269,11 @@ func (r *ProjectRepository) Complete(id string) (*model.ProjectDetail, error) {
 	if err != nil {
 		return nil, err
 	}
-	return r.GetByID(id)
+	project, err := r.GetByID(id)
+	if err == nil && project != nil {
+		logChange(r.changeLog, "project", id, "update", []string{"status"}, project, "", "")
+	}
+	return project, err
 }
 
 func (r *ProjectRepository) Reorder(items []model.SimpleReorderItem) error {

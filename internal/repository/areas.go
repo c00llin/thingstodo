@@ -10,11 +10,12 @@ import (
 )
 
 type AreaRepository struct {
-	db *sql.DB
+	db        *sql.DB
+	changeLog *ChangeLogRepository
 }
 
-func NewAreaRepository(db *sql.DB) *AreaRepository {
-	return &AreaRepository{db: db}
+func NewAreaRepository(db *sql.DB, changeLog *ChangeLogRepository) *AreaRepository {
+	return &AreaRepository{db: db, changeLog: changeLog}
 }
 
 func (r *AreaRepository) List() ([]model.Area, error) {
@@ -160,6 +161,7 @@ func (r *AreaRepository) Create(input model.CreateAreaInput) (*model.Area, error
 	var a model.Area
 	_ = r.db.QueryRow("SELECT id, title, sort_order, created_at, updated_at FROM areas WHERE id = ?", id).
 		Scan(&a.ID, &a.Title, &a.SortOrder, &a.CreatedAt, &a.UpdatedAt)
+	logChange(r.changeLog, "area", id, "create", nil, &a, "", "")
 	return &a, nil
 }
 
@@ -182,6 +184,9 @@ func (r *AreaRepository) Update(id string, input model.UpdateAreaInput) (*model.
 	if err == sql.ErrNoRows {
 		return nil, nil
 	}
+	if err == nil {
+		logChange(r.changeLog, "area", id, "update", nil, &a, "", "")
+	}
 	return &a, err
 }
 
@@ -189,6 +194,9 @@ var ErrAreaHasProjects = fmt.Errorf("area still has projects")
 
 func (r *AreaRepository) Delete(id string) error {
 	_, err := r.db.Exec("DELETE FROM areas WHERE id = ?", id)
+	if err == nil {
+		logChange(r.changeLog, "area", id, "delete", nil, map[string]string{"id": id}, "", "")
+	}
 	return err
 }
 

@@ -8,11 +8,12 @@ import (
 )
 
 type ScheduleRepository struct {
-	db *sql.DB
+	db        *sql.DB
+	changeLog *ChangeLogRepository
 }
 
-func NewScheduleRepository(db *sql.DB) *ScheduleRepository {
-	return &ScheduleRepository{db: db}
+func NewScheduleRepository(db *sql.DB, changeLog *ChangeLogRepository) *ScheduleRepository {
+	return &ScheduleRepository{db: db, changeLog: changeLog}
 }
 
 func (r *ScheduleRepository) ListByTask(taskID string) ([]model.TaskSchedule, error) {
@@ -52,6 +53,7 @@ func (r *ScheduleRepository) Create(taskID string, input model.CreateTaskSchedul
 	var s model.TaskSchedule
 	_ = r.db.QueryRow("SELECT id, when_date, start_time, end_time, completed, sort_order FROM task_schedules WHERE id = ?", id).
 		Scan(&s.ID, &s.WhenDate, &s.StartTime, &s.EndTime, &s.Completed, &s.SortOrder)
+	logChange(r.changeLog, "schedule", id, "create", nil, &s, "", "")
 	return &s, nil
 }
 
@@ -92,11 +94,17 @@ func (r *ScheduleRepository) Update(id string, input model.UpdateTaskScheduleInp
 	if err == sql.ErrNoRows {
 		return nil, nil
 	}
+	if err == nil {
+		logChange(r.changeLog, "schedule", id, "update", nil, &s, "", "")
+	}
 	return &s, err
 }
 
 func (r *ScheduleRepository) Delete(id string) error {
 	_, err := r.db.Exec("DELETE FROM task_schedules WHERE id = ?", id)
+	if err == nil {
+		logChange(r.changeLog, "schedule", id, "delete", nil, map[string]string{"id": id}, "", "")
+	}
 	return err
 }
 

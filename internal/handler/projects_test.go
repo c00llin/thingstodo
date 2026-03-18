@@ -16,9 +16,9 @@ func setupProjectRouter(t *testing.T) (*testutil.TestClient, *sql.DB) {
 	t.Helper()
 	db := testutil.SetupTestDB(t)
 	broker := sse.NewBroker()
-	projRepo := repository.NewProjectRepository(db)
+	projRepo := repository.NewProjectRepository(db, nil)
 	projHandler := handler.NewProjectHandler(projRepo, broker)
-	areaRepo := repository.NewAreaRepository(db)
+	areaRepo := repository.NewAreaRepository(db, nil)
 	areaHandler := handler.NewAreaHandler(areaRepo, broker)
 
 	r := chi.NewRouter()

@@ -10,11 +10,12 @@ import (
 )
 
 type TaskRepository struct {
-	db *sql.DB
+	db        *sql.DB
+	changeLog *ChangeLogRepository
 }
 
-func NewTaskRepository(db *sql.DB) *TaskRepository {
-	return &TaskRepository{db: db}
+func NewTaskRepository(db *sql.DB, changeLog *ChangeLogRepository) *TaskRepository {
+	return &TaskRepository{db: db, changeLog: changeLog}
 }
 
 func (r *TaskRepository) List(f model.TaskFilters) ([]model.TaskListItem, error) {
@@ -208,7 +209,11 @@ func (r *TaskRepository) Create(input model.CreateTaskInput) (*model.TaskDetail,
 		_ = r.syncFirstScheduleDate(id, input.WhenDate)
 	}
 
-	return r.GetByID(id)
+	task, err := r.GetByID(id)
+	if err == nil && task != nil {
+		logChange(r.changeLog, "task", id, "create", nil, task, "", "")
+	}
+	return task, err
 }
 
 func (r *TaskRepository) Update(id string, input model.UpdateTaskInput) (*model.TaskDetail, error) {
@@ -271,7 +276,18 @@ func (r *TaskRepository) Update(id string, input model.UpdateTaskInput) (*model.
 		}
 	}
 
-	return r.GetByID(id)
+	task, err := r.GetByID(id)
+	if err == nil && task != nil {
+		var changedFields []string
+		for k := range input.Raw {
+			changedFields = append(changedFields, k)
+		}
+		if input.TagIDs != nil {
+			changedFields = append(changedFields, "tag_ids")
+		}
+		logChange(r.changeLog, "task", id, "update", changedFields, task, "", "")
+	}
+	return task, err
 }
 
 func (r *TaskRepository) Move(id string, input model.MoveTaskInput) (*model.TaskDetail, error) {
@@ -298,11 +314,18 @@ func (r *TaskRepository) Move(id string, input model.MoveTaskInput) (*model.Task
 	if err != nil {
 		return nil, fmt.Errorf("move task: %w", err)
 	}
-	return r.GetByID(id)
+	task, err := r.GetByID(id)
+	if err == nil && task != nil {
+		logChange(r.changeLog, "task", id, "update", []string{"project_id", "area_id", "heading_id"}, task, "", "")
+	}
+	return task, err
 }
 
 func (r *TaskRepository) Delete(id string) error {
 	_, err := r.db.Exec("UPDATE tasks SET deleted_at = datetime('now'), updated_at = datetime('now') WHERE id = ?", id)
+	if err == nil {
+		logChange(r.changeLog, "task", id, "delete", nil, map[string]string{"id": id}, "", "")
+	}
 	return err
 }
 
@@ -311,11 +334,18 @@ func (r *TaskRepository) Restore(id string) (*model.TaskDetail, error) {
 	if err != nil {
 		return nil, err
 	}
-	return r.GetByID(id)
+	task, err := r.GetByID(id)
+	if err == nil && task != nil {
+		logChange(r.changeLog, "task", id, "update", []string{"deleted_at"}, task, "", "")
+	}
+	return task, err
 }
 
 func (r *TaskRepository) PermanentDelete(id string) error {
 	_, err := r.db.Exec("DELETE FROM tasks WHERE id = ?", id)
+	if err == nil {
+		logChange(r.changeLog, "task", id, "delete", nil, map[string]string{"id": id}, "", "")
+	}
 	return err
 }
 
@@ -325,7 +355,11 @@ func (r *TaskRepository) Complete(id string) (*model.TaskDetail, error) {
 	if err != nil {
 		return nil, err
 	}
-	return r.GetByID(id)
+	task, err := r.GetByID(id)
+	if err == nil && task != nil {
+		logChange(r.changeLog, "task", id, "update", []string{"status", "completed_at"}, task, "", "")
+	}
+	return task, err
 }
 
 func (r *TaskRepository) Cancel(id string) (*model.TaskDetail, error) {
@@ -334,7 +368,11 @@ func (r *TaskRepository) Cancel(id string) (*model.TaskDetail, error) {
 	if err != nil {
 		return nil, err
 	}
-	return r.GetByID(id)
+	task, err := r.GetByID(id)
+	if err == nil && task != nil {
+		logChange(r.changeLog, "task", id, "update", []string{"status", "canceled_at"}, task, "", "")
+	}
+	return task, err
 }
 
 func (r *TaskRepository) WontDo(id string) (*model.TaskDetail, error) {
@@ -343,7 +381,11 @@ func (r *TaskRepository) WontDo(id string) (*model.TaskDetail, error) {
 	if err != nil {
 		return nil, err
 	}
-	return r.GetByID(id)
+	task, err := r.GetByID(id)
+	if err == nil && task != nil {
+		logChange(r.changeLog, "task", id, "update", []string{"status"}, task, "", "")
+	}
+	return task, err
 }
 
 func (r *TaskRepository) Reopen(id string) (*model.TaskDetail, error) {
@@ -352,7 +394,11 @@ func (r *TaskRepository) Reopen(id string) (*model.TaskDetail, error) {
 	if err != nil {
 		return nil, err
 	}
-	return r.GetByID(id)
+	task, err := r.GetByID(id)
+	if err == nil && task != nil {
+		logChange(r.changeLog, "task", id, "update", []string{"status", "completed_at", "canceled_at"}, task, "", "")
+	}
+	return task, err
 }
 
 func (r *TaskRepository) MarkReviewed(id string) (*model.TaskDetail, error) {
@@ -360,7 +406,11 @@ func (r *TaskRepository) MarkReviewed(id string) (*model.TaskDetail, error) {
 	if err != nil {
 		return nil, err
 	}
-	return r.GetByID(id)
+	task, err := r.GetByID(id)
+	if err == nil && task != nil {
+		logChange(r.changeLog, "task", id, "update", []string{"updated_at"}, task, "", "")
+	}
+	return task, err
 }
 
 func (r *TaskRepository) Reorder(items []model.ReorderItem) error {

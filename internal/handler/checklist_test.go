@@ -16,9 +16,9 @@ func setupChecklistRouter(t *testing.T) (*testutil.TestClient, string) {
 	t.Helper()
 	db := testutil.SetupTestDB(t)
 	broker := sse.NewBroker()
-	checkRepo := repository.NewChecklistRepository(db)
+	checkRepo := repository.NewChecklistRepository(db, nil)
 	checkHandler := handler.NewChecklistHandler(checkRepo, broker)
-	taskRepo := repository.NewTaskRepository(db)
+	taskRepo := repository.NewTaskRepository(db, nil)
 
 	// Create a task to attach checklist items to.
 	task, err := taskRepo.Create(model.CreateTaskInput{Title: "Parent task"})

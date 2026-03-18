@@ -8,11 +8,12 @@ import (
 )
 
 type HeadingRepository struct {
-	db *sql.DB
+	db        *sql.DB
+	changeLog *ChangeLogRepository
 }
 
-func NewHeadingRepository(db *sql.DB) *HeadingRepository {
-	return &HeadingRepository{db: db}
+func NewHeadingRepository(db *sql.DB, changeLog *ChangeLogRepository) *HeadingRepository {
+	return &HeadingRepository{db: db, changeLog: changeLog}
 }
 
 func (r *HeadingRepository) ListByProject(projectID string) ([]model.Heading, error) {
@@ -51,6 +52,7 @@ func (r *HeadingRepository) Create(projectID string, input model.CreateHeadingIn
 	var h model.Heading
 	_ = r.db.QueryRow("SELECT id, title, project_id, sort_order FROM headings WHERE id = ?", id).
 		Scan(&h.ID, &h.Title, &h.ProjectID, &h.SortOrder)
+	logChange(r.changeLog, "heading", id, "create", nil, &h, "", "")
 	return &h, nil
 }
 
@@ -72,11 +74,17 @@ func (r *HeadingRepository) Update(id string, input model.UpdateHeadingInput) (*
 	if err == sql.ErrNoRows {
 		return nil, nil
 	}
+	if err == nil {
+		logChange(r.changeLog, "heading", id, "update", nil, &h, "", "")
+	}
 	return &h, err
 }
 
 func (r *HeadingRepository) Delete(id string) error {
 	_, err := r.db.Exec("DELETE FROM headings WHERE id = ?", id)
+	if err == nil {
+		logChange(r.changeLog, "heading", id, "delete", nil, map[string]string{"id": id}, "", "")
+	}
 	return err
 }
 

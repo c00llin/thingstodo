@@ -8,11 +8,12 @@ import (
 )
 
 type AttachmentRepository struct {
-	db *sql.DB
+	db        *sql.DB
+	changeLog *ChangeLogRepository
 }
 
-func NewAttachmentRepository(db *sql.DB) *AttachmentRepository {
-	return &AttachmentRepository{db: db}
+func NewAttachmentRepository(db *sql.DB, changeLog *ChangeLogRepository) *AttachmentRepository {
+	return &AttachmentRepository{db: db, changeLog: changeLog}
 }
 
 func (r *AttachmentRepository) ListByTask(taskID string) ([]model.Attachment, error) {
@@ -63,7 +64,11 @@ func (r *AttachmentRepository) Create(taskID string, input model.CreateAttachmen
 		return nil, fmt.Errorf("create attachment: %w", err)
 	}
 
-	return r.GetByID(id)
+	attachment, err := r.GetByID(id)
+	if err == nil && attachment != nil {
+		logChange(r.changeLog, "attachment", id, "create", nil, attachment, "", "")
+	}
+	return attachment, err
 }
 
 func (r *AttachmentRepository) Update(id string, input model.UpdateAttachmentInput) (*model.Attachment, error) {
@@ -77,11 +82,18 @@ func (r *AttachmentRepository) Update(id string, input model.UpdateAttachmentInp
 			return nil, fmt.Errorf("update attachment sort_order: %w", err)
 		}
 	}
-	return r.GetByID(id)
+	attachment, err := r.GetByID(id)
+	if err == nil && attachment != nil {
+		logChange(r.changeLog, "attachment", id, "update", nil, attachment, "", "")
+	}
+	return attachment, err
 }
 
 func (r *AttachmentRepository) Delete(id string) error {
 	_, err := r.db.Exec("DELETE FROM attachments WHERE id = ?", id)
+	if err == nil {
+		logChange(r.changeLog, "attachment", id, "delete", nil, map[string]string{"id": id}, "", "")
+	}
 	return err
 }
 

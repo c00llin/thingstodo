@@ -9,11 +9,12 @@ import (
 )
 
 type RepeatRuleRepository struct {
-	db *sql.DB
+	db        *sql.DB
+	changeLog *ChangeLogRepository
 }
 
-func NewRepeatRuleRepository(db *sql.DB) *RepeatRuleRepository {
-	return &RepeatRuleRepository{db: db}
+func NewRepeatRuleRepository(db *sql.DB, changeLog *ChangeLogRepository) *RepeatRuleRepository {
+	return &RepeatRuleRepository{db: db, changeLog: changeLog}
 }
 
 func (r *RepeatRuleRepository) GetByTask(taskID string) (*model.RepeatRule, error) {
@@ -61,11 +62,21 @@ func (r *RepeatRuleRepository) Upsert(taskID string, input model.CreateRepeatRul
 	if err != nil {
 		return nil, fmt.Errorf("upsert repeat rule: %w", err)
 	}
-	return r.GetByTask(taskID)
+	rule, err := r.GetByTask(taskID)
+	if err == nil && rule != nil {
+		logChange(r.changeLog, "repeat_rule", rule.ID, "upsert", nil, rule, "", "")
+	}
+	return rule, err
 }
 
 func (r *RepeatRuleRepository) DeleteByTask(taskID string) error {
+	// Capture the ID before deleting for the change log
+	var ruleID string
+	_ = r.db.QueryRow("SELECT id FROM repeat_rules WHERE task_id = ?", taskID).Scan(&ruleID)
 	_, err := r.db.Exec("DELETE FROM repeat_rules WHERE task_id = ?", taskID)
+	if err == nil && ruleID != "" {
+		logChange(r.changeLog, "repeat_rule", ruleID, "delete", nil, map[string]string{"id": ruleID, "task_id": taskID}, "", "")
+	}
 	return err
 }
 

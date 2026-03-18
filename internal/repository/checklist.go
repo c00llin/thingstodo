@@ -8,11 +8,12 @@ import (
 )
 
 type ChecklistRepository struct {
-	db *sql.DB
+	db        *sql.DB
+	changeLog *ChangeLogRepository
 }
 
-func NewChecklistRepository(db *sql.DB) *ChecklistRepository {
-	return &ChecklistRepository{db: db}
+func NewChecklistRepository(db *sql.DB, changeLog *ChangeLogRepository) *ChecklistRepository {
+	return &ChecklistRepository{db: db, changeLog: changeLog}
 }
 
 func (r *ChecklistRepository) ListByTask(taskID string) ([]model.ChecklistItem, error) {
@@ -55,6 +56,7 @@ func (r *ChecklistRepository) Create(taskID string, input model.CreateChecklistI
 	_ = r.db.QueryRow("SELECT id, title, completed, sort_order FROM checklist_items WHERE id = ?", id).
 		Scan(&c.ID, &c.Title, &completed, &c.SortOrder)
 	c.Completed = completed == 1
+	logChange(r.changeLog, "checklist_item", id, "create", nil, &c, "", "")
 	return &c, nil
 }
 
@@ -77,10 +79,16 @@ func (r *ChecklistRepository) Update(id string, input model.UpdateChecklistInput
 		return nil, nil
 	}
 	c.Completed = completed == 1
+	if err == nil {
+		logChange(r.changeLog, "checklist_item", id, "update", nil, &c, "", "")
+	}
 	return &c, err
 }
 
 func (r *ChecklistRepository) Delete(id string) error {
 	_, err := r.db.Exec("DELETE FROM checklist_items WHERE id = ?", id)
+	if err == nil {
+		logChange(r.changeLog, "checklist_item", id, "delete", nil, map[string]string{"id": id}, "", "")
+	}
 	return err
 }

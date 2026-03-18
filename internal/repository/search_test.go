@@ -10,7 +10,7 @@ import (
 
 func TestSearchByTitle(t *testing.T) {
 	db := testutil.SetupTestDB(t)
-	taskRepo := repository.NewTaskRepository(db)
+	taskRepo := repository.NewTaskRepository(db, nil)
 	searchRepo := repository.NewSearchRepository(db)
 
 	_, _ = taskRepo.Create(model.CreateTaskInput{Title: "Buy groceries at the store"})
@@ -30,7 +30,7 @@ func TestSearchByTitle(t *testing.T) {
 
 func TestSearchByNotes(t *testing.T) {
 	db := testutil.SetupTestDB(t)
-	taskRepo := repository.NewTaskRepository(db)
+	taskRepo := repository.NewTaskRepository(db, nil)
 	searchRepo := repository.NewSearchRepository(db)
 
 	_, _ = taskRepo.Create(model.CreateTaskInput{Title: "Shopping", Notes: "milk eggs bread butter"})
@@ -47,7 +47,7 @@ func TestSearchByNotes(t *testing.T) {
 
 func TestSearchNoResults(t *testing.T) {
 	db := testutil.SetupTestDB(t)
-	taskRepo := repository.NewTaskRepository(db)
+	taskRepo := repository.NewTaskRepository(db, nil)
 	searchRepo := repository.NewSearchRepository(db)
 
 	_, _ = taskRepo.Create(model.CreateTaskInput{Title: "Something"})
@@ -63,7 +63,7 @@ func TestSearchNoResults(t *testing.T) {
 
 func TestSearchSnippets(t *testing.T) {
 	db := testutil.SetupTestDB(t)
-	taskRepo := repository.NewTaskRepository(db)
+	taskRepo := repository.NewTaskRepository(db, nil)
 	searchRepo := repository.NewSearchRepository(db)
 
 	_, _ = taskRepo.Create(model.CreateTaskInput{Title: "Buy groceries", Notes: "Need to get milk"})
@@ -82,7 +82,7 @@ func TestSearchSnippets(t *testing.T) {
 
 func TestSearchLimit(t *testing.T) {
 	db := testutil.SetupTestDB(t)
-	taskRepo := repository.NewTaskRepository(db)
+	taskRepo := repository.NewTaskRepository(db, nil)
 	searchRepo := repository.NewSearchRepository(db)
 
 	for i := 0; i < 5; i++ {

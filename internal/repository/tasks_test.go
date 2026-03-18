@@ -12,7 +12,7 @@ func strPtr(s string) *string { return &s }
 
 func TestTaskCreate(t *testing.T) {
 	db := testutil.SetupTestDB(t)
-	repo := repository.NewTaskRepository(db)
+	repo := repository.NewTaskRepository(db, nil)
 
 	task, err := repo.Create(model.CreateTaskInput{
 		Title: "Buy groceries",
@@ -37,7 +37,7 @@ func TestTaskCreate(t *testing.T) {
 
 func TestTaskCreateWithProject(t *testing.T) {
 	db := testutil.SetupTestDB(t)
-	repo := repository.NewTaskRepository(db)
+	repo := repository.NewTaskRepository(db, nil)
 
 	// Create an area and project first.
 	_, _ = db.Exec("INSERT INTO areas (id, title) VALUES ('a1', 'Test Area')")
@@ -60,7 +60,7 @@ func TestTaskCreateWithProject(t *testing.T) {
 
 func TestTaskCreateWithTags(t *testing.T) {
 	db := testutil.SetupTestDB(t)
-	repo := repository.NewTaskRepository(db)
+	repo := repository.NewTaskRepository(db, nil)
 
 	_, _ = db.Exec("INSERT INTO tags (id, title) VALUES ('tag1', 'urgent')")
 	_, _ = db.Exec("INSERT INTO tags (id, title) VALUES ('tag2', 'home')")
@@ -79,7 +79,7 @@ func TestTaskCreateWithTags(t *testing.T) {
 
 func TestTaskGetByID(t *testing.T) {
 	db := testutil.SetupTestDB(t)
-	repo := repository.NewTaskRepository(db)
+	repo := repository.NewTaskRepository(db, nil)
 
 	created, err := repo.Create(model.CreateTaskInput{Title: "Test task"})
 	if err != nil {
@@ -100,7 +100,7 @@ func TestTaskGetByID(t *testing.T) {
 
 func TestTaskGetByIDNotFound(t *testing.T) {
 	db := testutil.SetupTestDB(t)
-	repo := repository.NewTaskRepository(db)
+	repo := repository.NewTaskRepository(db, nil)
 
 	task, err := repo.GetByID("nonexistent")
 	if err != nil {
@@ -113,7 +113,7 @@ func TestTaskGetByIDNotFound(t *testing.T) {
 
 func TestTaskUpdate(t *testing.T) {
 	db := testutil.SetupTestDB(t)
-	repo := repository.NewTaskRepository(db)
+	repo := repository.NewTaskRepository(db, nil)
 
 	created, _ := repo.Create(model.CreateTaskInput{Title: "Original"})
 
@@ -131,7 +131,7 @@ func TestTaskUpdate(t *testing.T) {
 
 func TestTaskDelete(t *testing.T) {
 	db := testutil.SetupTestDB(t)
-	repo := repository.NewTaskRepository(db)
+	repo := repository.NewTaskRepository(db, nil)
 
 	created, _ := repo.Create(model.CreateTaskInput{Title: "To delete"})
 
@@ -188,7 +188,7 @@ func TestTaskDelete(t *testing.T) {
 
 func TestTaskComplete(t *testing.T) {
 	db := testutil.SetupTestDB(t)
-	repo := repository.NewTaskRepository(db)
+	repo := repository.NewTaskRepository(db, nil)
 
 	created, _ := repo.Create(model.CreateTaskInput{Title: "To complete"})
 
@@ -206,7 +206,7 @@ func TestTaskComplete(t *testing.T) {
 
 func TestTaskCancel(t *testing.T) {
 	db := testutil.SetupTestDB(t)
-	repo := repository.NewTaskRepository(db)
+	repo := repository.NewTaskRepository(db, nil)
 
 	created, _ := repo.Create(model.CreateTaskInput{Title: "To cancel"})
 
@@ -224,7 +224,7 @@ func TestTaskCancel(t *testing.T) {
 
 func TestTaskWontDo(t *testing.T) {
 	db := testutil.SetupTestDB(t)
-	repo := repository.NewTaskRepository(db)
+	repo := repository.NewTaskRepository(db, nil)
 
 	created, _ := repo.Create(model.CreateTaskInput{Title: "Won't do"})
 
@@ -239,7 +239,7 @@ func TestTaskWontDo(t *testing.T) {
 
 func TestTaskReopen(t *testing.T) {
 	db := testutil.SetupTestDB(t)
-	repo := repository.NewTaskRepository(db)
+	repo := repository.NewTaskRepository(db, nil)
 
 	created, _ := repo.Create(model.CreateTaskInput{Title: "Reopen me"})
 	_, _ = repo.Complete(created.ID)
@@ -258,7 +258,7 @@ func TestTaskReopen(t *testing.T) {
 
 func TestTaskListEmpty(t *testing.T) {
 	db := testutil.SetupTestDB(t)
-	repo := repository.NewTaskRepository(db)
+	repo := repository.NewTaskRepository(db, nil)
 
 	tasks, err := repo.List(model.TaskFilters{})
 	if err != nil {
@@ -271,7 +271,7 @@ func TestTaskListEmpty(t *testing.T) {
 
 func TestTaskListAll(t *testing.T) {
 	db := testutil.SetupTestDB(t)
-	repo := repository.NewTaskRepository(db)
+	repo := repository.NewTaskRepository(db, nil)
 
 	_, _ = repo.Create(model.CreateTaskInput{Title: "Task 1"})
 	_, _ = repo.Create(model.CreateTaskInput{Title: "Task 2"})
@@ -288,7 +288,7 @@ func TestTaskListAll(t *testing.T) {
 
 func TestTaskListFilterByStatus(t *testing.T) {
 	db := testutil.SetupTestDB(t)
-	repo := repository.NewTaskRepository(db)
+	repo := repository.NewTaskRepository(db, nil)
 
 	t1, _ := repo.Create(model.CreateTaskInput{Title: "Open task"})
 	t2, _ := repo.Create(model.CreateTaskInput{Title: "Completed task"})
@@ -309,7 +309,7 @@ func TestTaskListFilterByStatus(t *testing.T) {
 
 func TestTaskListFilterByProject(t *testing.T) {
 	db := testutil.SetupTestDB(t)
-	repo := repository.NewTaskRepository(db)
+	repo := repository.NewTaskRepository(db, nil)
 
 	_, _ = db.Exec("INSERT INTO areas (id, title) VALUES ('a1', 'Test Area')")
 	_, _ = db.Exec("INSERT INTO projects (id, title, area_id) VALUES ('p1', 'Project 1', 'a1')")
@@ -330,7 +330,7 @@ func TestTaskListFilterByProject(t *testing.T) {
 
 func TestTaskListFilterByTag(t *testing.T) {
 	db := testutil.SetupTestDB(t)
-	repo := repository.NewTaskRepository(db)
+	repo := repository.NewTaskRepository(db, nil)
 
 	_, _ = db.Exec("INSERT INTO tags (id, title) VALUES ('tag1', 'urgent')")
 	_, _ = repo.Create(model.CreateTaskInput{Title: "Tagged", TagIDs: []string{"tag1"}})
@@ -350,7 +350,7 @@ func TestTaskListFilterByTag(t *testing.T) {
 
 func TestTaskListFilterByWhenDate(t *testing.T) {
 	db := testutil.SetupTestDB(t)
-	repo := repository.NewTaskRepository(db)
+	repo := repository.NewTaskRepository(db, nil)
 
 	_, _ = repo.Create(model.CreateTaskInput{Title: "Today", WhenDate: strPtr("2026-02-15")})
 	_, _ = repo.Create(model.CreateTaskInput{Title: "Tomorrow", WhenDate: strPtr("2026-02-16")})
@@ -370,7 +370,7 @@ func TestTaskListFilterByWhenDate(t *testing.T) {
 
 func TestTaskReorder(t *testing.T) {
 	db := testutil.SetupTestDB(t)
-	repo := repository.NewTaskRepository(db)
+	repo := repository.NewTaskRepository(db, nil)
 
 	t1, _ := repo.Create(model.CreateTaskInput{Title: "Task 1"})
 	t2, _ := repo.Create(model.CreateTaskInput{Title: "Task 2"})
@@ -395,7 +395,7 @@ func TestTaskReorder(t *testing.T) {
 
 func TestTaskReorderInvalidField(t *testing.T) {
 	db := testutil.SetupTestDB(t)
-	repo := repository.NewTaskRepository(db)
+	repo := repository.NewTaskRepository(db, nil)
 
 	t1, _ := repo.Create(model.CreateTaskInput{Title: "Task 1"})
 
@@ -409,7 +409,7 @@ func TestTaskReorderInvalidField(t *testing.T) {
 
 func TestTaskGetByIDWithChecklist(t *testing.T) {
 	db := testutil.SetupTestDB(t)
-	repo := repository.NewTaskRepository(db)
+	repo := repository.NewTaskRepository(db, nil)
 
 	created, _ := repo.Create(model.CreateTaskInput{Title: "With checklist"})
 	_, _ = db.Exec("INSERT INTO checklist_items (id, task_id, title, sort_order) VALUES ('c1', ?, 'Item 1', 1)", created.ID)
@@ -429,7 +429,7 @@ func TestTaskGetByIDWithChecklist(t *testing.T) {
 
 func TestTaskGetByIDWithAttachments(t *testing.T) {
 	db := testutil.SetupTestDB(t)
-	repo := repository.NewTaskRepository(db)
+	repo := repository.NewTaskRepository(db, nil)
 
 	created, _ := repo.Create(model.CreateTaskInput{Title: "With attachment"})
 	_, _ = db.Exec("INSERT INTO attachments (id, task_id, type, url, sort_order) VALUES ('a1', ?, 'link', 'https://example.com', 1)", created.ID)
@@ -448,7 +448,7 @@ func TestTaskGetByIDWithAttachments(t *testing.T) {
 
 func TestTaskListItemMetadata(t *testing.T) {
 	db := testutil.SetupTestDB(t)
-	repo := repository.NewTaskRepository(db)
+	repo := repository.NewTaskRepository(db, nil)
 
 	created, _ := repo.Create(model.CreateTaskInput{
 		Title: "With metadata",

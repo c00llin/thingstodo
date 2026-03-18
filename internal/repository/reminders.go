@@ -8,11 +8,12 @@ import (
 )
 
 type ReminderRepository struct {
-	db *sql.DB
+	db        *sql.DB
+	changeLog *ChangeLogRepository
 }
 
-func NewReminderRepository(db *sql.DB) *ReminderRepository {
-	return &ReminderRepository{db: db}
+func NewReminderRepository(db *sql.DB, changeLog *ChangeLogRepository) *ReminderRepository {
+	return &ReminderRepository{db: db, changeLog: changeLog}
 }
 
 func (r *ReminderRepository) ListByTask(taskID string) ([]model.Reminder, error) {
@@ -53,11 +54,15 @@ func (r *ReminderRepository) Create(taskID string, input model.CreateReminderInp
 	if err != nil {
 		return nil, fmt.Errorf("read back reminder: %w", err)
 	}
+	logChange(r.changeLog, "reminder", id, "create", nil, &rm, "", "")
 	return &rm, nil
 }
 
 func (r *ReminderRepository) Delete(id string) error {
 	_, err := r.db.Exec("DELETE FROM reminders WHERE id = ?", id)
+	if err == nil {
+		logChange(r.changeLog, "reminder", id, "delete", nil, map[string]string{"id": id}, "", "")
+	}
 	return err
 }
 

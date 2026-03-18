@@ -11,8 +11,8 @@ import (
 func setupTaskForAttachments(t *testing.T) (*repository.AttachmentRepository, string) {
 	t.Helper()
 	db := testutil.SetupTestDB(t)
-	attachRepo := repository.NewAttachmentRepository(db)
-	taskRepo := repository.NewTaskRepository(db)
+	attachRepo := repository.NewAttachmentRepository(db, nil)
+	taskRepo := repository.NewTaskRepository(db, nil)
 	task, err := taskRepo.Create(model.CreateTaskInput{Title: "Parent task"})
 	if err != nil {
 		t.Fatalf("failed to create task: %v", err)

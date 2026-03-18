@@ -15,7 +15,7 @@ func setupAreaRouter(t *testing.T) *testutil.TestClient {
 	t.Helper()
 	db := testutil.SetupTestDB(t)
 	broker := sse.NewBroker()
-	areaRepo := repository.NewAreaRepository(db)
+	areaRepo := repository.NewAreaRepository(db, nil)
 	areaHandler := handler.NewAreaHandler(areaRepo, broker)
 
 	r := chi.NewRouter()
