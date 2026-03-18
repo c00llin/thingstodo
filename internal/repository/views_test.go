@@ -11,7 +11,7 @@ import (
 
 func TestViewInboxShowsOnlyUnassignedOpenTasks(t *testing.T) {
 	db := testutil.SetupTestDB(t)
-	taskRepo := repository.NewTaskRepository(db)
+	taskRepo := repository.NewTaskRepository(db, nil)
 	viewRepo := repository.NewViewRepository(db)
 
 	// Inbox task: no project, no area, no when_date, status=open
@@ -42,7 +42,7 @@ func TestViewInboxShowsOnlyUnassignedOpenTasks(t *testing.T) {
 
 func TestViewInboxExcludesCompletedTasks(t *testing.T) {
 	db := testutil.SetupTestDB(t)
-	taskRepo := repository.NewTaskRepository(db)
+	taskRepo := repository.NewTaskRepository(db, nil)
 	viewRepo := repository.NewViewRepository(db)
 
 	task, _ := taskRepo.Create(model.CreateTaskInput{Title: "Done"})
@@ -70,7 +70,7 @@ func TestViewInboxEmpty(t *testing.T) {
 
 func TestViewTodayStructure(t *testing.T) {
 	db := testutil.SetupTestDB(t)
-	taskRepo := repository.NewTaskRepository(db)
+	taskRepo := repository.NewTaskRepository(db, nil)
 	viewRepo := repository.NewViewRepository(db)
 
 	today := time.Now().Format("2006-01-02")
@@ -78,7 +78,7 @@ func TestViewTodayStructure(t *testing.T) {
 
 	// Create a task with an evening schedule entry (start_time >= 18:00)
 	eveningTask, _ := taskRepo.Create(model.CreateTaskInput{Title: "Evening task", WhenDate: &today})
-	scheduleRepo := repository.NewScheduleRepository(db)
+	scheduleRepo := repository.NewScheduleRepository(db, nil)
 	startTime := "19:00"
 	endTime := "20:00"
 	_, _ = scheduleRepo.Create(eveningTask.ID, model.CreateTaskScheduleInput{
@@ -104,7 +104,7 @@ func TestViewTodayStructure(t *testing.T) {
 
 func TestViewLogbook(t *testing.T) {
 	db := testutil.SetupTestDB(t)
-	taskRepo := repository.NewTaskRepository(db)
+	taskRepo := repository.NewTaskRepository(db, nil)
 	viewRepo := repository.NewViewRepository(db)
 
 	t1, _ := taskRepo.Create(model.CreateTaskInput{Title: "Completed"})
@@ -148,7 +148,7 @@ func TestViewLogbookEmpty(t *testing.T) {
 
 func TestViewUpcoming(t *testing.T) {
 	db := testutil.SetupTestDB(t)
-	taskRepo := repository.NewTaskRepository(db)
+	taskRepo := repository.NewTaskRepository(db, nil)
 	viewRepo := repository.NewViewRepository(db)
 
 	tomorrow := time.Now().AddDate(0, 0, 1).Format("2006-01-02")

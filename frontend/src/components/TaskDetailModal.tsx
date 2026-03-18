@@ -2,7 +2,8 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import * as Checkbox from '@radix-ui/react-checkbox'
 import { Check } from 'lucide-react'
 import { useAppStore } from '../stores/app'
-import { useTask, useUpdateTask, useCompleteTask, useReopenTask } from '../hooks/queries'
+import { useUpdateTask, useCompleteTask, useReopenTask } from '../hooks/queries'
+import { useLocalTask } from '../hooks/localQueries'
 import { useResolveTags } from '../hooks/useResolveTags'
 import { useDetailShortcuts, detectHashTrigger } from '../hooks/useDetailShortcuts'
 import { TaskDetail } from './TaskDetail'
@@ -77,7 +78,7 @@ export function TaskDetailModal() {
 }
 
 function ModalContent({ taskId }: { taskId: string }) {
-  const { data: task } = useTask(taskId)
+  const task = useLocalTask(taskId)
   const updateTask = useUpdateTask()
   const completeTask = useCompleteTask()
   const reopenTask = useReopenTask()

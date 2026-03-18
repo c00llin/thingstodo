@@ -91,12 +91,13 @@ func main() {
 	}
 
 	// Start scheduler for repeating tasks + reminders
-	taskRepo := repository.NewTaskRepository(db)
-	ruleRepo := repository.NewRepeatRuleRepository(db)
-	checklistRepo := repository.NewChecklistRepository(db)
-	attachRepo := repository.NewAttachmentRepository(db)
-	scheduleRepo := repository.NewScheduleRepository(db)
-	reminderRepo := repository.NewReminderRepository(db)
+	changeLogRepo := repository.NewChangeLogRepository(db)
+	taskRepo := repository.NewTaskRepository(db, changeLogRepo)
+	ruleRepo := repository.NewRepeatRuleRepository(db, changeLogRepo)
+	checklistRepo := repository.NewChecklistRepository(db, changeLogRepo)
+	attachRepo := repository.NewAttachmentRepository(db, changeLogRepo)
+	scheduleRepo := repository.NewScheduleRepository(db, changeLogRepo)
+	reminderRepo := repository.NewReminderRepository(db, changeLogRepo)
 	settingsRepo := repository.NewUserSettingsRepository(db)
 	userRepo := repository.NewUserRepository(db)
 	pushSubRepo := repository.NewPushSubscriptionRepository(db)
@@ -104,7 +105,7 @@ func main() {
 	ntfySender := push.NewNtfySender(settingsRepo, userRepo)
 	notifier := push.NewDispatcher(pushSender, ntfySender, settingsRepo, userRepo)
 	log.Printf("timezone: %s", cfg.Location)
-	sched := scheduler.New(db, taskRepo, ruleRepo, checklistRepo, attachRepo, scheduleRepo, reminderRepo, settingsRepo, userRepo, notifier, broker, cfg.Location)
+	sched := scheduler.New(db, taskRepo, ruleRepo, checklistRepo, attachRepo, scheduleRepo, reminderRepo, settingsRepo, userRepo, changeLogRepo, notifier, broker, cfg.Location)
 	sched.Start()
 	defer sched.Stop()
 

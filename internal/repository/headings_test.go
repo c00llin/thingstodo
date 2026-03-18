@@ -11,8 +11,8 @@ import (
 func setupProjectForHeadings(t *testing.T) (*repository.HeadingRepository, string) {
 	t.Helper()
 	db := testutil.SetupTestDB(t)
-	headingRepo := repository.NewHeadingRepository(db)
-	projRepo := repository.NewProjectRepository(db)
+	headingRepo := repository.NewHeadingRepository(db, nil)
+	projRepo := repository.NewProjectRepository(db, nil)
 	areaID := createArea(t, db)
 	proj, err := projRepo.Create(model.CreateProjectInput{Title: "Test Project", AreaID: &areaID})
 	if err != nil {

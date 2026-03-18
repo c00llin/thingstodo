@@ -2,20 +2,22 @@ import { useState } from 'react'
 import { useParams, useNavigate } from 'react-router'
 import { AnimatePresence } from 'framer-motion'
 import { Trash2 } from 'lucide-react'
-import { useTagTasks, useTags, useDeleteTag, useSettings } from '../hooks/queries'
+import { useDeleteTag, useSettings } from '../hooks/queries'
+import { useLocalTagTasks, useLocalTags } from '../hooks/localQueries'
 import { TaskItem } from '../components/TaskItem'
 import { ConfirmDialog } from '../components/ConfirmDialog'
 
 export function TagView() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
-  const { data: tagsData } = useTags()
-  const { data, isLoading } = useTagTasks(id!)
+  const tags = useLocalTags()
+  const tasks = useLocalTagTasks(id!)
+  const isLoading = tasks === undefined
   const { data: settings } = useSettings()
   const deleteTag = useDeleteTag()
   const [showDelete, setShowDelete] = useState(false)
 
-  const tag = tagsData?.tags.find((t) => t.id === id)
+  const tag = tags?.find((t) => t.id === id)
 
   if (isLoading) {
     return (
@@ -40,13 +42,13 @@ export function TagView() {
           </button>
         )}
       </div>
-      {!data?.tasks || data.tasks.length === 0 ? (
+      {!tasks || tasks.length === 0 ? (
         <p className="py-12 text-center text-sm text-neutral-400">
           No tasks with this tag.
         </p>
       ) : (
         <AnimatePresence initial={false}>
-          {data.tasks.map((task) => (
+          {tasks.map((task) => (
             <TaskItem key={task.id} task={task} showDivider />
           ))}
         </AnimatePresence>

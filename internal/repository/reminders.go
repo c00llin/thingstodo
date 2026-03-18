@@ -8,16 +8,40 @@ import (
 )
 
 type ReminderRepository struct {
-	db *sql.DB
+	db        *sql.DB
+	changeLog *ChangeLogRepository
 }
 
-func NewReminderRepository(db *sql.DB) *ReminderRepository {
-	return &ReminderRepository{db: db}
+func NewReminderRepository(db *sql.DB, changeLog *ChangeLogRepository) *ReminderRepository {
+	return &ReminderRepository{db: db, changeLog: changeLog}
 }
 
 func (r *ReminderRepository) ListByTask(taskID string) ([]model.Reminder, error) {
 	rows, err := r.db.Query(
 		"SELECT id, type, value, exact_at, created_at FROM reminders WHERE task_id = ? ORDER BY created_at", taskID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var items []model.Reminder
+	for rows.Next() {
+		var rm model.Reminder
+		if err := rows.Scan(&rm.ID, &rm.Type, &rm.Value, &rm.ExactAt, &rm.CreatedAt); err != nil {
+			return nil, fmt.Errorf("scan reminder: %w", err)
+		}
+		items = append(items, rm)
+	}
+	if items == nil {
+		items = []model.Reminder{}
+	}
+	return items, rows.Err()
+}
+
+// ListAll returns all reminders across all tasks.
+func (r *ReminderRepository) ListAll() ([]model.Reminder, error) {
+	rows, err := r.db.Query(
+		"SELECT id, type, value, exact_at, created_at FROM reminders ORDER BY created_at")
 	if err != nil {
 		return nil, err
 	}
@@ -53,11 +77,15 @@ func (r *ReminderRepository) Create(taskID string, input model.CreateReminderInp
 	if err != nil {
 		return nil, fmt.Errorf("read back reminder: %w", err)
 	}
+	logChange(r.changeLog, "reminder", id, "create", nil, &rm, "", "")
 	return &rm, nil
 }
 
 func (r *ReminderRepository) Delete(id string) error {
 	_, err := r.db.Exec("DELETE FROM reminders WHERE id = ?", id)
+	if err == nil {
+		logChange(r.changeLog, "reminder", id, "delete", nil, map[string]string{"id": id}, "", "")
+	}
 	return err
 }
 

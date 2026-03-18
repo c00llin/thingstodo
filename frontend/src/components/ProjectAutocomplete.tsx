@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { createPortal } from 'react-dom'
-import { useProjects, useAreas } from '../hooks/queries'
+import { useLocalProjects, useLocalAreas } from '../hooks/localQueries'
 
 interface ProjectAutocompleteProps {
   inputRef: React.RefObject<HTMLInputElement | null>
@@ -47,8 +47,8 @@ function getDollarToken(
 }
 
 export function ProjectAutocomplete({ inputRef, value, onChange }: ProjectAutocompleteProps) {
-  const { data: projectsData } = useProjects()
-  const { data: areasData } = useAreas()
+  const projectsArr = useLocalProjects()
+  const areasArr = useLocalAreas()
   const [open, setOpen] = useState(false)
   const [highlightIndex, setHighlightIndex] = useState(0)
   const [token, setToken] = useState<{ start: number; partial: string } | null>(null)
@@ -57,9 +57,9 @@ export function ProjectAutocomplete({ inputRef, value, onChange }: ProjectAutoco
   const dropdownRef = useRef<HTMLDivElement>(null)
 
   const allItems: AutocompleteItem[] = useMemo(() => [
-    ...(projectsData?.projects ?? []).map((p) => ({ id: p.id, title: p.title, type: 'project' as const })),
-    ...(areasData?.areas ?? []).map((a) => ({ id: a.id, title: a.title, type: 'area' as const })),
-  ], [projectsData, areasData])
+    ...(projectsArr ?? []).map((p) => ({ id: p.id, title: p.title, type: 'project' as const })),
+    ...(areasArr ?? []).map((a) => ({ id: a.id, title: a.title, type: 'area' as const })),
+  ], [projectsArr, areasArr])
 
   const knownNames = useMemo(() => allItems.map((i) => i.title), [allItems])
   const hasItems = allItems.length > 0

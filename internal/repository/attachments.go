@@ -8,16 +8,40 @@ import (
 )
 
 type AttachmentRepository struct {
-	db *sql.DB
+	db        *sql.DB
+	changeLog *ChangeLogRepository
 }
 
-func NewAttachmentRepository(db *sql.DB) *AttachmentRepository {
-	return &AttachmentRepository{db: db}
+func NewAttachmentRepository(db *sql.DB, changeLog *ChangeLogRepository) *AttachmentRepository {
+	return &AttachmentRepository{db: db, changeLog: changeLog}
 }
 
 func (r *AttachmentRepository) ListByTask(taskID string) ([]model.Attachment, error) {
 	rows, err := r.db.Query(
 		"SELECT id, type, title, url, mime_type, file_size, sort_order, created_at FROM attachments WHERE task_id = ? ORDER BY sort_order", taskID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var items []model.Attachment
+	for rows.Next() {
+		var a model.Attachment
+		if err := rows.Scan(&a.ID, &a.Type, &a.Title, &a.URL, &a.MimeType, &a.FileSize, &a.SortOrder, &a.CreatedAt); err != nil {
+			return nil, fmt.Errorf("scan attachment: %w", err)
+		}
+		items = append(items, a)
+	}
+	if items == nil {
+		items = []model.Attachment{}
+	}
+	return items, rows.Err()
+}
+
+// ListAll returns all attachments across all tasks.
+func (r *AttachmentRepository) ListAll() ([]model.Attachment, error) {
+	rows, err := r.db.Query(
+		"SELECT id, type, title, url, mime_type, file_size, sort_order, created_at FROM attachments ORDER BY sort_order")
 	if err != nil {
 		return nil, err
 	}
@@ -63,7 +87,11 @@ func (r *AttachmentRepository) Create(taskID string, input model.CreateAttachmen
 		return nil, fmt.Errorf("create attachment: %w", err)
 	}
 
-	return r.GetByID(id)
+	attachment, err := r.GetByID(id)
+	if err == nil && attachment != nil {
+		logChange(r.changeLog, "attachment", id, "create", nil, attachment, "", "")
+	}
+	return attachment, err
 }
 
 func (r *AttachmentRepository) Update(id string, input model.UpdateAttachmentInput) (*model.Attachment, error) {
@@ -77,11 +105,18 @@ func (r *AttachmentRepository) Update(id string, input model.UpdateAttachmentInp
 			return nil, fmt.Errorf("update attachment sort_order: %w", err)
 		}
 	}
-	return r.GetByID(id)
+	attachment, err := r.GetByID(id)
+	if err == nil && attachment != nil {
+		logChange(r.changeLog, "attachment", id, "update", nil, attachment, "", "")
+	}
+	return attachment, err
 }
 
 func (r *AttachmentRepository) Delete(id string) error {
 	_, err := r.db.Exec("DELETE FROM attachments WHERE id = ?", id)
+	if err == nil {
+		logChange(r.changeLog, "attachment", id, "delete", nil, map[string]string{"id": id}, "", "")
+	}
 	return err
 }
 

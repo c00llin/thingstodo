@@ -8,16 +8,40 @@ import (
 )
 
 type HeadingRepository struct {
-	db *sql.DB
+	db        *sql.DB
+	changeLog *ChangeLogRepository
 }
 
-func NewHeadingRepository(db *sql.DB) *HeadingRepository {
-	return &HeadingRepository{db: db}
+func NewHeadingRepository(db *sql.DB, changeLog *ChangeLogRepository) *HeadingRepository {
+	return &HeadingRepository{db: db, changeLog: changeLog}
 }
 
 func (r *HeadingRepository) ListByProject(projectID string) ([]model.Heading, error) {
 	rows, err := r.db.Query(
 		"SELECT id, title, project_id, sort_order FROM headings WHERE project_id = ? ORDER BY sort_order", projectID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var headings []model.Heading
+	for rows.Next() {
+		var h model.Heading
+		if err := rows.Scan(&h.ID, &h.Title, &h.ProjectID, &h.SortOrder); err != nil {
+			return nil, fmt.Errorf("scan heading: %w", err)
+		}
+		headings = append(headings, h)
+	}
+	if headings == nil {
+		headings = []model.Heading{}
+	}
+	return headings, rows.Err()
+}
+
+// ListAll returns all headings across all projects.
+func (r *HeadingRepository) ListAll() ([]model.Heading, error) {
+	rows, err := r.db.Query(
+		"SELECT id, title, project_id, sort_order FROM headings ORDER BY sort_order")
 	if err != nil {
 		return nil, err
 	}
@@ -51,6 +75,7 @@ func (r *HeadingRepository) Create(projectID string, input model.CreateHeadingIn
 	var h model.Heading
 	_ = r.db.QueryRow("SELECT id, title, project_id, sort_order FROM headings WHERE id = ?", id).
 		Scan(&h.ID, &h.Title, &h.ProjectID, &h.SortOrder)
+	logChange(r.changeLog, "heading", id, "create", nil, &h, "", "")
 	return &h, nil
 }
 
@@ -72,11 +97,17 @@ func (r *HeadingRepository) Update(id string, input model.UpdateHeadingInput) (*
 	if err == sql.ErrNoRows {
 		return nil, nil
 	}
+	if err == nil {
+		logChange(r.changeLog, "heading", id, "update", nil, &h, "", "")
+	}
 	return &h, err
 }
 
 func (r *HeadingRepository) Delete(id string) error {
 	_, err := r.db.Exec("DELETE FROM headings WHERE id = ?", id)
+	if err == nil {
+		logChange(r.changeLog, "heading", id, "delete", nil, map[string]string{"id": id}, "", "")
+	}
 	return err
 }
 

@@ -1,12 +1,13 @@
 import { useEffect } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
-import { useInbox } from '../hooks/queries'
+import { useLocalInbox } from '../hooks/localQueries'
 import { SortableTaskList } from '../components/SortableTaskList'
 import { TaskItem } from '../components/TaskItem'
 import { useAppStore } from '../stores/app'
 
 export function InboxView() {
-  const { data, isLoading } = useInbox()
+  const data = useLocalInbox()
+  const isLoading = data === undefined
   const hasTasks = (data?.tasks.length ?? 0) > 0
   const hasReview = (data?.review.length ?? 0) > 0
   const selectionSection = useAppStore((s) => s.selectionSection)

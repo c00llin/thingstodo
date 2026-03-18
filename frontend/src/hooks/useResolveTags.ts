@@ -1,5 +1,6 @@
 import { useCallback } from 'react'
-import { useTags, useCreateTag, useProjects, useAreas } from './queries'
+import { useCreateTag } from './queries'
+import { useLocalTags, useLocalProjects, useLocalAreas } from './localQueries'
 import { parseTitleTokens } from '../lib/parse-tags'
 import { isSiYuanTag } from '../lib/siyuan'
 
@@ -9,9 +10,9 @@ import { isSiYuanTag } from '../lib/siyuan'
  * and returns the clean title + tag IDs + project/area IDs.
  */
 export function useResolveTags() {
-  const { data: tagsData } = useTags()
-  const { data: projectsData } = useProjects()
-  const { data: areasData } = useAreas()
+  const tagsArr = useLocalTags()
+  const projectsArr = useLocalProjects()
+  const areasArr = useLocalAreas()
   const createTag = useCreateTag()
 
   const resolve = useCallback(
@@ -21,8 +22,8 @@ export function useResolveTags() {
       projectId: string | null
       areaId: string | null
     }> => {
-      const projects = projectsData?.projects ?? []
-      const areas = areasData?.areas ?? []
+      const projects = projectsArr ?? []
+      const areas = areasArr ?? []
       const knownNames = [
         ...projects.map((p) => p.title),
         ...areas.map((a) => a.title),
@@ -31,7 +32,7 @@ export function useResolveTags() {
       const { title, tagNames, projectRef } = parseTitleTokens(input, knownNames)
 
       // Resolve tags
-      const existingTags = tagsData?.tags ?? []
+      const existingTags = tagsArr ?? []
       const ids: string[] = []
       for (const name of tagNames) {
         if (isSiYuanTag(name)) continue
@@ -70,7 +71,7 @@ export function useResolveTags() {
 
       return { title, tagIds: ids, projectId, areaId }
     },
-    [tagsData, projectsData, areasData, createTag],
+    [tagsArr, projectsArr, areasArr, createTag],
   )
 
   return resolve

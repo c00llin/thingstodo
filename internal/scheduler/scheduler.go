@@ -24,6 +24,7 @@ type Scheduler struct {
 	reminderRepo  *repository.ReminderRepository
 	settingsRepo  *repository.UserSettingsRepository
 	userRepo      *repository.UserRepository
+	changeLogRepo *repository.ChangeLogRepository
 	pushSender    push.Notifier
 	broker        *sse.Broker
 	db            *sql.DB
@@ -31,7 +32,7 @@ type Scheduler struct {
 	loc           *time.Location
 }
 
-func New(db *sql.DB, taskRepo *repository.TaskRepository, ruleRepo *repository.RepeatRuleRepository, checklistRepo *repository.ChecklistRepository, attachRepo *repository.AttachmentRepository, scheduleRepo *repository.ScheduleRepository, reminderRepo *repository.ReminderRepository, settingsRepo *repository.UserSettingsRepository, userRepo *repository.UserRepository, pushSender push.Notifier, broker *sse.Broker, loc *time.Location) *Scheduler {
+func New(db *sql.DB, taskRepo *repository.TaskRepository, ruleRepo *repository.RepeatRuleRepository, checklistRepo *repository.ChecklistRepository, attachRepo *repository.AttachmentRepository, scheduleRepo *repository.ScheduleRepository, reminderRepo *repository.ReminderRepository, settingsRepo *repository.UserSettingsRepository, userRepo *repository.UserRepository, changeLogRepo *repository.ChangeLogRepository, pushSender push.Notifier, broker *sse.Broker, loc *time.Location) *Scheduler {
 	return &Scheduler{
 		cron:          cron.New(),
 		taskRepo:      taskRepo,
@@ -42,6 +43,7 @@ func New(db *sql.DB, taskRepo *repository.TaskRepository, ruleRepo *repository.R
 		reminderRepo:  reminderRepo,
 		settingsRepo:  settingsRepo,
 		userRepo:      userRepo,
+		changeLogRepo: changeLogRepo,
 		pushSender:    pushSender,
 		broker:        broker,
 		db:            db,
@@ -57,8 +59,22 @@ func (s *Scheduler) Start() {
 	if _, err := s.cron.AddFunc("@every 1m", s.processReminders); err != nil {
 		log.Printf("scheduler: failed to add reminder cron: %v", err)
 	}
+	if _, err := s.cron.AddFunc("@daily", s.purgeChangeLog); err != nil {
+		log.Printf("scheduler: failed to add change log purge cron: %v", err)
+	}
 	s.cron.Start()
 	log.Println("scheduler started")
+}
+
+func (s *Scheduler) purgeChangeLog() {
+	purged, err := s.changeLogRepo.PurgeOlderThan(90)
+	if err != nil {
+		log.Printf("change log purge error: %v", err)
+		return
+	}
+	if purged > 0 {
+		log.Printf("purged %d old change log entries", purged)
+	}
 }
 
 func (s *Scheduler) Stop() {

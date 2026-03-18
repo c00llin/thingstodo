@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react'
 import { Tag, X, Check, Plus } from 'lucide-react'
-import { useTags, useCreateTag, useUpdateTask } from '../hooks/queries'
+import { useCreateTag, useUpdateTask } from '../hooks/queries'
+import { useLocalTags } from '../hooks/localQueries'
 import { getTagPillClasses } from '../lib/tag-colors'
 import type { TaskDetail } from '../api/types'
 
@@ -38,8 +39,7 @@ export function TagMultiSelect(props: TagMultiSelectProps) {
   const ref = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
   const listRef = useRef<HTMLDivElement>(null)
-  const { data: tagsData } = useTags()
-  const allTags = tagsData?.tags
+  const allTags = useLocalTags()
   const updateTask = useUpdateTask()
   const createTag = useCreateTag()
 

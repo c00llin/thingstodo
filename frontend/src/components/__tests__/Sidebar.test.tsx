@@ -1,8 +1,21 @@
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, waitFor } from '../../test/test-utils'
 import { Sidebar } from '../Sidebar'
+import { mockArea, mockProject, mockTag, mockViewCounts } from '../../test/mocks/data'
+
+// Use the auto-mock for all localQueries hooks
+vi.mock('../../hooks/localQueries')
+import { useLocalViewCounts, useLocalAreas, useLocalProjects, useLocalTags } from '../../hooks/localQueries'
 
 describe('Sidebar', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    vi.mocked(useLocalViewCounts).mockReturnValue(mockViewCounts)
+    vi.mocked(useLocalAreas).mockReturnValue([mockArea])
+    vi.mocked(useLocalProjects).mockReturnValue([mockProject])
+    vi.mocked(useLocalTags).mockReturnValue([mockTag])
+  })
+
   it('renders all smart list nav items', async () => {
     render(<Sidebar />)
 
@@ -29,14 +42,12 @@ describe('Sidebar', () => {
   it('renders Areas & Projects section', async () => {
     render(<Sidebar />)
     await waitFor(() => {
-      // The section header uses &amp; in JSX but renders as &
       expect(screen.getByText(/Areas/)).toBeInTheDocument()
     })
   })
 
   it('renders projects from API', async () => {
     render(<Sidebar />)
-    // MSW returns mockProject with title "Website Redesign"
     await waitFor(() => {
       expect(screen.getByText('Website Redesign')).toBeInTheDocument()
     })
@@ -44,7 +55,6 @@ describe('Sidebar', () => {
 
   it('renders areas from API', async () => {
     render(<Sidebar />)
-    // MSW returns mockArea with title "Work"
     await waitFor(() => {
       expect(screen.getByText('Work')).toBeInTheDocument()
     })

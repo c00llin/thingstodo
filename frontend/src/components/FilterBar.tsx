@@ -14,7 +14,7 @@ import {
 } from 'lucide-react'
 import { useFilterStore, type DateFilter } from '../stores/filters'
 import { useAppStore } from '../stores/app'
-import { useAreas, useProjects, useTags } from '../hooks/queries'
+import { useLocalAreas, useLocalProjects, useLocalTags } from '../hooks/localQueries'
 import { hasFilters } from '../lib/filter-tasks'
 import { CalendarPicker } from './CalendarPicker'
 import { SaveViewModal } from './SaveViewModal'
@@ -116,21 +116,21 @@ export function FilterBar({ availableFields, viewName }: FilterBarProps) {
   const [expanded, setExpanded] = useState(false)
   const [saveModalOpen, setSaveModalOpen] = useState(false)
 
-  const { data: areasData } = useAreas()
-  const { data: projectsData } = useProjects()
-  const { data: tagsData } = useTags()
+  const areasArr = useLocalAreas()
+  const projectsArr = useLocalProjects()
+  const tagsArr = useLocalTags()
 
-  const allAreas = useMemo(() => areasData?.areas ?? [], [areasData?.areas])
+  const allAreas = useMemo(() => areasArr ?? [], [areasArr])
   const allProjects = useMemo(() => {
-    const projects = projectsData?.projects ?? []
+    const projects = projectsArr ?? []
     // Cascade: when areas are selected, scope projects to those areas
     if (selectedAreas.length > 0) {
       return projects.filter((p) => selectedAreas.includes(p.area_id))
     }
     return projects
-  }, [projectsData?.projects, selectedAreas])
+  }, [projectsArr, selectedAreas])
 
-  const allTags = useMemo(() => tagsData?.tags ?? [], [tagsData?.tags])
+  const allTags = useMemo(() => tagsArr ?? [], [tagsArr])
 
   // Auto-remove orphaned project selections when areas change
   useEffect(() => {
@@ -175,9 +175,9 @@ export function FilterBar({ availableFields, viewName }: FilterBarProps) {
     })
   }
   if (selectedProjects.length > 0) {
-    const names = (projectsData?.projects ?? [])
-      .filter((p) => selectedProjects.includes(p.id))
-      .map((p) => p.title)
+    const names = (projectsArr ?? [])
+      .filter((p: { id: string; title: string }) => selectedProjects.includes(p.id))
+      .map((p: { id: string; title: string }) => p.title)
     chips.push({
       key: 'projects',
       label: names.join(', '),

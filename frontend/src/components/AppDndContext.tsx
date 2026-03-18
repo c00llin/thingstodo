@@ -20,7 +20,8 @@ import { updateProject, reorderProjects } from '../api/projects'
 import { reorderAreas } from '../api/areas'
 import { reorderTags } from '../api/tags'
 import { useQueryClient } from '@tanstack/react-query'
-import { useProjects, useAreas, useTags, updateTaskInCache, queryKeys } from '../hooks/queries'
+import { updateTaskInCache, queryKeys } from '../hooks/queries'
+import { useLocalProjects, useLocalAreas, useLocalTags } from '../hooks/localQueries'
 import type { Task, Tag, Area, Project, SortField } from '../api/types'
 
 /** Optimistically reorder a task in all cached view data.
@@ -154,12 +155,12 @@ function AppDndContextInner({ children }: AppDndContextProps) {
   const [activeTask, setActiveTask] = useState<Task | null>(null)
   const [activeProjectName, setActiveProjectName] = useState<string | null>(null)
   const [draggedTaskIds, setDraggedTaskIds] = useState<Set<string>>(new Set())
-  const { data: projectsData } = useProjects()
-  const projects = useMemo(() => projectsData?.projects ?? [], [projectsData?.projects])
-  const { data: areasData } = useAreas()
-  const areas = useMemo(() => areasData?.areas ?? [], [areasData?.areas])
-  const { data: tagsData } = useTags()
-  const allTags = useMemo(() => tagsData?.tags ?? [], [tagsData?.tags])
+  const projectsArr = useLocalProjects()
+  const projects = useMemo(() => projectsArr ?? [], [projectsArr])
+  const areasArr = useLocalAreas()
+  const areas = useMemo(() => areasArr ?? [], [areasArr])
+  const tagsArr = useLocalTags()
+  const allTags = useMemo(() => tagsArr ?? [], [tagsArr])
   const queryClient = useQueryClient()
   const registry = useSortableListRegistry()
   const projectDndGenRef = useRef(0)

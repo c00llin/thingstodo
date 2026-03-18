@@ -30,21 +30,22 @@ func New(db *sql.DB, cfg config.Config, broker *sse.Broker, sched *scheduler.Sch
 	r.Use(mw.Logger)
 
 	// Repositories
-	taskRepo := repository.NewTaskRepository(db)
-	projectRepo := repository.NewProjectRepository(db)
-	areaRepo := repository.NewAreaRepository(db)
-	tagRepo := repository.NewTagRepository(db)
-	headingRepo := repository.NewHeadingRepository(db)
-	checklistRepo := repository.NewChecklistRepository(db)
-	attachmentRepo := repository.NewAttachmentRepository(db)
-	repeatRuleRepo := repository.NewRepeatRuleRepository(db)
+	changeLogRepo := repository.NewChangeLogRepository(db)
+	taskRepo := repository.NewTaskRepository(db, changeLogRepo)
+	projectRepo := repository.NewProjectRepository(db, changeLogRepo)
+	areaRepo := repository.NewAreaRepository(db, changeLogRepo)
+	tagRepo := repository.NewTagRepository(db, changeLogRepo)
+	headingRepo := repository.NewHeadingRepository(db, changeLogRepo)
+	checklistRepo := repository.NewChecklistRepository(db, changeLogRepo)
+	attachmentRepo := repository.NewAttachmentRepository(db, changeLogRepo)
+	repeatRuleRepo := repository.NewRepeatRuleRepository(db, changeLogRepo)
 	searchRepo := repository.NewSearchRepository(db)
 	viewRepo := repository.NewViewRepository(db)
 	userRepo := repository.NewUserRepository(db)
 	settingsRepo := repository.NewUserSettingsRepository(db)
 	savedFilterRepo := repository.NewSavedFilterRepository(db)
-	scheduleRepo := repository.NewScheduleRepository(db)
-	reminderRepo := repository.NewReminderRepository(db)
+	scheduleRepo := repository.NewScheduleRepository(db, changeLogRepo)
+	reminderRepo := repository.NewReminderRepository(db, changeLogRepo)
 	pushSubRepo := repository.NewPushSubscriptionRepository(db)
 
 	// Handlers
@@ -67,6 +68,7 @@ func New(db *sql.DB, cfg config.Config, broker *sse.Broker, sched *scheduler.Sch
 	ntfySender := push.NewNtfySender(settingsRepo, userRepo)
 	notifier := push.NewDispatcher(pushSender, ntfySender, settingsRepo, userRepo)
 	pushSubH := handler.NewPushSubscriptionHandler(pushSubRepo, cfg, notifier)
+	syncH := handler.NewSyncHandler(changeLogRepo, taskRepo, projectRepo, areaRepo, tagRepo, checklistRepo, headingRepo, attachmentRepo, scheduleRepo, reminderRepo, repeatRuleRepo)
 	eventH := handler.NewEventHandler(broker)
 
 	var oidcH *handler.OIDCHandler
@@ -222,6 +224,11 @@ func New(db *sql.DB, cfg config.Config, broker *sse.Broker, sched *scheduler.Sch
 
 			// Search
 			r.Get("/search", searchH.Search)
+
+			// Sync
+			r.Get("/sync/pull", syncH.Pull)
+			r.Post("/sync/push", syncH.Push)
+			r.Get("/sync/full", syncH.Full)
 		})
 	})
 

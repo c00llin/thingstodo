@@ -2,7 +2,7 @@ import { useState, useMemo } from 'react'
 import { AnimatePresence } from 'framer-motion'
 import { ChevronRight } from 'lucide-react'
 import { format } from 'date-fns'
-import { useUpcoming } from '../hooks/queries'
+import { useLocalUpcoming } from '../hooks/localQueries'
 import { TaskGroup } from '../components/TaskGroup'
 import { TaskItem } from '../components/TaskItem'
 import { FilterBar, FilterToggleButton, FilterEmptyState } from '../components/FilterBar'
@@ -70,7 +70,8 @@ function groupDateSections(dates: UpcomingViewDate[]): Section[] {
 }
 
 export function UpcomingView() {
-  const { data, isLoading } = useUpcoming()
+  const data = useLocalUpcoming()
+  const isLoading = data === undefined
   const filterBarOpen = useAppStore((s) => s.filterBarOpen)
   const filters = useFilterStore()
   const active = hasFilters(filters)

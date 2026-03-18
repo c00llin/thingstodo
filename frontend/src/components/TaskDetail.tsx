@@ -6,7 +6,6 @@ import { DateInput } from './DateInput'
 import { ConfirmDialog } from './ConfirmDialog'
 import { ScheduleEditor } from './ScheduleEditor'
 import {
-  useTask,
   useUpdateTask,
   useCreateChecklistItem,
   useUpdateChecklistItem,
@@ -21,6 +20,7 @@ import {
   useCreateReminder,
   useDeleteReminder,
 } from '../hooks/queries'
+import { useLocalTask } from '../hooks/localQueries'
 import { useAppStore } from '../stores/app'
 import { getFileUrl } from '../api/attachments'
 import { RepeatRulePicker } from './RepeatRulePicker'
@@ -36,7 +36,8 @@ interface TaskDetailProps {
 }
 
 export function TaskDetail({ taskId, isModal, toolbarPortalEl }: TaskDetailProps) {
-  const { data: task, isLoading } = useTask(taskId)
+  const task = useLocalTask(taskId)
+  const isLoading = task === undefined
   const { data: settings } = useSettings()
   const updateTask = useUpdateTask()
   const deleteTask = useDeleteTask()

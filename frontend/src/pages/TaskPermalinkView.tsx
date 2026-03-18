@@ -1,12 +1,12 @@
 import { useParams } from 'react-router'
-import { useTask } from '../hooks/queries'
+import { useLocalTask } from '../hooks/localQueries'
 import { TaskDetail } from '../components/TaskDetail'
 import { useEffect } from 'react'
 import { useAppStore } from '../stores/app'
 
 export function TaskPermalinkView() {
   const { slug } = useParams<{ slug: string }>()
-  const { data: task, isLoading, error } = useTask(slug!)
+  const task = useLocalTask(slug!)
   const expandTask = useAppStore((s) => s.expandTask)
 
   useEffect(() => {
@@ -14,18 +14,10 @@ export function TaskPermalinkView() {
     return () => expandTask(null)
   }, [slug, expandTask])
 
-  if (isLoading) {
+  if (!task) {
     return (
       <div className="px-4 pt-14 pb-48 md:px-6 md:pt-6">
         <p className="text-sm text-neutral-400">Loading...</p>
-      </div>
-    )
-  }
-
-  if (error || !task) {
-    return (
-      <div className="px-4 pt-14 pb-48 md:px-6 md:pt-6">
-        <p className="text-sm text-neutral-500">Task not found.</p>
       </div>
     )
   }

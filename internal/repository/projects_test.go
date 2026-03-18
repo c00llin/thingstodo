@@ -13,7 +13,7 @@ import (
 // createArea is a test helper that creates an area and returns its ID.
 func createArea(t *testing.T, db *sql.DB) string {
 	t.Helper()
-	repo := repository.NewAreaRepository(db)
+	repo := repository.NewAreaRepository(db, nil)
 	area, err := repo.Create(model.CreateAreaInput{Title: "Test Area"})
 	if err != nil {
 		t.Fatalf("failed to create area: %v", err)
@@ -23,7 +23,7 @@ func createArea(t *testing.T, db *sql.DB) string {
 
 func TestProjectCreate(t *testing.T) {
 	db := testutil.SetupTestDB(t)
-	repo := repository.NewProjectRepository(db)
+	repo := repository.NewProjectRepository(db, nil)
 	areaID := createArea(t, db)
 
 	p, err := repo.Create(model.CreateProjectInput{Title: "My Project", Notes: "Some notes", AreaID: &areaID})
@@ -43,8 +43,8 @@ func TestProjectCreate(t *testing.T) {
 
 func TestProjectCreateWithArea(t *testing.T) {
 	db := testutil.SetupTestDB(t)
-	repo := repository.NewProjectRepository(db)
-	areaRepo := repository.NewAreaRepository(db)
+	repo := repository.NewProjectRepository(db, nil)
+	areaRepo := repository.NewAreaRepository(db, nil)
 
 	area, _ := areaRepo.Create(model.CreateAreaInput{Title: "Work"})
 	p, err := repo.Create(model.CreateProjectInput{Title: "Work Project", AreaID: &area.ID})
@@ -61,7 +61,7 @@ func TestProjectCreateWithArea(t *testing.T) {
 
 func TestProjectCreateRequiresArea(t *testing.T) {
 	db := testutil.SetupTestDB(t)
-	repo := repository.NewProjectRepository(db)
+	repo := repository.NewProjectRepository(db, nil)
 
 	_, err := repo.Create(model.CreateProjectInput{Title: "No Area"})
 	if err == nil {
@@ -71,7 +71,7 @@ func TestProjectCreateRequiresArea(t *testing.T) {
 
 func TestProjectGetByID(t *testing.T) {
 	db := testutil.SetupTestDB(t)
-	repo := repository.NewProjectRepository(db)
+	repo := repository.NewProjectRepository(db, nil)
 	areaID := createArea(t, db)
 
 	created, _ := repo.Create(model.CreateProjectInput{Title: "Test", AreaID: &areaID})
@@ -89,7 +89,7 @@ func TestProjectGetByID(t *testing.T) {
 
 func TestProjectGetByIDNotFound(t *testing.T) {
 	db := testutil.SetupTestDB(t)
-	repo := repository.NewProjectRepository(db)
+	repo := repository.NewProjectRepository(db, nil)
 
 	p, err := repo.GetByID("nonexistent")
 	if err != nil {
@@ -102,8 +102,8 @@ func TestProjectGetByIDNotFound(t *testing.T) {
 
 func TestProjectGetByIDWithTasks(t *testing.T) {
 	db := testutil.SetupTestDB(t)
-	projRepo := repository.NewProjectRepository(db)
-	taskRepo := repository.NewTaskRepository(db)
+	projRepo := repository.NewProjectRepository(db, nil)
+	taskRepo := repository.NewTaskRepository(db, nil)
 	areaID := createArea(t, db)
 
 	created, _ := projRepo.Create(model.CreateProjectInput{Title: "With Tasks", AreaID: &areaID})
@@ -121,9 +121,9 @@ func TestProjectGetByIDWithTasks(t *testing.T) {
 
 func TestProjectGetByIDWithHeadings(t *testing.T) {
 	db := testutil.SetupTestDB(t)
-	projRepo := repository.NewProjectRepository(db)
-	headingRepo := repository.NewHeadingRepository(db)
-	taskRepo := repository.NewTaskRepository(db)
+	projRepo := repository.NewProjectRepository(db, nil)
+	headingRepo := repository.NewHeadingRepository(db, nil)
+	taskRepo := repository.NewTaskRepository(db, nil)
 	areaID := createArea(t, db)
 
 	created, _ := projRepo.Create(model.CreateProjectInput{Title: "With Headings", AreaID: &areaID})
@@ -145,7 +145,7 @@ func TestProjectGetByIDWithHeadings(t *testing.T) {
 
 func TestProjectUpdate(t *testing.T) {
 	db := testutil.SetupTestDB(t)
-	repo := repository.NewProjectRepository(db)
+	repo := repository.NewProjectRepository(db, nil)
 	areaID := createArea(t, db)
 
 	created, _ := repo.Create(model.CreateProjectInput{Title: "Original", AreaID: &areaID})
@@ -161,8 +161,8 @@ func TestProjectUpdate(t *testing.T) {
 
 func TestProjectUpdateArea(t *testing.T) {
 	db := testutil.SetupTestDB(t)
-	repo := repository.NewProjectRepository(db)
-	areaRepo := repository.NewAreaRepository(db)
+	repo := repository.NewProjectRepository(db, nil)
+	areaRepo := repository.NewAreaRepository(db, nil)
 
 	area1, _ := areaRepo.Create(model.CreateAreaInput{Title: "Area 1"})
 	area2, _ := areaRepo.Create(model.CreateAreaInput{Title: "Area 2"})
@@ -196,7 +196,7 @@ func TestProjectUpdateArea(t *testing.T) {
 
 func TestProjectDelete(t *testing.T) {
 	db := testutil.SetupTestDB(t)
-	repo := repository.NewProjectRepository(db)
+	repo := repository.NewProjectRepository(db, nil)
 	areaID := createArea(t, db)
 
 	created, _ := repo.Create(model.CreateProjectInput{Title: "To delete", AreaID: &areaID})
@@ -212,7 +212,7 @@ func TestProjectDelete(t *testing.T) {
 
 func TestProjectComplete(t *testing.T) {
 	db := testutil.SetupTestDB(t)
-	repo := repository.NewProjectRepository(db)
+	repo := repository.NewProjectRepository(db, nil)
 	areaID := createArea(t, db)
 
 	created, _ := repo.Create(model.CreateProjectInput{Title: "To complete", AreaID: &areaID})
@@ -227,7 +227,7 @@ func TestProjectComplete(t *testing.T) {
 
 func TestProjectListEmpty(t *testing.T) {
 	db := testutil.SetupTestDB(t)
-	repo := repository.NewProjectRepository(db)
+	repo := repository.NewProjectRepository(db, nil)
 
 	projects, err := repo.List(nil, nil)
 	if err != nil {
@@ -240,8 +240,8 @@ func TestProjectListEmpty(t *testing.T) {
 
 func TestProjectListFilterByArea(t *testing.T) {
 	db := testutil.SetupTestDB(t)
-	projRepo := repository.NewProjectRepository(db)
-	areaRepo := repository.NewAreaRepository(db)
+	projRepo := repository.NewProjectRepository(db, nil)
+	areaRepo := repository.NewAreaRepository(db, nil)
 
 	area1, _ := areaRepo.Create(model.CreateAreaInput{Title: "Work"})
 	area2, _ := areaRepo.Create(model.CreateAreaInput{Title: "Personal"})
@@ -259,7 +259,7 @@ func TestProjectListFilterByArea(t *testing.T) {
 
 func TestProjectListFilterByStatus(t *testing.T) {
 	db := testutil.SetupTestDB(t)
-	repo := repository.NewProjectRepository(db)
+	repo := repository.NewProjectRepository(db, nil)
 	areaID := createArea(t, db)
 
 	p1, _ := repo.Create(model.CreateProjectInput{Title: "Open", AreaID: &areaID})
@@ -275,8 +275,8 @@ func TestProjectListFilterByStatus(t *testing.T) {
 
 func TestProjectTaskProgress(t *testing.T) {
 	db := testutil.SetupTestDB(t)
-	projRepo := repository.NewProjectRepository(db)
-	taskRepo := repository.NewTaskRepository(db)
+	projRepo := repository.NewProjectRepository(db, nil)
+	taskRepo := repository.NewTaskRepository(db, nil)
 	areaID := createArea(t, db)
 
 	created, _ := projRepo.Create(model.CreateProjectInput{Title: "Progress", AreaID: &areaID})

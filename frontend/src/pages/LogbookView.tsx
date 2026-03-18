@@ -1,7 +1,6 @@
 import { useState, useMemo } from 'react'
 import { Trash2 } from 'lucide-react'
-import { useQueryClient } from '@tanstack/react-query'
-import { useLogbook } from '../hooks/queries'
+import { useLocalLogbook } from '../hooks/localQueries'
 import { TaskGroup } from '../components/TaskGroup'
 import { ConfirmDialog } from '../components/ConfirmDialog'
 import { FilterBar, FilterToggleButton, FilterEmptyState } from '../components/FilterBar'
@@ -10,14 +9,14 @@ import { useAppStore } from '../stores/app'
 import { useFilterStore } from '../stores/filters'
 import { filterLogbookGroups, hasFilters } from '../lib/filter-tasks'
 import { formatRelativeDate } from '../lib/format-date'
-import { deleteTask } from '../api/tasks'
+import { deleteTask } from '../db/mutations'
 
 export function LogbookView() {
-  const { data, isLoading } = useLogbook()
+  const data = useLocalLogbook()
+  const isLoading = data === undefined
   const filterBarOpen = useAppStore((s) => s.filterBarOpen)
   const filters = useFilterStore()
   const active = hasFilters(filters)
-  const queryClient = useQueryClient()
   const [trashing, setTrashing] = useState(false)
   const [showConfirm, setShowConfirm] = useState(false)
 
@@ -33,7 +32,6 @@ export function LogbookView() {
     setShowConfirm(false)
     setTrashing(true)
     await Promise.all(allTasks.map((t) => deleteTask(t.id)))
-    queryClient.invalidateQueries({ queryKey: ['views'] })
     setTrashing(false)
   }
 

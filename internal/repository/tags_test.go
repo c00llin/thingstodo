@@ -10,7 +10,7 @@ import (
 
 func TestTagCreate(t *testing.T) {
 	db := testutil.SetupTestDB(t)
-	repo := repository.NewTagRepository(db)
+	repo := repository.NewTagRepository(db, nil)
 
 	tag, err := repo.Create(model.CreateTagInput{Title: "urgent"})
 	if err != nil {
@@ -23,7 +23,7 @@ func TestTagCreate(t *testing.T) {
 
 func TestTagCreateUniqueness(t *testing.T) {
 	db := testutil.SetupTestDB(t)
-	repo := repository.NewTagRepository(db)
+	repo := repository.NewTagRepository(db, nil)
 
 	_, _ = repo.Create(model.CreateTagInput{Title: "urgent"})
 	_, err := repo.Create(model.CreateTagInput{Title: "urgent"})
@@ -34,7 +34,7 @@ func TestTagCreateUniqueness(t *testing.T) {
 
 func TestTagCreateWithParent(t *testing.T) {
 	db := testutil.SetupTestDB(t)
-	repo := repository.NewTagRepository(db)
+	repo := repository.NewTagRepository(db, nil)
 
 	parent, _ := repo.Create(model.CreateTagInput{Title: "context"})
 	child, err := repo.Create(model.CreateTagInput{Title: "work", ParentTagID: &parent.ID})
@@ -48,7 +48,7 @@ func TestTagCreateWithParent(t *testing.T) {
 
 func TestTagUpdate(t *testing.T) {
 	db := testutil.SetupTestDB(t)
-	repo := repository.NewTagRepository(db)
+	repo := repository.NewTagRepository(db, nil)
 
 	created, _ := repo.Create(model.CreateTagInput{Title: "old"})
 	newTitle := "new"
@@ -63,7 +63,7 @@ func TestTagUpdate(t *testing.T) {
 
 func TestTagDelete(t *testing.T) {
 	db := testutil.SetupTestDB(t)
-	repo := repository.NewTagRepository(db)
+	repo := repository.NewTagRepository(db, nil)
 
 	created, _ := repo.Create(model.CreateTagInput{Title: "to delete"})
 	err := repo.Delete(created.ID)
@@ -78,8 +78,8 @@ func TestTagDelete(t *testing.T) {
 
 func TestTagDeleteCascadesJunctionRows(t *testing.T) {
 	db := testutil.SetupTestDB(t)
-	tagRepo := repository.NewTagRepository(db)
-	taskRepo := repository.NewTaskRepository(db)
+	tagRepo := repository.NewTagRepository(db, nil)
+	taskRepo := repository.NewTaskRepository(db, nil)
 
 	tag, _ := tagRepo.Create(model.CreateTagInput{Title: "temp"})
 	task, _ := taskRepo.Create(model.CreateTaskInput{Title: "Task", TagIDs: []string{tag.ID}})
@@ -98,7 +98,7 @@ func TestTagDeleteCascadesJunctionRows(t *testing.T) {
 
 func TestTagListEmpty(t *testing.T) {
 	db := testutil.SetupTestDB(t)
-	repo := repository.NewTagRepository(db)
+	repo := repository.NewTagRepository(db, nil)
 
 	tags, err := repo.List()
 	if err != nil {
@@ -111,8 +111,8 @@ func TestTagListEmpty(t *testing.T) {
 
 func TestTagListWithTaskCount(t *testing.T) {
 	db := testutil.SetupTestDB(t)
-	tagRepo := repository.NewTagRepository(db)
-	taskRepo := repository.NewTaskRepository(db)
+	tagRepo := repository.NewTagRepository(db, nil)
+	taskRepo := repository.NewTaskRepository(db, nil)
 
 	tag, _ := tagRepo.Create(model.CreateTagInput{Title: "important"})
 	_, _ = taskRepo.Create(model.CreateTaskInput{Title: "Task 1", TagIDs: []string{tag.ID}})
@@ -129,8 +129,8 @@ func TestTagListWithTaskCount(t *testing.T) {
 
 func TestTagGetTasksByTag(t *testing.T) {
 	db := testutil.SetupTestDB(t)
-	tagRepo := repository.NewTagRepository(db)
-	taskRepo := repository.NewTaskRepository(db)
+	tagRepo := repository.NewTagRepository(db, nil)
+	taskRepo := repository.NewTaskRepository(db, nil)
 
 	tag, _ := tagRepo.Create(model.CreateTagInput{Title: "work"})
 	_, _ = taskRepo.Create(model.CreateTaskInput{Title: "Work task", TagIDs: []string{tag.ID}})

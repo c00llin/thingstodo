@@ -1,7 +1,8 @@
 import { useState, useMemo } from 'react'
 import { AlertTriangle, X } from 'lucide-react'
 import { useFilterStore, type FilterState } from '../stores/filters'
-import { useAreas, useProjects, useTags, useSavedFilters, useDeleteSavedFilter } from '../hooks/queries'
+import { useSavedFilters, useDeleteSavedFilter } from '../hooks/queries'
+import { useLocalAreas, useLocalProjects, useLocalTags } from '../hooks/localQueries'
 import { ConfirmDialog } from './ConfirmDialog'
 import type { SavedFilter } from '../api/types'
 
@@ -14,17 +15,17 @@ export function SavedFiltersBar({ viewName }: SavedFiltersBarProps) {
   const deleteMutation = useDeleteSavedFilter(viewName)
   const activeFilterId = useFilterStore((s) => s.activeFilterId)
   const applyFilterConfig = useFilterStore((s) => s.applyFilterConfig)
-  const { data: areasData } = useAreas()
-  const { data: projectsData } = useProjects()
-  const { data: tagsData } = useTags()
+  const areasArr = useLocalAreas()
+  const projectsArr = useLocalProjects()
+  const tagsArr = useLocalTags()
 
   const [confirmDelete, setConfirmDelete] = useState<SavedFilter | null>(null)
 
   const savedFilters = data?.saved_filters ?? []
 
-  const validAreaIds = useMemo(() => new Set((areasData?.areas ?? []).map((a) => a.id)), [areasData?.areas])
-  const validProjectIds = useMemo(() => new Set((projectsData?.projects ?? []).map((p) => p.id)), [projectsData?.projects])
-  const validTagIds = useMemo(() => new Set((tagsData?.tags ?? []).map((t) => t.id)), [tagsData?.tags])
+  const validAreaIds = useMemo(() => new Set((areasArr ?? []).map((a) => a.id)), [areasArr])
+  const validProjectIds = useMemo(() => new Set((projectsArr ?? []).map((p) => p.id)), [projectsArr])
+  const validTagIds = useMemo(() => new Set((tagsArr ?? []).map((t) => t.id)), [tagsArr])
 
   if (isLoading || savedFilters.length === 0) return null
 
