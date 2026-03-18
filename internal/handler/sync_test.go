@@ -111,7 +111,7 @@ func TestSyncPullReturnsChanges(t *testing.T) {
 func TestSyncPullSinceCursor(t *testing.T) {
 	client, changeLog, _ := setupSyncRouter(t)
 
-	changeLog.AppendChange("task", "t1", "create", nil, `{"id":"t1"}`, "", "")
+	_, _ = changeLog.AppendChange("task", "t1", "create", nil, `{"id":"t1"}`, "", "")
 	seq2, _ := changeLog.AppendChange("task", "t2", "create", nil, `{"id":"t2"}`, "", "")
 	_ = seq2
 
@@ -135,7 +135,7 @@ func TestSyncPullHasMore(t *testing.T) {
 
 	// Insert 3 changes
 	for i := 0; i < 3; i++ {
-		changeLog.AppendChange("task", fmt.Sprintf("t%d", i), "create", nil, fmt.Sprintf(`{"id":"t%d"}`, i), "", "")
+		_, _ = changeLog.AppendChange("task", fmt.Sprintf("t%d", i), "create", nil, fmt.Sprintf(`{"id":"t%d"}`, i), "", "")
 	}
 
 	// Pull with limit=2 should have has_more=true
