@@ -24,6 +24,7 @@ const queryClient = new QueryClient({
     queries: {
       staleTime: 1000 * 30,
       retry: 1,
+      networkMode: 'offlineFirst', // use cached data when offline, fetch when online
     },
     mutations: {
       networkMode: 'always', // local-first: writes go to IndexedDB first
