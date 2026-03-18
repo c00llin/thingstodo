@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import { queryKeys, invalidateViewQueries } from './queries'
 import { useAppStore } from '../stores/app'
+import { syncNow } from '../sync/engine'
 
 function dismissToast(toast: HTMLElement) {
   toast.style.animation = 'toast-out 0.2s ease-in forwards'
@@ -173,6 +174,9 @@ export function useSSE() {
             break
           }
         }
+
+        // Keep local IndexedDB in sync when server pushes events
+        syncNow().catch(() => {})
       }
 
       const eventTypes: SSEEventType[] = [

@@ -33,36 +33,11 @@ export default defineConfig({
       },
       workbox: {
         importScripts: ['/sw-push.js'],
+        // Precache app shell (HTML, CSS, JS, assets) — data is handled by IndexedDB
         globPatterns: ['**/*.{js,css,html,svg,png,ico,woff,woff2}'],
         navigateFallback: 'index.html',
         navigateFallbackDenylist: [/^\/api\//],
-        runtimeCaching: [
-          {
-            urlPattern: ({ url, request }) =>
-              url.pathname.startsWith('/api/') &&
-              request.method === 'GET' &&
-              !url.pathname.startsWith('/api/events') &&
-              !url.pathname.startsWith('/api/auth/') &&
-              !url.pathname.startsWith('/api/search') &&
-              !url.pathname.startsWith('/api/attachments/'),
-            handler: 'NetworkFirst',
-            options: {
-              cacheName: 'api-data',
-              networkTimeoutSeconds: 3,
-              expiration: { maxEntries: 200, maxAgeSeconds: 86400 },
-              cacheableResponse: { statuses: [0, 200] },
-            },
-          },
-          {
-            urlPattern: /\/api\/attachments\/[^/]+\/file$/,
-            handler: 'CacheFirst',
-            options: {
-              cacheName: 'attachment-files',
-              expiration: { maxEntries: 100, maxAgeSeconds: 2592000 },
-              cacheableResponse: { statuses: [0, 200] },
-            },
-          },
-        ],
+        // No runtimeCaching for API endpoints — local-first sync via IndexedDB handles data
       },
     }),
   ],
