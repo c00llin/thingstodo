@@ -228,7 +228,7 @@ export function useLocalAnytime(): AnytimeView | undefined {
       )
       .toArray()
 
-    return buildAnytimeShape(tasks) as AnytimeView
+    return await buildAnytimeShape(tasks) as AnytimeView
   })
 }
 
@@ -244,7 +244,7 @@ export function useLocalSomeday(): SomedayView | undefined {
       .filter((t) => t.status === 'open' && !t.deleted_at)
       .toArray()
 
-    return buildAnytimeShape(tasks) as SomedayView
+    return await buildAnytimeShape(tasks) as unknown as SomedayView
   })
 }
 
@@ -254,9 +254,28 @@ export function useLocalSomeday(): SomedayView | undefined {
  * it does NOT load additional DB data; project/area names come from the
  * task's denormalized project_name / area_name fields.
  */
-function buildAnytimeShape(
+async function buildAnytimeShape(
   rawTasks: LocalTask[],
-): AnytimeView {
+): Promise<AnytimeView> {
+  // Collect unique area/project IDs and look up titles
+  const areaIds = new Set<string>()
+  const projectIds = new Set<string>()
+  for (const t of rawTasks) {
+    if (t.area_id) areaIds.add(t.area_id)
+    if (t.project_id) projectIds.add(t.project_id)
+  }
+
+  const areaTitles = new Map<string, string>()
+  const projectTitles = new Map<string, string>()
+  for (const aId of areaIds) {
+    const area = await localDb.areas.get(aId)
+    if (area) areaTitles.set(aId, area.title)
+  }
+  for (const pId of projectIds) {
+    const project = await localDb.projects.get(pId)
+    if (project) projectTitles.set(pId, project.title)
+  }
+
   // Group by area_id, then project_id
   const areaMap = new Map<string | null, Map<string | null, LocalTask[]>>()
 
@@ -275,12 +294,12 @@ function buildAnytimeShape(
   // Tasks that belong to areas
   for (const [aId, pMap] of areaMap.entries()) {
     if (aId === null) continue
-    const areaName = rawTasks.find((t) => t.area_id === aId)?.area_name ?? aId
+    const areaName = areaTitles.get(aId) ?? aId
 
     const projects: AnytimeViewProjectGroup[] = []
     for (const [pId, ptasks] of pMap.entries()) {
       if (pId === null) continue
-      const projName = ptasks[0]?.project_name ?? pId
+      const projName = projectTitles.get(pId) ?? pId
       projects.push({
         project: { id: pId, title: projName },
         tasks: ptasks.map(taskToPlain),
@@ -305,7 +324,7 @@ function buildAnytimeShape(
       if (pId === null) {
         noAreaStandalone.push(...ptasks.map(taskToPlain))
       } else {
-        const projName = ptasks[0]?.project_name ?? pId
+        const projName = projectTitles.get(pId) ?? pId
         noAreaProjects.push({
           project: { id: pId, title: projName },
           tasks: ptasks.map(taskToPlain),
