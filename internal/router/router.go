@@ -68,7 +68,7 @@ func New(db *sql.DB, cfg config.Config, broker *sse.Broker, sched *scheduler.Sch
 	ntfySender := push.NewNtfySender(settingsRepo, userRepo)
 	notifier := push.NewDispatcher(pushSender, ntfySender, settingsRepo, userRepo)
 	pushSubH := handler.NewPushSubscriptionHandler(pushSubRepo, cfg, notifier)
-	syncH := handler.NewSyncHandler(changeLogRepo, taskRepo, projectRepo, areaRepo, tagRepo, checklistRepo, headingRepo)
+	syncH := handler.NewSyncHandler(changeLogRepo, taskRepo, projectRepo, areaRepo, tagRepo, checklistRepo, headingRepo, attachmentRepo, scheduleRepo, reminderRepo, repeatRuleRepo)
 	eventH := handler.NewEventHandler(broker)
 
 	var oidcH *handler.OIDCHandler
@@ -228,6 +228,7 @@ func New(db *sql.DB, cfg config.Config, broker *sse.Broker, sched *scheduler.Sch
 			// Sync
 			r.Get("/sync/pull", syncH.Pull)
 			r.Post("/sync/push", syncH.Push)
+			r.Get("/sync/full", syncH.Full)
 		})
 	})
 

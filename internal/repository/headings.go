@@ -38,6 +38,29 @@ func (r *HeadingRepository) ListByProject(projectID string) ([]model.Heading, er
 	return headings, rows.Err()
 }
 
+// ListAll returns all headings across all projects.
+func (r *HeadingRepository) ListAll() ([]model.Heading, error) {
+	rows, err := r.db.Query(
+		"SELECT id, title, project_id, sort_order FROM headings ORDER BY sort_order")
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var headings []model.Heading
+	for rows.Next() {
+		var h model.Heading
+		if err := rows.Scan(&h.ID, &h.Title, &h.ProjectID, &h.SortOrder); err != nil {
+			return nil, fmt.Errorf("scan heading: %w", err)
+		}
+		headings = append(headings, h)
+	}
+	if headings == nil {
+		headings = []model.Heading{}
+	}
+	return headings, rows.Err()
+}
+
 func (r *HeadingRepository) Create(projectID string, input model.CreateHeadingInput) (*model.Heading, error) {
 	id := model.NewID()
 	var maxSort float64

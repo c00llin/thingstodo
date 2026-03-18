@@ -105,7 +105,7 @@ func main() {
 	ntfySender := push.NewNtfySender(settingsRepo, userRepo)
 	notifier := push.NewDispatcher(pushSender, ntfySender, settingsRepo, userRepo)
 	log.Printf("timezone: %s", cfg.Location)
-	sched := scheduler.New(db, taskRepo, ruleRepo, checklistRepo, attachRepo, scheduleRepo, reminderRepo, settingsRepo, userRepo, notifier, broker, cfg.Location)
+	sched := scheduler.New(db, taskRepo, ruleRepo, checklistRepo, attachRepo, scheduleRepo, reminderRepo, settingsRepo, userRepo, changeLogRepo, notifier, broker, cfg.Location)
 	sched.Start()
 	defer sched.Stop()
 

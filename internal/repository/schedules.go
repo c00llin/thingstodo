@@ -38,6 +38,29 @@ func (r *ScheduleRepository) ListByTask(taskID string) ([]model.TaskSchedule, er
 	return items, rows.Err()
 }
 
+// ListAll returns all task schedules across all tasks.
+func (r *ScheduleRepository) ListAll() ([]model.TaskSchedule, error) {
+	rows, err := r.db.Query(
+		"SELECT id, when_date, start_time, end_time, completed, sort_order FROM task_schedules ORDER BY sort_order")
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var items []model.TaskSchedule
+	for rows.Next() {
+		var s model.TaskSchedule
+		if err := rows.Scan(&s.ID, &s.WhenDate, &s.StartTime, &s.EndTime, &s.Completed, &s.SortOrder); err != nil {
+			return nil, fmt.Errorf("scan schedule: %w", err)
+		}
+		items = append(items, s)
+	}
+	if items == nil {
+		items = []model.TaskSchedule{}
+	}
+	return items, rows.Err()
+}
+
 func (r *ScheduleRepository) Create(taskID string, input model.CreateTaskScheduleInput) (*model.TaskSchedule, error) {
 	id := model.NewID()
 	var maxSort float64

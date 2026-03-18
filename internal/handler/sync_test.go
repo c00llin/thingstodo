@@ -26,13 +26,16 @@ func setupSyncRouter(t *testing.T) (*testutil.TestClient, *repository.ChangeLogR
 
 	scheduleRepo := repository.NewScheduleRepository(db, changeLogRepo)
 	reminderRepo := repository.NewReminderRepository(db, changeLogRepo)
+	attachmentRepo := repository.NewAttachmentRepository(db, changeLogRepo)
+	repeatRuleRepo := repository.NewRepeatRuleRepository(db, changeLogRepo)
 	settingsRepo := repository.NewUserSettingsRepository(db)
 
-	syncH := handler.NewSyncHandler(changeLogRepo, taskRepo, projectRepo, areaRepo, tagRepo, checklistRepo, headingRepo)
+	syncH := handler.NewSyncHandler(changeLogRepo, taskRepo, projectRepo, areaRepo, tagRepo, checklistRepo, headingRepo, attachmentRepo, scheduleRepo, reminderRepo, repeatRuleRepo)
 
 	r := chi.NewRouter()
 	r.Get("/api/sync/pull", syncH.Pull)
 	r.Post("/api/sync/push", syncH.Push)
+	r.Get("/api/sync/full", syncH.Full)
 
 	// Also mount task endpoints so we can create test data
 	broker := sse.NewBroker()

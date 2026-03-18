@@ -84,6 +84,19 @@ func (r *ChangeLogRepository) GetLatestSeq() (int64, error) {
 	return seq.Int64, nil
 }
 
+// GetOldestSeq returns the lowest seq in the change log, or 0 if the table is empty.
+func (r *ChangeLogRepository) GetOldestSeq() (int64, error) {
+	var seq sql.NullInt64
+	err := r.db.QueryRow(`SELECT MIN(seq) FROM change_log`).Scan(&seq)
+	if err != nil {
+		return 0, err
+	}
+	if !seq.Valid {
+		return 0, nil
+	}
+	return seq.Int64, nil
+}
+
 // PurgeOlderThan deletes entries older than the given number of days and returns the count deleted.
 func (r *ChangeLogRepository) PurgeOlderThan(days int) (int64, error) {
 	result, err := r.db.Exec(

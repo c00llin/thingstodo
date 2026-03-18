@@ -18,13 +18,17 @@ const (
 
 // SyncHandler handles sync pull and push endpoints.
 type SyncHandler struct {
-	changeLog  *repository.ChangeLogRepository
-	tasks      *repository.TaskRepository
-	projects   *repository.ProjectRepository
-	areas      *repository.AreaRepository
-	tags       *repository.TagRepository
-	checklist  *repository.ChecklistRepository
-	headings   *repository.HeadingRepository
+	changeLog   *repository.ChangeLogRepository
+	tasks       *repository.TaskRepository
+	projects    *repository.ProjectRepository
+	areas       *repository.AreaRepository
+	tags        *repository.TagRepository
+	checklist   *repository.ChecklistRepository
+	headings    *repository.HeadingRepository
+	attachments *repository.AttachmentRepository
+	schedules   *repository.ScheduleRepository
+	reminders   *repository.ReminderRepository
+	repeatRules *repository.RepeatRuleRepository
 }
 
 // NewSyncHandler creates a new SyncHandler.
@@ -36,15 +40,23 @@ func NewSyncHandler(
 	tags *repository.TagRepository,
 	checklist *repository.ChecklistRepository,
 	headings *repository.HeadingRepository,
+	attachments *repository.AttachmentRepository,
+	schedules *repository.ScheduleRepository,
+	reminders *repository.ReminderRepository,
+	repeatRules *repository.RepeatRuleRepository,
 ) *SyncHandler {
 	return &SyncHandler{
-		changeLog: changeLog,
-		tasks:     tasks,
-		projects:  projects,
-		areas:     areas,
-		tags:      tags,
-		checklist: checklist,
-		headings:  headings,
+		changeLog:   changeLog,
+		tasks:       tasks,
+		projects:    projects,
+		areas:       areas,
+		tags:        tags,
+		checklist:   checklist,
+		headings:    headings,
+		attachments: attachments,
+		schedules:   schedules,
+		reminders:   reminders,
+		repeatRules: repeatRules,
 	}
 }
 
@@ -82,6 +94,21 @@ func (h *SyncHandler) Pull(w http.ResponseWriter, r *http.Request) {
 		limit = maxPullLimit
 	}
 
+	// Detect expired cursor: if the client has a cursor but the oldest entry in the
+	// change log is newer than that cursor, the history has been purged and the client
+	// must fall back to a full sync.
+	if since > 0 {
+		oldest, err := h.changeLog.GetOldestSeq()
+		if err != nil {
+			writeError(w, http.StatusInternalServerError, err.Error(), "INTERNAL")
+			return
+		}
+		if oldest > 0 && oldest > since {
+			writeError(w, http.StatusGone, "cursor expired: change log has been purged, perform a full sync", "CURSOR_EXPIRED")
+			return
+		}
+	}
+
 	// Fetch limit+1 to detect has_more
 	entries, err := h.changeLog.GetChangesSince(since, limit+1)
 	if err != nil {
@@ -105,6 +132,105 @@ func (h *SyncHandler) Pull(w http.ResponseWriter, r *http.Request) {
 		Changes: entries,
 		Cursor:  cursor,
 		HasMore: hasMore,
+	})
+}
+
+// FullSyncResponse is returned by GET /api/sync/full.
+type FullSyncResponse struct {
+	Tasks       interface{} `json:"tasks"`
+	Projects    interface{} `json:"projects"`
+	Areas       interface{} `json:"areas"`
+	Tags        interface{} `json:"tags"`
+	Headings    interface{} `json:"headings"`
+	Checklist   interface{} `json:"checklist"`
+	Attachments interface{} `json:"attachments"`
+	Schedules   interface{} `json:"schedules"`
+	Reminders   interface{} `json:"reminders"`
+	RepeatRules interface{} `json:"repeat_rules"`
+	Cursor      int64       `json:"cursor"`
+}
+
+// Full returns all current entities along with the latest change_log cursor.
+// GET /api/sync/full
+func (h *SyncHandler) Full(w http.ResponseWriter, r *http.Request) {
+	tasks, err := h.tasks.List(model.TaskFilters{})
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "failed to load tasks: "+err.Error(), "INTERNAL")
+		return
+	}
+
+	projects, err := h.projects.List(nil, nil)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "failed to load projects: "+err.Error(), "INTERNAL")
+		return
+	}
+
+	areas, err := h.areas.List()
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "failed to load areas: "+err.Error(), "INTERNAL")
+		return
+	}
+
+	tags, err := h.tags.List()
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "failed to load tags: "+err.Error(), "INTERNAL")
+		return
+	}
+
+	headings, err := h.headings.ListAll()
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "failed to load headings: "+err.Error(), "INTERNAL")
+		return
+	}
+
+	checklist, err := h.checklist.ListAll()
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "failed to load checklist: "+err.Error(), "INTERNAL")
+		return
+	}
+
+	attachments, err := h.attachments.ListAll()
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "failed to load attachments: "+err.Error(), "INTERNAL")
+		return
+	}
+
+	schedules, err := h.schedules.ListAll()
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "failed to load schedules: "+err.Error(), "INTERNAL")
+		return
+	}
+
+	reminders, err := h.reminders.ListAll()
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "failed to load reminders: "+err.Error(), "INTERNAL")
+		return
+	}
+
+	repeatRules, err := h.repeatRules.ListAll()
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "failed to load repeat rules: "+err.Error(), "INTERNAL")
+		return
+	}
+
+	cursor, err := h.changeLog.GetLatestSeq()
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "failed to get cursor: "+err.Error(), "INTERNAL")
+		return
+	}
+
+	writeJSON(w, http.StatusOK, FullSyncResponse{
+		Tasks:       tasks,
+		Projects:    projects,
+		Areas:       areas,
+		Tags:        tags,
+		Headings:    headings,
+		Checklist:   checklist,
+		Attachments: attachments,
+		Schedules:   schedules,
+		Reminders:   reminders,
+		RepeatRules: repeatRules,
+		Cursor:      cursor,
 	})
 }
 

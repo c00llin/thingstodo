@@ -40,6 +40,31 @@ func (r *ChecklistRepository) ListByTask(taskID string) ([]model.ChecklistItem, 
 	return items, rows.Err()
 }
 
+// ListAll returns all checklist items across all tasks.
+func (r *ChecklistRepository) ListAll() ([]model.ChecklistItem, error) {
+	rows, err := r.db.Query(
+		"SELECT id, title, completed, sort_order FROM checklist_items ORDER BY sort_order")
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var items []model.ChecklistItem
+	for rows.Next() {
+		var c model.ChecklistItem
+		var completed int
+		if err := rows.Scan(&c.ID, &c.Title, &completed, &c.SortOrder); err != nil {
+			return nil, fmt.Errorf("scan checklist item: %w", err)
+		}
+		c.Completed = completed == 1
+		items = append(items, c)
+	}
+	if items == nil {
+		items = []model.ChecklistItem{}
+	}
+	return items, rows.Err()
+}
+
 func (r *ChecklistRepository) Create(taskID string, input model.CreateChecklistInput) (*model.ChecklistItem, error) {
 	id := model.NewID()
 	var maxSort float64
