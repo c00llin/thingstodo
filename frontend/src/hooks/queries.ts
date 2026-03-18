@@ -15,6 +15,7 @@ import * as settingsApi from '../api/settings'
 import * as schedulesApi from '../api/schedules'
 import * as remindersApi from '../api/reminders'
 import * as savedFiltersApi from '../api/savedFilters'
+import * as localMutations from '../db/mutations'
 import { playCompleteSound, playReviewSound } from '../lib/sounds'
 import type {
   Task,
@@ -353,75 +354,33 @@ function rollbackViews(
 }
 
 export function useCreateTask() {
-  const invalidate = useInvalidateViews()
   return useMutation({
-    mutationFn: (data: CreateTaskRequest) => tasksApi.createTask(data),
-    onSuccess: () => {
-      invalidate()
+    mutationFn: async (data: CreateTaskRequest) => {
+      const id = await localMutations.createTask(data as localMutations.CreateTaskData)
+      return { id, ...data }
     },
   })
 }
 
 export function useUpdateTask() {
-  const queryClient = useQueryClient()
-  const invalidate = useInvalidateViews()
   return useMutation({
-    mutationFn: ({ id, data }: { id: string; data: UpdateTaskRequest }) =>
-      tasksApi.updateTask(id, data),
-    onMutate: async ({ id, data }) => {
-      await queryClient.cancelQueries({ queryKey: ['views'] })
-      await queryClient.cancelQueries({ queryKey: queryKeys.tasks.detail(id) })
-      const snapshot = snapshotViews(queryClient)
-      const previousDetail = queryClient.getQueryData(queryKeys.tasks.detail(id))
-      const updates: Partial<Task> = { ...data }
-      if ('notes' in data) {
-        updates.has_notes = !!data.notes
-      }
-      updateTaskInCache(queryClient, id, updates)
-      return { snapshot, previousDetail }
-    },
-    onError: (_err, { id }, context) => {
-      if (context?.snapshot) rollbackViews(queryClient, context.snapshot)
-      if (context?.previousDetail) {
-        queryClient.setQueryData(queryKeys.tasks.detail(id), context.previousDetail)
-      }
-    },
-    onSuccess: (result) => {
-      queryClient.setQueryData(queryKeys.tasks.detail(result.id), result)
-      updateTaskInCache(queryClient, result.id, result as Partial<Task>)
-    },
-    onSettled: () => {
-      invalidate()
+    mutationFn: async ({ id, data }: { id: string; data: UpdateTaskRequest }) => {
+      await localMutations.updateTask(id, data as Parameters<typeof localMutations.updateTask>[1])
+      return { id, ...data }
     },
   })
 }
 
 export function useDeleteTask() {
-  const queryClient = useQueryClient()
-  const invalidate = useInvalidateViews()
   return useMutation({
-    mutationFn: (id: string) => tasksApi.deleteTask(id),
-    onMutate: async (id) => {
-      await queryClient.cancelQueries({ queryKey: ['views'] })
-      const snapshot = snapshotViews(queryClient)
-      updateTaskInCache(queryClient, id, {
-        deleted_at: new Date().toISOString(),
-      })
+    mutationFn: async (id: string) => {
       useAppStore.getState().setDepartingTaskId(id)
-      return { snapshot }
-    },
-    onError: (_err, _id, context) => {
-      if (context?.snapshot) rollbackViews(queryClient, context.snapshot)
-    },
-    onSettled: (_data, _err, id) => {
+      await localMutations.deleteTask(id)
       setTimeout(() => {
         const store = useAppStore.getState()
         if (store.expandedTaskId === id) {
           store.expandTask(null)
         }
-        invalidate({ force: true })
-        // Clear departingTaskId after invalidation starts so the task
-        // doesn't briefly reappear between animation end and fresh data
         setTimeout(() => {
           useAppStore.getState().setDepartingTaskId(null)
         }, 200)
@@ -431,40 +390,22 @@ export function useDeleteTask() {
 }
 
 export function useRestoreTask() {
-  const invalidate = useInvalidateViews()
   return useMutation({
-    mutationFn: (id: string) => tasksApi.restoreTask(id),
-    onSettled: () => invalidate(),
+    mutationFn: (id: string) => localMutations.restoreTask(id),
   })
 }
 
 export function useCompleteTask() {
   const queryClient = useQueryClient()
-  const invalidate = useInvalidateViews()
   return useMutation({
-    mutationFn: (id: string) => tasksApi.completeTask(id),
-    onMutate: async (id) => {
-      await queryClient.cancelQueries({ queryKey: ['views'] })
-      const snapshot = snapshotViews(queryClient)
-      updateTaskInCache(queryClient, id, {
-        status: 'completed',
-        completed_at: new Date().toISOString(),
-      })
+    mutationFn: async (id: string) => {
       useAppStore.getState().setDepartingTaskId(id)
       const settings = queryClient.getQueryData<UserSettings>(queryKeys.settings)
       if (settings?.play_complete_sound !== false) {
         playCompleteSound()
       }
-      return { snapshot }
-    },
-    onError: (_err, _id, context) => {
-      if (context?.snapshot) rollbackViews(queryClient, context.snapshot)
-    },
-    onSettled: () => {
+      await localMutations.completeTask(id)
       setTimeout(() => {
-        invalidate({ force: true })
-        // Clear departingTaskId after invalidation starts so the task
-        // doesn't briefly reappear between animation end and fresh data
         setTimeout(() => {
           useAppStore.getState().setDepartingTaskId(null)
         }, 200)
@@ -474,32 +415,15 @@ export function useCompleteTask() {
 }
 
 export function useCancelTask() {
-  const queryClient = useQueryClient()
-  const invalidate = useInvalidateViews()
   return useMutation({
-    mutationFn: (id: string) => tasksApi.cancelTask(id),
-    onMutate: async (id) => {
-      await queryClient.cancelQueries({ queryKey: ['views'] })
-      const snapshot = snapshotViews(queryClient)
-      updateTaskInCache(queryClient, id, {
-        status: 'canceled',
-        canceled_at: new Date().toISOString(),
-      })
+    mutationFn: async (id: string) => {
       useAppStore.getState().setDepartingTaskId(id)
-      return { snapshot }
-    },
-    onError: (_err, _id, context) => {
-      if (context?.snapshot) rollbackViews(queryClient, context.snapshot)
-    },
-    onSettled: (_data, _err, id) => {
+      await localMutations.cancelTask(id)
       setTimeout(() => {
         const store = useAppStore.getState()
         if (store.expandedTaskId === id) {
           store.expandTask(null)
         }
-        invalidate({ force: true })
-        // Clear departingTaskId after invalidation starts so the task
-        // doesn't briefly reappear between animation end and fresh data
         setTimeout(() => {
           useAppStore.getState().setDepartingTaskId(null)
         }, 200)
@@ -509,32 +433,18 @@ export function useCancelTask() {
 }
 
 export function useWontDoTask() {
-  const queryClient = useQueryClient()
-  const invalidate = useInvalidateViews()
   return useMutation({
-    mutationFn: (id: string) => tasksApi.wontDoTask(id),
-    onMutate: async (id) => {
-      await queryClient.cancelQueries({ queryKey: ['views'] })
-      const snapshot = snapshotViews(queryClient)
-      updateTaskInCache(queryClient, id, {
-        status: 'wont_do',
-        canceled_at: new Date().toISOString(),
-      })
+    mutationFn: async (id: string) => {
       useAppStore.getState().setDepartingTaskId(id)
-      return { snapshot }
-    },
-    onError: (_err, _id, context) => {
-      if (context?.snapshot) rollbackViews(queryClient, context.snapshot)
-    },
-    onSettled: (_data, _err, id) => {
+      await localMutations.updateTask(id, {
+        status: 'wont_do' as localMutations.CreateTaskData['status'],
+        canceled_at: localMutations.now(),
+      })
       setTimeout(() => {
         const store = useAppStore.getState()
         if (store.expandedTaskId === id) {
           store.expandTask(null)
         }
-        invalidate({ force: true })
-        // Clear departingTaskId after invalidation starts so the task
-        // doesn't briefly reappear between animation end and fresh data
         setTimeout(() => {
           useAppStore.getState().setDepartingTaskId(null)
         }, 200)
@@ -544,24 +454,8 @@ export function useWontDoTask() {
 }
 
 export function useReopenTask() {
-  const queryClient = useQueryClient()
-  const invalidate = useInvalidateViews()
   return useMutation({
-    mutationFn: (id: string) => tasksApi.reopenTask(id),
-    onMutate: async (id) => {
-      await queryClient.cancelQueries({ queryKey: ['views'] })
-      const snapshot = snapshotViews(queryClient)
-      updateTaskInCache(queryClient, id, {
-        status: 'open',
-        completed_at: null,
-        canceled_at: null,
-      })
-      return { snapshot }
-    },
-    onError: (_err, _id, context) => {
-      if (context?.snapshot) rollbackViews(queryClient, context.snapshot)
-    },
-    onSettled: () => invalidate(),
+    mutationFn: (id: string) => localMutations.reopenTask(id),
   })
 }
 
@@ -569,22 +463,15 @@ export function useReviewTask() {
   const queryClient = useQueryClient()
   const invalidate = useInvalidateViews()
   return useMutation({
+    // reviewTask is a backend-only operation (bumps updated_at to clear review status)
+    // No local mutation equivalent; keep API call + animation side effects
     mutationFn: (id: string) => tasksApi.reviewTask(id),
     onMutate: async (id) => {
-      await queryClient.cancelQueries({ queryKey: ['views'] })
-      const snapshot = snapshotViews(queryClient)
-      updateTaskInCache(queryClient, id, {
-        updated_at: new Date().toISOString(),
-      })
       useAppStore.getState().setDepartingTaskId(id)
       const settings = queryClient.getQueryData<UserSettings>(queryKeys.settings)
       if (settings?.play_complete_sound !== false) {
         playReviewSound()
       }
-      return { snapshot }
-    },
-    onError: (_err, _id, context) => {
-      if (context?.snapshot) rollbackViews(queryClient, context.snapshot)
     },
     onSettled: () => {
       setTimeout(() => {
@@ -615,35 +502,26 @@ export function useProject(id: string) {
 }
 
 export function useCreateProject() {
-  const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: (data: CreateProjectRequest) => projectsApi.createProject(data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.projects.all })
-      queryClient.invalidateQueries({ queryKey: queryKeys.areas.all })
+    mutationFn: async (data: CreateProjectRequest) => {
+      const id = await localMutations.createProject(data as localMutations.CreateProjectData)
+      return { id, ...data }
     },
   })
 }
 
 export function useUpdateProject() {
-  const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: ({ id, data }: { id: string; data: UpdateProjectRequest }) =>
-      projectsApi.updateProject(id, data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.projects.all })
+    mutationFn: async ({ id, data }: { id: string; data: UpdateProjectRequest }) => {
+      await localMutations.updateProject(id, data as Parameters<typeof localMutations.updateProject>[1])
+      return { id, ...data }
     },
   })
 }
 
 export function useDeleteProject() {
-  const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: (id: string) => projectsApi.deleteProject(id),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.projects.all })
-      queryClient.invalidateQueries({ queryKey: ['views'] })
-    },
+    mutationFn: (id: string) => localMutations.deleteProject(id),
   })
 }
 
@@ -692,22 +570,19 @@ export function useArea(id: string) {
 }
 
 export function useCreateArea() {
-  const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: (data: CreateAreaRequest) => areasApi.createArea(data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.areas.all })
+    mutationFn: async (data: CreateAreaRequest) => {
+      const id = await localMutations.createArea(data as localMutations.CreateAreaData)
+      return { id, ...data }
     },
   })
 }
 
 export function useUpdateArea() {
-  const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: ({ id, data }: { id: string; data: UpdateAreaRequest }) =>
-      areasApi.updateArea(id, data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.areas.all })
+    mutationFn: async ({ id, data }: { id: string; data: UpdateAreaRequest }) => {
+      await localMutations.updateArea(id, data as Parameters<typeof localMutations.updateArea>[1])
+      return { id, ...data }
     },
   })
 }
@@ -715,6 +590,7 @@ export function useUpdateArea() {
 export function useDeleteArea() {
   const queryClient = useQueryClient()
   return useMutation({
+    // Area deletion is still an API call — no local delete for areas yet
     mutationFn: (id: string) => areasApi.deleteArea(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.areas.all })
@@ -751,23 +627,19 @@ export function useTagTasks(id: string) {
 }
 
 export function useCreateTag() {
-  const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: (data: CreateTagRequest) => tagsApi.createTag(data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.tags.all })
+    mutationFn: async (data: CreateTagRequest) => {
+      const id = await localMutations.createTag(data as localMutations.CreateTagData)
+      return { id, ...data }
     },
   })
 }
 
 export function useUpdateTag() {
-  const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: ({ id, data }: { id: string; data: UpdateTagRequest }) =>
-      tagsApi.updateTag(id, data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.tags.all })
-      queryClient.invalidateQueries({ queryKey: ['views'] })
+    mutationFn: async ({ id, data }: { id: string; data: UpdateTagRequest }) => {
+      await localMutations.updateTag(id, data as Parameters<typeof localMutations.updateTag>[1])
+      return { id, ...data }
     },
   })
 }
@@ -775,6 +647,7 @@ export function useUpdateTag() {
 export function useDeleteTag() {
   const queryClient = useQueryClient()
   return useMutation({
+    // Tag deletion is still an API call — no local delete for tags yet
     mutationFn: (id: string) => tagsApi.deleteTag(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.tags.all })
@@ -804,62 +677,49 @@ export function useChecklist(taskId: string) {
 }
 
 export function useCreateChecklistItem(taskId: string) {
-  const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: (data: CreateChecklistItemRequest) =>
-      checklistApi.createChecklistItem(taskId, data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.tasks.checklist(taskId) })
-      queryClient.invalidateQueries({ queryKey: queryKeys.tasks.detail(taskId) })
+    mutationFn: async (data: CreateChecklistItemRequest) => {
+      const id = await localMutations.createChecklistItem({
+        task_id: taskId,
+        ...(data as Omit<localMutations.CreateChecklistItemData, 'task_id'>),
+      })
+      return { id, task_id: taskId, ...data }
     },
   })
 }
 
-export function useUpdateChecklistItem(taskId: string) {
-  const queryClient = useQueryClient()
+export function useUpdateChecklistItem(_taskId: string) {
   return useMutation({
-    mutationFn: ({ id, data }: { id: string; data: UpdateChecklistItemRequest }) =>
-      checklistApi.updateChecklistItem(id, data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.tasks.checklist(taskId) })
-      queryClient.invalidateQueries({ queryKey: queryKeys.tasks.detail(taskId) })
+    mutationFn: async ({ id, data }: { id: string; data: UpdateChecklistItemRequest }) => {
+      await localMutations.updateChecklistItem(id, data as Parameters<typeof localMutations.updateChecklistItem>[1])
+      return { id, ...data }
     },
   })
 }
 
-export function useDeleteChecklistItem(taskId: string) {
-  const queryClient = useQueryClient()
+export function useDeleteChecklistItem(_taskId: string) {
   return useMutation({
-    mutationFn: (id: string) => checklistApi.deleteChecklistItem(id),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.tasks.checklist(taskId) })
-      queryClient.invalidateQueries({ queryKey: queryKeys.tasks.detail(taskId) })
-    },
+    mutationFn: (id: string) => localMutations.deleteChecklistItem(id),
   })
 }
 
 // --- Reminder Hooks ---
 
 export function useCreateReminder(taskId: string) {
-  const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: (data: import('../api/types').CreateReminderRequest) =>
-      remindersApi.createReminder(taskId, data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.tasks.reminders(taskId) })
-      queryClient.invalidateQueries({ queryKey: queryKeys.tasks.detail(taskId) })
+    mutationFn: async (data: import('../api/types').CreateReminderRequest) => {
+      const id = await localMutations.createReminder({
+        task_id: taskId,
+        ...(data as Omit<localMutations.CreateReminderData, 'task_id'>),
+      })
+      return { id, task_id: taskId, ...data }
     },
   })
 }
 
-export function useDeleteReminder(taskId: string) {
-  const queryClient = useQueryClient()
+export function useDeleteReminder(_taskId: string) {
   return useMutation({
-    mutationFn: (id: string) => remindersApi.deleteReminder(id),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.tasks.reminders(taskId) })
-      queryClient.invalidateQueries({ queryKey: queryKeys.tasks.detail(taskId) })
-    },
+    mutationFn: (id: string) => localMutations.deleteReminder(id),
   })
 }
 
@@ -876,24 +736,25 @@ export function useAttachments(taskId: string) {
 export function useUploadFile(taskId: string) {
   const queryClient = useQueryClient()
   return useMutation({
+    // File uploads require multipart server processing — keep as API call
     mutationFn: (file: File) => attachmentsApi.uploadFile(taskId, file),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.tasks.attachments(taskId) })
       queryClient.invalidateQueries({ queryKey: queryKeys.tasks.detail(taskId) })
-      updateTaskInCache(queryClient, taskId, { has_files: true })
     },
   })
 }
 
 export function useAddLink(taskId: string) {
-  const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: (data: CreateLinkAttachmentRequest) =>
-      attachmentsApi.addLink(taskId, data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.tasks.attachments(taskId) })
-      queryClient.invalidateQueries({ queryKey: queryKeys.tasks.detail(taskId) })
-      updateTaskInCache(queryClient, taskId, { has_links: true })
+    mutationFn: async (data: CreateLinkAttachmentRequest) => {
+      const id = await localMutations.createAttachment({
+        task_id: taskId,
+        type: 'link',
+        title: data.title ?? '',
+        url: data.url ?? '',
+      })
+      return { id, task_id: taskId, type: 'link' as const, ...data }
     },
   })
 }
@@ -901,6 +762,7 @@ export function useAddLink(taskId: string) {
 export function useUpdateAttachment(taskId: string) {
   const queryClient = useQueryClient()
   return useMutation({
+    // Attachment update (rename) — no local mutation for update; keep as API call
     mutationFn: ({ id, data }: { id: string; data: UpdateAttachmentRequest }) =>
       attachmentsApi.updateAttachment(id, data),
     onSuccess: () => {
@@ -909,20 +771,9 @@ export function useUpdateAttachment(taskId: string) {
   })
 }
 
-export function useDeleteAttachment(taskId: string) {
-  const queryClient = useQueryClient()
+export function useDeleteAttachment(_taskId: string) {
   return useMutation({
-    mutationFn: (id: string) => attachmentsApi.deleteAttachment(id),
-    onSuccess: (_result, deletedId) => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.tasks.attachments(taskId) })
-      queryClient.invalidateQueries({ queryKey: queryKeys.tasks.detail(taskId) })
-      const cached = queryClient.getQueryData<Attachment[]>(queryKeys.tasks.attachments(taskId))
-      const remaining = cached?.filter((a) => a.id !== deletedId) ?? []
-      updateTaskInCache(queryClient, taskId, {
-        has_links: remaining.some((a) => a.type === 'link'),
-        has_files: remaining.some((a) => a.type === 'file'),
-      })
-    },
+    mutationFn: (id: string) => localMutations.deleteAttachment(id),
   })
 }
 
@@ -953,49 +804,36 @@ export function useDeleteRepeatRule(taskId: string) {
 // --- Schedule Hooks ---
 
 export function useCreateTaskSchedule(taskId: string) {
-  const queryClient = useQueryClient()
-  const invalidate = useInvalidateViews()
   return useMutation({
-    mutationFn: (data: CreateTaskScheduleRequest) =>
-      schedulesApi.createSchedule(taskId, data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.tasks.schedules(taskId) })
-      queryClient.invalidateQueries({ queryKey: queryKeys.tasks.detail(taskId) })
-      invalidate()
+    mutationFn: async (data: CreateTaskScheduleRequest) => {
+      const id = await localMutations.createSchedule({
+        task_id: taskId,
+        ...(data as Omit<localMutations.CreateScheduleData, 'task_id'>),
+      })
+      return { id, task_id: taskId, ...data }
     },
   })
 }
 
-export function useUpdateTaskSchedule(taskId: string) {
-  const queryClient = useQueryClient()
-  const invalidate = useInvalidateViews()
+export function useUpdateTaskSchedule(_taskId: string) {
   return useMutation({
-    mutationFn: ({ id, data }: { id: string; data: UpdateTaskScheduleRequest }) =>
-      schedulesApi.updateSchedule(id, data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.tasks.schedules(taskId) })
-      queryClient.invalidateQueries({ queryKey: queryKeys.tasks.detail(taskId) })
-      invalidate()
+    mutationFn: async ({ id, data }: { id: string; data: UpdateTaskScheduleRequest }) => {
+      await localMutations.updateSchedule(id, data as Parameters<typeof localMutations.updateSchedule>[1])
+      return { id, ...data }
     },
   })
 }
 
-export function useDeleteTaskSchedule(taskId: string) {
-  const queryClient = useQueryClient()
-  const invalidate = useInvalidateViews()
+export function useDeleteTaskSchedule(_taskId: string) {
   return useMutation({
-    mutationFn: (id: string) => schedulesApi.deleteSchedule(id),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.tasks.schedules(taskId) })
-      queryClient.invalidateQueries({ queryKey: queryKeys.tasks.detail(taskId) })
-      invalidate()
-    },
+    mutationFn: (id: string) => localMutations.deleteSchedule(id),
   })
 }
 
 export function useReorderTaskSchedules(taskId: string) {
   const queryClient = useQueryClient()
   return useMutation({
+    // Schedule reorder has no local equivalent — keep as API call
     mutationFn: (items: SimpleReorderItem[]) =>
       schedulesApi.reorderSchedules(taskId, items),
     onSuccess: () => {

@@ -1,3 +1,6 @@
+// Polyfill IndexedDB with fake-indexeddb so Dexie works in jsdom
+import 'fake-indexeddb/auto'
+
 // Polyfill localStorage if not available or broken in test environment
 if (typeof globalThis.localStorage === 'undefined' || typeof globalThis.localStorage?.getItem !== 'function') {
   const store: Record<string, string> = {}
