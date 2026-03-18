@@ -124,7 +124,6 @@ export async function updateTask(
     _localUpdatedAt: timestamp,
   }
   await localDb.tasks.put(updated)
-  console.log('[mutations] updateTask put done', id, Object.keys(fields))
   await queueChange(
     'task',
     id,

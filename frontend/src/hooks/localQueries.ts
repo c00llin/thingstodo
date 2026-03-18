@@ -416,7 +416,6 @@ export function useLocalTask(id: string): TaskDetail | undefined {
 
     const task = await localDb.tasks.get(id)
     if (!task) return undefined
-    console.log('[useLocalTask] query fired', id, 'when_date=', task.when_date, '_syncStatus=', task._syncStatus)
 
     const [checklist, attachments, schedules, reminders, repeatRuleArr] = await Promise.all([
       localDb.checklistItems.where('task_id').equals(id).sortBy('sort_order'),
