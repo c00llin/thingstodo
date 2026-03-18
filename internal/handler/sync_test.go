@@ -82,8 +82,8 @@ func TestSyncPullReturnsChanges(t *testing.T) {
 	client, changeLog, _ := setupSyncRouter(t)
 
 	// Insert test changes directly
-	changeLog.AppendChange("task", "t1", "create", nil, `{"id":"t1","title":"Test"}`, "", "")
-	changeLog.AppendChange("task", "t1", "update", nil, `{"id":"t1","title":"Updated"}`, "", "")
+	_, _ = changeLog.AppendChange("task", "t1", "create", nil, `{"id":"t1","title":"Test"}`, "", "")
+	_, _ = changeLog.AppendChange("task", "t1", "update", nil, `{"id":"t1","title":"Updated"}`, "", "")
 
 	resp := client.Get("/api/sync/pull?since=0")
 	testutil.AssertStatus(t, resp, http.StatusOK)

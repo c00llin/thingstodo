@@ -185,13 +185,9 @@ func TestSyncFullSync(t *testing.T) {
 
 	// Create several tasks via the normal API.
 	titles := []string{"Full sync task 1", "Full sync task 2", "Full sync task 3"}
-	taskIDs := make([]string, 0, len(titles))
 	for _, title := range titles {
 		resp := client.Post("/api/tasks", map[string]string{"title": title})
 		testutil.AssertStatus(t, resp, http.StatusCreated)
-		var created map[string]interface{}
-		resp.JSON(t, &created)
-		taskIDs = append(taskIDs, created["id"].(string))
 	}
 
 	// Create an area via sync push.
@@ -270,7 +266,7 @@ func TestSyncCursorExpired(t *testing.T) {
 
 	// Insert some old changes to populate the log.
 	seq1, _ := changeLog.AppendChange("task", "old-t1", "create", nil, `{"id":"old-t1"}`, "", "")
-	changeLog.AppendChange("task", "old-t2", "create", nil, `{"id":"old-t2"}`, "", "")
+	_, _ = changeLog.AppendChange("task", "old-t2", "create", nil, `{"id":"old-t2"}`, "", "")
 
 	// Use the first seq as the "old cursor" the client has.
 	oldCursor := seq1
@@ -283,7 +279,7 @@ func TestSyncCursorExpired(t *testing.T) {
 
 	// Insert a fresh change so the table is non-empty (required for cursor expiry detection).
 	// The oldest remaining seq will be higher than oldCursor.
-	changeLog.AppendChange("task", "new-t1", "create", nil, `{"id":"new-t1"}`, "", "")
+	_, _ = changeLog.AppendChange("task", "new-t1", "create", nil, `{"id":"new-t1"}`, "", "")
 
 	// Pull with the old cursor — oldest seq is now > oldCursor, so 410 Gone expected.
 	pullResp := client.Get("/api/sync/pull?since=" + int64String(oldCursor))
