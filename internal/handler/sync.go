@@ -468,6 +468,14 @@ func (h *SyncHandler) applyTaskChange(change SyncChange) SyncPushResult {
 						}
 						result.Status = status
 						return result
+					case "wont_do":
+						if _, cErr := h.tasks.WontDo(change.EntityID); cErr != nil {
+							result.Status = "error"
+							result.Error = cErr.Error()
+							return result
+						}
+						result.Status = status
+						return result
 					}
 				}
 			case "deleted_at":
