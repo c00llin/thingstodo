@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate } from 'react-router'
 import type { MissedReminder } from '../sync/reminders'
 
 // Simple event emitter for missed reminders — decouples sync engine from UI

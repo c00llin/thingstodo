@@ -169,10 +169,11 @@ export async function fullSync(): Promise<void> {
       await localDb.headings.clear()
 
       const now = new Date().toISOString()
-      const withMeta = (items: Record<string, unknown>[], seq?: number) =>
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const withMeta = (items: Record<string, unknown>[], seq?: number): any[] =>
         items.map((item) => ({
           ...item,
-          _syncStatus: 'synced',
+          _syncStatus: 'synced' as const,
           _localUpdatedAt: now,
           ...(seq !== undefined ? { _serverSeq: seq } : {}),
         }))

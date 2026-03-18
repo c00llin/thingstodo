@@ -13,7 +13,7 @@ import * as searchApi from '../api/search'
 import * as authApi from '../api/auth'
 import * as settingsApi from '../api/settings'
 import * as schedulesApi from '../api/schedules'
-import * as remindersApi from '../api/reminders'
+// remindersApi removed — reminders now use local mutations
 import * as savedFiltersApi from '../api/savedFilters'
 import * as localMutations from '../db/mutations'
 import { playCompleteSound, playReviewSound } from '../lib/sounds'
@@ -29,7 +29,6 @@ import type {
   UpdateTagRequest,
   CreateChecklistItemRequest,
   UpdateChecklistItemRequest,
-  Attachment,
   CreateLinkAttachmentRequest,
   UpdateAttachmentRequest,
   UpsertRepeatRuleRequest,
@@ -335,23 +334,6 @@ export function updateTaskInCache(
 }
 
 // Snapshot all view, project, and area queries for rollback
-function snapshotViews(queryClient: ReturnType<typeof useQueryClient>) {
-  return [
-    ...queryClient.getQueriesData({ queryKey: ['views'] }),
-    ...queryClient.getQueriesData({ queryKey: queryKeys.projects.all }),
-    ...queryClient.getQueriesData({ queryKey: queryKeys.areas.all }),
-    ...queryClient.getQueriesData({ queryKey: queryKeys.tags.all }),
-  ]
-}
-
-function rollbackViews(
-  queryClient: ReturnType<typeof useQueryClient>,
-  snapshot: ReturnType<typeof snapshotViews>,
-) {
-  for (const [key, data] of snapshot) {
-    queryClient.setQueryData(key, data)
-  }
-}
 
 export function useCreateTask() {
   return useMutation({
@@ -754,7 +736,7 @@ export function useAddLink(taskId: string) {
         title: data.title ?? '',
         url: data.url ?? '',
       })
-      return { id, task_id: taskId, type: 'link' as const, ...data }
+      return { ...data, id, task_id: taskId, type: 'link' as const }
     },
   })
 }

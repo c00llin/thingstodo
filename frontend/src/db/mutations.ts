@@ -104,7 +104,7 @@ export async function createTask(data: CreateTaskData): Promise<string> {
     _localUpdatedAt: timestamp,
   }
   await localDb.tasks.put(task)
-  await queueChange('task', id, 'create', task as Record<string, unknown>)
+  await queueChange('task', id, 'create', task as unknown as Record<string, unknown>)
   return id
 }
 
@@ -127,7 +127,7 @@ export async function updateTask(
     'task',
     id,
     'update',
-    fields as Record<string, unknown>,
+    fields as unknown as Record<string, unknown>,
     Object.keys(fields),
   )
 }
@@ -180,7 +180,7 @@ export async function createProject(data: CreateProjectData): Promise<string> {
     _localUpdatedAt: timestamp,
   }
   await localDb.projects.put(project)
-  await queueChange('project', id, 'create', project as Record<string, unknown>)
+  await queueChange('project', id, 'create', project as unknown as Record<string, unknown>)
   return id
 }
 
@@ -203,7 +203,7 @@ export async function updateProject(
     'project',
     id,
     'update',
-    fields as Record<string, unknown>,
+    fields as unknown as Record<string, unknown>,
     Object.keys(fields),
   )
 }
@@ -237,7 +237,7 @@ export async function createArea(data: CreateAreaData): Promise<string> {
     _localUpdatedAt: timestamp,
   }
   await localDb.areas.put(area)
-  await queueChange('area', id, 'create', area as Record<string, unknown>)
+  await queueChange('area', id, 'create', area as unknown as Record<string, unknown>)
   return id
 }
 
@@ -260,7 +260,7 @@ export async function updateArea(
     'area',
     id,
     'update',
-    fields as Record<string, unknown>,
+    fields as unknown as Record<string, unknown>,
     Object.keys(fields),
   )
 }
@@ -285,7 +285,7 @@ export async function createTag(data: CreateTagData): Promise<string> {
     _localUpdatedAt: timestamp,
   }
   await localDb.tags.put(tag)
-  await queueChange('tag', id, 'create', tag as Record<string, unknown>)
+  await queueChange('tag', id, 'create', tag as unknown as Record<string, unknown>)
   return id
 }
 
@@ -307,7 +307,7 @@ export async function updateTag(
     'tag',
     id,
     'update',
-    fields as Record<string, unknown>,
+    fields as unknown as Record<string, unknown>,
     Object.keys(fields),
   )
 }
@@ -333,7 +333,7 @@ export async function createChecklistItem(data: CreateChecklistItemData): Promis
     _localUpdatedAt: timestamp,
   }
   await localDb.checklistItems.put(item)
-  await queueChange('checklistItem', id, 'create', item as Record<string, unknown>)
+  await queueChange('checklistItem', id, 'create', item as unknown as Record<string, unknown>)
   return id
 }
 
@@ -355,7 +355,7 @@ export async function updateChecklistItem(
     'checklistItem',
     id,
     'update',
-    fields as Record<string, unknown>,
+    fields as unknown as Record<string, unknown>,
     Object.keys(fields),
   )
 }
@@ -392,7 +392,7 @@ export async function createAttachment(data: CreateAttachmentData): Promise<stri
     _localUpdatedAt: timestamp,
   }
   await localDb.attachments.put(attachment)
-  await queueChange('attachment', id, 'create', attachment as Record<string, unknown>)
+  await queueChange('attachment', id, 'create', attachment as unknown as Record<string, unknown>)
   return id
 }
 
@@ -427,7 +427,7 @@ export async function createSchedule(data: CreateScheduleData): Promise<string> 
     _localUpdatedAt: timestamp,
   }
   await localDb.schedules.put(schedule)
-  await queueChange('schedule', id, 'create', schedule as Record<string, unknown>)
+  await queueChange('schedule', id, 'create', schedule as unknown as Record<string, unknown>)
   return id
 }
 
@@ -449,7 +449,7 @@ export async function updateSchedule(
     'schedule',
     id,
     'update',
-    fields as Record<string, unknown>,
+    fields as unknown as Record<string, unknown>,
     Object.keys(fields),
   )
 }
@@ -481,7 +481,7 @@ export async function createHeading(data: CreateHeadingData): Promise<string> {
     _localUpdatedAt: timestamp,
   }
   await localDb.headings.put(heading)
-  await queueChange('heading', id, 'create', heading as Record<string, unknown>)
+  await queueChange('heading', id, 'create', heading as unknown as Record<string, unknown>)
   return id
 }
 
@@ -503,7 +503,7 @@ export async function updateHeading(
     'heading',
     id,
     'update',
-    fields as Record<string, unknown>,
+    fields as unknown as Record<string, unknown>,
     Object.keys(fields),
   )
 }
@@ -537,7 +537,7 @@ export async function createReminder(data: CreateReminderData): Promise<string> 
     _localUpdatedAt: timestamp,
   }
   await localDb.reminders.put(reminder)
-  await queueChange('reminder', id, 'create', reminder as Record<string, unknown>)
+  await queueChange('reminder', id, 'create', reminder as unknown as Record<string, unknown>)
   return id
 }
 
@@ -559,7 +559,7 @@ export async function updateReminder(
     'reminder',
     id,
     'update',
-    fields as Record<string, unknown>,
+    fields as unknown as Record<string, unknown>,
     Object.keys(fields),
   )
 }

@@ -477,7 +477,7 @@ export function useLocalViewCounts(): ViewCounts | undefined {
   return useLiveQuery(async () => {
     const today = todayString()
 
-    const [inboxCount, todayCount, upcomingCount, anytimeCount, somedayCount, logbookCount, trashCount] =
+    const [inboxCount, todayCount, _upcomingCount, anytimeCount, somedayCount, logbookCount, trashCount] =
       await Promise.all([
         // inbox: open, no project, no area, no when_date, not deleted
         localDb.tasks

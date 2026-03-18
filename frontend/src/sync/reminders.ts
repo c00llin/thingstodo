@@ -27,7 +27,7 @@ export async function checkMissedReminders(
   pulledChanges: ChangeLogEntry[],
 ): Promise<MissedReminder[]> {
   const firedChanges = pulledChanges.filter(
-    (c) => c.entity === 'reminder' && c.action === 'fired',
+    (c) => c.entity === 'reminder' && (c.action as string) === 'fired',
   )
   if (firedChanges.length === 0) return []
 

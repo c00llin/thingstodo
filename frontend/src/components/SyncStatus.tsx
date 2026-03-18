@@ -1,4 +1,4 @@
-import { Cloud, CloudOff, RefreshCw, AlertCircle, Check, Upload } from 'lucide-react'
+import { CloudOff, RefreshCw, AlertCircle, Check, Upload } from 'lucide-react'
 import { useSyncStore } from '../sync/status'
 import { syncNow } from '../sync/engine'
 

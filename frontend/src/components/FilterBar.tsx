@@ -175,9 +175,9 @@ export function FilterBar({ availableFields, viewName }: FilterBarProps) {
     })
   }
   if (selectedProjects.length > 0) {
-    const names = (projectsData?.projects ?? [])
-      .filter((p) => selectedProjects.includes(p.id))
-      .map((p) => p.title)
+    const names = (projectsArr ?? [])
+      .filter((p: { id: string; title: string }) => selectedProjects.includes(p.id))
+      .map((p: { id: string; title: string }) => p.title)
     chips.push({
       key: 'projects',
       label: names.join(', '),
