@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect, useRef } from 'react'
+import { lazy, Suspense, useEffect, useRef, useState } from 'react'
 import { Outlet, Navigate, useLocation } from 'react-router'
 import { Menu, Plus, RefreshCw } from 'lucide-react'
 import { Sidebar } from './Sidebar'
@@ -12,6 +12,12 @@ import { usePullToRefresh } from '../hooks/usePullToRefresh'
 import { BulkActionToolbar } from './BulkActionToolbar'
 import { useAppStore } from '../stores/app'
 import { useFilterStore } from '../stores/filters'
+import { startSyncEngine, stopSyncEngine } from '../sync/engine'
+import { fullSync } from '../sync/pull'
+import { localDb } from '../db'
+import { OfflineBanner } from './OfflineBanner'
+import { MissedRemindersToast } from './MissedRemindersToast'
+import { SyncingOverlay } from './SyncingOverlay'
 
 const QuickEntry = lazy(() => import('./QuickEntry').then(m => ({ default: m.QuickEntry })))
 const CommandPalette = lazy(() => import('./CommandPalette').then(m => ({ default: m.CommandPalette })))
@@ -28,11 +34,33 @@ export function AppLayout() {
   const mainRef = useRef<HTMLElement>(null)
   const { pullDistance, isRefreshing } = usePullToRefresh(mainRef)
   const { data: settings } = useSettings()
+  const [initialSyncing, setInitialSyncing] = useState(false)
   useGlobalShortcuts()
   useTaskShortcuts()
   useTheme()
   useSSE()
   useFlushPendingInvalidation()
+
+  // Initialize sync engine after auth
+  useEffect(() => {
+    let mounted = true
+    async function init() {
+      const taskCount = await localDb.tasks.count()
+      if (taskCount === 0 && mounted) {
+        setInitialSyncing(true)
+        await fullSync()
+        if (mounted) setInitialSyncing(false)
+      }
+      if (mounted) {
+        startSyncEngine()
+      }
+    }
+    init()
+    return () => {
+      mounted = false
+      stopSyncEngine()
+    }
+  }, [])
 
   // Apply font size setting to document root
   const fontSize = settings?.font_size
@@ -71,7 +99,10 @@ export function AppLayout() {
 
   return (
     <AppDndContext>
-      <div className="flex h-screen bg-white text-neutral-900 dark:bg-neutral-900 dark:text-neutral-100">
+      <SyncingOverlay show={initialSyncing} />
+      <div className="flex h-screen flex-col bg-white text-neutral-900 dark:bg-neutral-900 dark:text-neutral-100">
+        <OfflineBanner />
+        <div className="flex min-h-0 flex-1">
         <Sidebar />
         <main ref={mainRef} className="relative flex-1 overflow-y-auto overscroll-none">
           {/* Pull-to-refresh indicator (mobile only) */}
@@ -119,7 +150,9 @@ export function AppLayout() {
           <TaskDetailModal />
         </Suspense>
         <BulkActionToolbar />
+        </div>
       </div>
+      <MissedRemindersToast />
     </AppDndContext>
   )
 }

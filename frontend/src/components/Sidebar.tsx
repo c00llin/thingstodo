@@ -38,6 +38,7 @@ import { SidebarDropTarget } from './SidebarDropTarget'
 import { TAG_COLORS, getTagIconClass, getTagDropClasses } from '../lib/tag-colors'
 import { isSiYuanTag } from '../lib/siyuan'
 import { SiYuanIcon } from './SiYuanIcon'
+import { SyncStatus } from './SyncStatus'
 
 const indicatorTransition = { type: 'spring' as const, stiffness: 400, damping: 35 }
 
@@ -1167,7 +1168,10 @@ export function Sidebar() {
         </LayoutGroup>
       </div>
       <div className="flex items-center justify-between border-t border-neutral-200 px-3 py-2 dark:border-neutral-700">
-        <PlusMenu side="top" />
+        <div className="flex items-center gap-1">
+          <PlusMenu side="top" />
+          <SyncStatus />
+        </div>
         <div className="flex items-center gap-1">
           <ThemeToggle />
           <LogoutButton />
