@@ -25,6 +25,9 @@ const queryClient = new QueryClient({
       staleTime: 1000 * 30,
       retry: 1,
     },
+    mutations: {
+      networkMode: 'always', // mutations write to IndexedDB first, no network needed
+    },
   },
 })
 
