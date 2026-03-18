@@ -2,8 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { renderHook, waitFor, act } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import type { ReactNode } from 'react'
-import { useInbox, useCreateTask, useCompleteTask, queryKeys } from '../queries'
-import { mockInboxView } from '../../test/mocks/data'
+import { useInbox, useCreateTask, useCompleteTask } from '../queries'
 import { localDb } from '../../db'
 
 // Mock audio to avoid AudioContext errors in jsdom

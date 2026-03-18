@@ -1,22 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router'
 import type { MissedReminder } from '../sync/reminders'
-
-// Simple event emitter for missed reminders — decouples sync engine from UI
-type MissedRemindersListener = (reminders: MissedReminder[]) => void
-const listeners = new Set<MissedRemindersListener>()
-
-export function onMissedReminders(fn: MissedRemindersListener): () => void {
-  listeners.add(fn)
-  return () => listeners.delete(fn)
-}
-
-export function emitMissedReminders(reminders: MissedReminder[]): void {
-  if (reminders.length === 0) return
-  for (const fn of listeners) {
-    fn(reminders)
-  }
-}
+import { onMissedReminders } from '../sync/missedRemindersEmitter'
 
 const MAX_VISIBLE = 5
 

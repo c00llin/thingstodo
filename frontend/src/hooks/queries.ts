@@ -670,6 +670,7 @@ export function useCreateChecklistItem(taskId: string) {
   })
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 export function useUpdateChecklistItem(_taskId: string) {
   return useMutation({
     mutationFn: async ({ id, data }: { id: string; data: UpdateChecklistItemRequest }) => {
@@ -679,6 +680,7 @@ export function useUpdateChecklistItem(_taskId: string) {
   })
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 export function useDeleteChecklistItem(_taskId: string) {
   return useMutation({
     mutationFn: (id: string) => localMutations.deleteChecklistItem(id),
@@ -699,6 +701,7 @@ export function useCreateReminder(taskId: string) {
   })
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 export function useDeleteReminder(_taskId: string) {
   return useMutation({
     mutationFn: (id: string) => localMutations.deleteReminder(id),
@@ -753,6 +756,7 @@ export function useUpdateAttachment(taskId: string) {
   })
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 export function useDeleteAttachment(_taskId: string) {
   return useMutation({
     mutationFn: (id: string) => localMutations.deleteAttachment(id),
@@ -797,6 +801,7 @@ export function useCreateTaskSchedule(taskId: string) {
   })
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 export function useUpdateTaskSchedule(_taskId: string) {
   return useMutation({
     mutationFn: async ({ id, data }: { id: string; data: UpdateTaskScheduleRequest }) => {
@@ -806,6 +811,7 @@ export function useUpdateTaskSchedule(_taskId: string) {
   })
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 export function useDeleteTaskSchedule(_taskId: string) {
   return useMutation({
     mutationFn: (id: string) => localMutations.deleteSchedule(id),

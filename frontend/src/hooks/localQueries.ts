@@ -227,7 +227,7 @@ export function useLocalAnytime(): AnytimeView | undefined {
       )
       .toArray()
 
-    return buildAnytimeShape(tasks, false) as AnytimeView
+    return buildAnytimeShape(tasks) as AnytimeView
   })
 }
 
@@ -243,7 +243,7 @@ export function useLocalSomeday(): SomedayView | undefined {
       .filter((t) => t.status === 'open' && !t.deleted_at)
       .toArray()
 
-    return buildAnytimeShape(tasks, false) as SomedayView
+    return buildAnytimeShape(tasks) as SomedayView
   })
 }
 
@@ -255,7 +255,6 @@ export function useLocalSomeday(): SomedayView | undefined {
  */
 function buildAnytimeShape(
   rawTasks: LocalTask[],
-  _includeCompleted: boolean,
 ): AnytimeView {
   // Group by area_id, then project_id
   const areaMap = new Map<string | null, Map<string | null, LocalTask[]>>()
@@ -477,7 +476,7 @@ export function useLocalViewCounts(): ViewCounts | undefined {
   return useLiveQuery(async () => {
     const today = todayString()
 
-    const [inboxCount, todayCount, _upcomingCount, anytimeCount, somedayCount, logbookCount, trashCount] =
+    const [inboxCount, todayCount, , anytimeCount, somedayCount, logbookCount, trashCount] =
       await Promise.all([
         // inbox: open, no project, no area, no when_date, not deleted
         localDb.tasks
