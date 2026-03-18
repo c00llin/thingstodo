@@ -441,6 +441,54 @@ func (h *SyncHandler) applyTaskChange(change SyncChange) SyncPushResult {
 					s := val.(string)
 					input.HeadingID = &s
 				}
+			case "status":
+				if s, ok := val.(string); ok {
+					switch s {
+					case "completed":
+						if _, cErr := h.tasks.Complete(change.EntityID); cErr != nil {
+							result.Status = "error"
+							result.Error = cErr.Error()
+							return result
+						}
+						result.Status = status
+						return result
+					case "canceled":
+						if _, cErr := h.tasks.Cancel(change.EntityID); cErr != nil {
+							result.Status = "error"
+							result.Error = cErr.Error()
+							return result
+						}
+						result.Status = status
+						return result
+					case "open":
+						if _, cErr := h.tasks.Reopen(change.EntityID); cErr != nil {
+							result.Status = "error"
+							result.Error = cErr.Error()
+							return result
+						}
+						result.Status = status
+						return result
+					}
+				}
+			case "deleted_at":
+				if val != nil {
+					// Soft-delete
+					if cErr := h.tasks.Delete(change.EntityID); cErr != nil {
+						result.Status = "error"
+						result.Error = cErr.Error()
+						return result
+					}
+					result.Status = status
+					return result
+				}
+				// Restore (deleted_at = null)
+				if _, cErr := h.tasks.Restore(change.EntityID); cErr != nil {
+					result.Status = "error"
+					result.Error = cErr.Error()
+					return result
+				}
+				result.Status = status
+				return result
 			}
 		}
 
