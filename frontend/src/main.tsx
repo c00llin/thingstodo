@@ -24,9 +24,10 @@ const queryClient = new QueryClient({
     queries: {
       staleTime: 1000 * 30,
       retry: 1,
+      networkMode: 'always', // local-first: reads come from IndexedDB, not network
     },
     mutations: {
-      networkMode: 'always', // mutations write to IndexedDB first, no network needed
+      networkMode: 'always', // local-first: writes go to IndexedDB first
     },
   },
 })
