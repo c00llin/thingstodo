@@ -19,14 +19,18 @@ async function clearDb() {
   await Promise.all(localDb.tables.map((t) => t.clear()))
 }
 
+function makeChange(
+  entity: string,
+  entity_id: string,
+  action: 'create' | 'update' | 'delete',
+  data: Record<string, unknown>,
+  seq: number,
+) {
+  return { seq, entity, entity_id, action, snapshot: JSON.stringify({ id: entity_id, ...data }), fields: null, created_at: new Date().toISOString() }
+}
+
 function makePullResponse(
-  changes: Array<{
-    entity: string
-    entityId: string
-    action: 'create' | 'update' | 'delete'
-    data: Record<string, unknown>
-    serverSeq: number
-  }>,
+  changes: ReturnType<typeof makeChange>[],
   cursor = 42,
 ) {
   return { changes, cursor, has_more: false }
@@ -41,13 +45,7 @@ describe('pullChanges', () => {
   test('applies remote create changes to IndexedDB', async () => {
     mockGet.mockResolvedValueOnce(
       makePullResponse([
-        {
-          entity: 'task',
-          entityId: 'remote-task-1',
-          action: 'create',
-          data: { title: 'Remote task', status: 'open' },
-          serverSeq: 10,
-        },
+        makeChange('task', 'remote-task-1', 'create', { title: 'Remote task', status: 'open' }, 10),
       ]),
     )
 
@@ -72,13 +70,7 @@ describe('pullChanges', () => {
 
     mockGet.mockResolvedValueOnce(
       makePullResponse([
-        {
-          entity: 'task',
-          entityId: 'task-upd',
-          action: 'update',
-          data: { title: 'New title' },
-          serverSeq: 20,
-        },
+        makeChange('task', 'task-upd', 'update', { title: 'New title' }, 20),
       ]),
     )
 
@@ -100,13 +92,7 @@ describe('pullChanges', () => {
 
     mockGet.mockResolvedValueOnce(
       makePullResponse([
-        {
-          entity: 'task',
-          entityId: 'task-del',
-          action: 'delete',
-          data: {},
-          serverSeq: 30,
-        },
+        makeChange('task', 'task-del', 'delete', {}, 30),
       ]),
     )
 
@@ -150,13 +136,7 @@ describe('pullChanges', () => {
     // Server tries to overwrite with a different title
     mockGet.mockResolvedValueOnce(
       makePullResponse([
-        {
-          entity: 'task',
-          entityId: 'task-local-pending',
-          action: 'update',
-          data: { title: 'Server override' },
-          serverSeq: 50,
-        },
+        makeChange('task', 'task-local-pending', 'update', { title: 'Server override' }, 50),
       ]),
     )
 
@@ -172,13 +152,7 @@ describe('pullChanges', () => {
     // First page
     mockGet.mockResolvedValueOnce({
       changes: [
-        {
-          entity: 'task',
-          entityId: 'task-page-1',
-          action: 'create',
-          data: { title: 'Page 1 task', status: 'open' },
-          serverSeq: 1,
-        },
+        makeChange('task', 'task-page-1', 'create', { title: 'Page 1 task', status: 'open' }, 1),
       ],
       cursor: 10,
       has_more: true,
@@ -186,13 +160,7 @@ describe('pullChanges', () => {
     // Second page (no more)
     mockGet.mockResolvedValueOnce({
       changes: [
-        {
-          entity: 'task',
-          entityId: 'task-page-2',
-          action: 'create',
-          data: { title: 'Page 2 task', status: 'open' },
-          serverSeq: 2,
-        },
+        makeChange('task', 'task-page-2', 'create', { title: 'Page 2 task', status: 'open' }, 2),
       ],
       cursor: 20,
       has_more: false,

@@ -51,8 +51,8 @@ describe('pushChanges', () => {
 
     mockPost.mockResolvedValueOnce({
       results: [
-        { entityId: 'task-1', success: true },
-        { entityId: 'task-2', success: true },
+        { entity_id: 'task-1', status: 'applied' },
+        { entity_id: 'task-2', status: 'applied' },
       ],
     })
 
@@ -73,8 +73,8 @@ describe('pushChanges', () => {
 
     mockPost.mockResolvedValueOnce({
       results: [
-        { entityId: 'task-ok', success: true },
-        { entityId: 'task-fail', success: false, error: 'conflict' },
+        { entity_id: 'task-ok', status: 'applied' },
+        { entity_id: 'task-fail', status: 'error', error: 'conflict' },
       ],
     })
 
@@ -96,7 +96,7 @@ describe('pushChanges', () => {
     })
 
     mockPost.mockResolvedValueOnce({
-      results: [{ entityId: 'task-xyz', success: true }],
+      results: [{ entity_id: 'task-xyz', status: 'applied' }],
     })
 
     await pushChanges('my-device')
@@ -106,7 +106,7 @@ describe('pushChanges', () => {
     expect(body.changes).toHaveLength(1)
     const change = body.changes[0] as Record<string, unknown>
     expect(change.entity).toBe('task')
-    expect(change.entityId).toBe('task-xyz')
+    expect(change.entity_id).toBe('task-xyz')
     expect(change.action).toBe('update')
     expect(change.fields).toEqual(['title', 'status'])
   })

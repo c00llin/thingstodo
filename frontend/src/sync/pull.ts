@@ -30,11 +30,13 @@ const SERVER_TO_QUEUE_ENTITY: Record<string, SyncEntity> = {
 }
 
 interface ChangeLogEntry {
+  seq: number
   entity: string
-  entityId: string
+  entity_id: string
   action: 'create' | 'update' | 'delete'
-  data: Record<string, unknown>
-  serverSeq: number
+  snapshot: string // JSON string of entity
+  fields: string | null
+  created_at: string
 }
 
 interface PullResponse {
@@ -88,7 +90,7 @@ async function applyChange(
   const queueEntity = SERVER_TO_QUEUE_ENTITY[change.entity]
   if (queueEntity) {
     const pendingIds = pendingEntityIds.get(queueEntity)
-    if (pendingIds?.has(change.entityId)) {
+    if (pendingIds?.has(change.entity_id)) {
       // Skip — we have local pending changes for this entity
       return
     }
@@ -98,16 +100,28 @@ async function applyChange(
   const table = (localDb as any)[tableName]
   if (!table) return
 
+  const data = JSON.parse(change.snapshot)
+
   if (change.action === 'delete') {
-    await table.delete(change.entityId)
+    // If snapshot has deleted_at, soft-delete (keep in DB); otherwise hard-delete
+    if (data.deleted_at) {
+      await table.put({
+        ...data,
+        _syncStatus: 'synced',
+        _localUpdatedAt: new Date().toISOString(),
+        _serverSeq: change.seq,
+      })
+    } else {
+      await table.delete(change.entity_id)
+    }
   } else {
     // create or update — upsert with sync metadata
     const record = {
-      ...change.data,
-      id: change.entityId,
+      ...data,
+      id: change.entity_id,
       _syncStatus: 'synced',
       _localUpdatedAt: new Date().toISOString(),
-      _serverSeq: change.serverSeq,
+      _serverSeq: change.seq,
     }
     await table.put(record)
   }

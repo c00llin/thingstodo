@@ -4,16 +4,17 @@ import type { SyncQueueEntry } from '../db/schema'
 
 interface ClientChange {
   entity: SyncQueueEntry['entity']
-  entityId: string
+  entity_id: string
   action: SyncQueueEntry['action']
   fields?: string[]
   data: Record<string, unknown>
-  clientUpdatedAt: string
+  client_updated_at: string
 }
 
 interface PushResult {
-  entityId: string
-  success: boolean
+  entity_id: string
+  status: string // 'applied' | 'conflict_resolved' | 'error'
+  seq?: number
   error?: string
 }
 
@@ -28,11 +29,11 @@ export async function pushChanges(deviceId: string): Promise<number> {
 
   const changes: ClientChange[] = entries.map((entry: SyncQueueEntry) => ({
     entity: entry.entity,
-    entityId: entry.entityId,
+    entity_id: entry.entityId,
     action: entry.action,
     fields: entry.fields,
     data: entry.data,
-    clientUpdatedAt: entry.clientUpdatedAt,
+    client_updated_at: entry.clientUpdatedAt,
   }))
 
   const response = await api.post<PushResponse>('/sync/push', {
@@ -41,12 +42,12 @@ export async function pushChanges(deviceId: string): Promise<number> {
   })
 
   // Remove successfully pushed entries from queue
-  const successfulIds = response.results
-    .filter((r: PushResult) => r.success)
-    .map((r: PushResult) => r.entityId)
+  const successfulEntityIds = response.results
+    .filter((r: PushResult) => r.status !== 'error')
+    .map((r: PushResult) => r.entity_id)
 
   const idsToRemove = entries
-    .filter((e: SyncQueueEntry) => successfulIds.includes(e.entityId))
+    .filter((e: SyncQueueEntry) => successfulEntityIds.includes(e.entityId))
     .map((e: SyncQueueEntry) => e.id!)
     .filter((id: number) => id !== undefined)
 
@@ -54,5 +55,5 @@ export async function pushChanges(deviceId: string): Promise<number> {
     await localDb.syncQueue.bulkDelete(idsToRemove)
   }
 
-  return successfulIds.length
+  return successfulEntityIds.length
 }
