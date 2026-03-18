@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { createPortal } from 'react-dom'
-import { useTags } from '../hooks/queries'
+import { useLocalTags } from '../hooks/localQueries'
 import { isSiYuanTag } from '../lib/siyuan'
 
 interface TagAutocompleteProps {
@@ -19,7 +19,7 @@ function getHashToken(value: string, cursorPos: number): { start: number; partia
 }
 
 export function TagAutocomplete({ inputRef, value, onChange }: TagAutocompleteProps) {
-  const { data: tags } = useTags()
+  const tagsArr = useLocalTags()
   const [open, setOpen] = useState(false)
   const [highlightIndex, setHighlightIndex] = useState(0)
   const [token, setToken] = useState<{ start: number; partial: string } | null>(null)
@@ -27,7 +27,7 @@ export function TagAutocomplete({ inputRef, value, onChange }: TagAutocompletePr
   const measureRef = useRef<HTMLSpanElement>(null)
   const dropdownRef = useRef<HTMLDivElement>(null)
 
-  const allTags = tags?.tags ?? []
+  const allTags = tagsArr ?? []
   const hasTags = allTags.length > 0
   const filtered = allTags
     .filter((t) => !isSiYuanTag(t.title))

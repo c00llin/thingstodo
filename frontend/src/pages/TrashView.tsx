@@ -1,15 +1,14 @@
 import { useState } from 'react'
 import { Trash } from 'lucide-react'
-import { useQueryClient } from '@tanstack/react-query'
-import { useTrash } from '../hooks/queries'
+import { useLocalTrash } from '../hooks/localQueries'
 import { TaskGroup } from '../components/TaskGroup'
 import { ConfirmDialog } from '../components/ConfirmDialog'
 import { formatRelativeDate } from '../lib/format-date'
 import { purgeTask } from '../api/tasks'
 
 export function TrashView() {
-  const { data, isLoading } = useTrash()
-  const queryClient = useQueryClient()
+  const data = useLocalTrash()
+  const isLoading = data === undefined
   const [purging, setPurging] = useState(false)
   const [showConfirm, setShowConfirm] = useState(false)
 
@@ -21,7 +20,6 @@ export function TrashView() {
     setShowConfirm(false)
     setPurging(true)
     await Promise.all(allTasks.map((t) => purgeTask(t.id)))
-    queryClient.invalidateQueries({ queryKey: ['views'] })
     setPurging(false)
   }
 

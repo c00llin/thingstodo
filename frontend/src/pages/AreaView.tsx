@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate, Link } from 'react-router'
 import { Trash2, ChevronRight } from 'lucide-react'
-import { useArea, useDeleteArea, useSettings } from '../hooks/queries'
+import { useDeleteArea, useSettings } from '../hooks/queries'
+import { useLocalAreaDetail } from '../hooks/localQueries'
 import { SortableTaskList } from '../components/SortableTaskList'
 import { CompletedTasksSection } from '../components/CompletedTasksSection'
 import { ConfirmDialog } from '../components/ConfirmDialog'
@@ -9,7 +10,8 @@ import { ConfirmDialog } from '../components/ConfirmDialog'
 export function AreaView() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
-  const { data: area, isLoading } = useArea(id!)
+  const area = useLocalAreaDetail(id!)
+  const isLoading = area === undefined
   const { data: settings } = useSettings()
   const deleteArea = useDeleteArea()
   const [showDelete, setShowDelete] = useState(false)

@@ -1,5 +1,5 @@
 import { useMemo } from 'react'
-import { useAnytime } from '../hooks/queries'
+import { useLocalAnytime } from '../hooks/localQueries'
 import { TaskGroup } from '../components/TaskGroup'
 import { SortableTaskList } from '../components/SortableTaskList'
 import { FilterBar, FilterToggleButton, FilterEmptyState } from '../components/FilterBar'
@@ -9,7 +9,8 @@ import { useFilterStore } from '../stores/filters'
 import { filterAreaGroups, filterNoArea, hasFilters } from '../lib/filter-tasks'
 
 export function AnytimeView() {
-  const { data, isLoading } = useAnytime()
+  const data = useLocalAnytime()
+  const isLoading = data === undefined
   const filterBarOpen = useAppStore((s) => s.filterBarOpen)
   const filters = useFilterStore()
   const active = hasFilters(filters)

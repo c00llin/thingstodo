@@ -13,7 +13,7 @@ import {
   Tag,
 } from 'lucide-react'
 import { useAppStore } from '../stores/app'
-import { useProjects, useAreas, useTags } from '../hooks/queries'
+import { useLocalProjects, useLocalAreas, useLocalTags } from '../hooks/localQueries'
 
 const pages = [
   { path: '/inbox', label: 'Inbox', icon: Inbox },
@@ -30,13 +30,9 @@ export function CommandPalette() {
   const close = useAppStore((s) => s.closeCommandPalette)
   const navigate = useNavigate()
 
-  const { data: projectsData } = useProjects()
-  const { data: areasData } = useAreas()
-  const { data: tagsData } = useTags()
-
-  const projects = projectsData?.projects
-  const areas = areasData?.areas
-  const tags = tagsData?.tags
+  const projects = useLocalProjects()
+  const areas = useLocalAreas()
+  const tags = useLocalTags()
 
   if (!open) return null
 

@@ -1,7 +1,8 @@
 import { useState, useRef, useEffect } from 'react'
 import { Command } from 'cmdk'
 import { Check, Blocks, Package, X } from 'lucide-react'
-import { useAreas, useProjects, useUpdateTask, useSettings, queryKeys } from '../hooks/queries'
+import { useUpdateTask, useSettings, queryKeys } from '../hooks/queries'
+import { useLocalAreas, useLocalProjects } from '../hooks/localQueries'
 import { useQueryClient } from '@tanstack/react-query'
 import type { TaskDetail } from '../api/types'
 
@@ -48,10 +49,8 @@ export function AreaProjectPicker(props: AreaProjectPickerProps) {
   const onControlledChange = isControlled ? props.onControlledChange : undefined
 
   const { data: settings } = useSettings()
-  const { data: areasData } = useAreas()
-  const { data: projectsData } = useProjects()
-  const areas = areasData?.areas
-  const allProjects = projectsData?.projects
+  const areas = useLocalAreas()
+  const allProjects = useLocalProjects()
   const updateTask = useUpdateTask()
 
   const open = externalOpen !== undefined ? (externalOpen || internalOpen) : internalOpen

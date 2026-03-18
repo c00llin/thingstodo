@@ -1,5 +1,5 @@
 import { useMemo } from 'react'
-import { useSomeday } from '../hooks/queries'
+import { useLocalSomeday } from '../hooks/localQueries'
 import { TaskGroup } from '../components/TaskGroup'
 import { SortableTaskList } from '../components/SortableTaskList'
 import { FilterBar, FilterToggleButton, FilterEmptyState } from '../components/FilterBar'
@@ -9,7 +9,8 @@ import { useFilterStore } from '../stores/filters'
 import { filterAreaGroups, filterNoArea, hasFilters } from '../lib/filter-tasks'
 
 export function SomedayView() {
-  const { data, isLoading } = useSomeday()
+  const data = useLocalSomeday()
+  const isLoading = data === undefined
   const filterBarOpen = useAppStore((s) => s.filterBarOpen)
   const filters = useFilterStore()
   const active = hasFilters(filters)

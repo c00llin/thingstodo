@@ -39,6 +39,9 @@ import type {
   TrashView,
   ViewCounts,
   TaskDetail,
+  ProjectDetail,
+  HeadingWithTasks,
+  AreaDetail,
   Project,
   Area,
   Tag,
@@ -607,4 +610,128 @@ export function useLocalTagTasks(tagId: string): Task[] | undefined {
 
     return tasks.map(taskToPlain)
   }, [tagId])
+}
+
+// ---------------------------------------------------------------------------
+// Detail Hooks (Project / Area with full sub-resources)
+// ---------------------------------------------------------------------------
+
+/**
+ * Full project detail with headings, tasks without heading, and completed tasks.
+ * Mirrors the ProjectDetail shape from the server API.
+ */
+export function useLocalProjectDetail(projectId: string): ProjectDetail | undefined {
+  return useLiveQuery(async () => {
+    if (!projectId) return undefined
+
+    const project = await localDb.projects.get(projectId)
+    if (!project) return undefined
+
+    const [allTasks, headings] = await Promise.all([
+      localDb.tasks
+        .where('project_id')
+        .equals(projectId)
+        .filter((t) => !t.deleted_at)
+        .toArray(),
+      localDb.headings
+        .where('project_id')
+        .equals(projectId)
+        .sortBy('sort_order'),
+    ])
+
+    const openTasks = allTasks.filter((t) => t.status === 'open')
+    const completedTasks = allTasks.filter(
+      (t) => t.status === 'completed' || t.status === 'canceled' || t.status === 'wont_do',
+    )
+
+    // Split open tasks by heading
+    const tasksWithoutHeading = openTasks
+      .filter((t) => !t.heading_id)
+      .sort((a, b) => (a.sort_order_project ?? 0) - (b.sort_order_project ?? 0))
+      .map(taskToPlain)
+
+    const headingsWithTasks: HeadingWithTasks[] = headings.map((h) => ({
+      ...stripSyncMeta(h),
+      tasks: openTasks
+        .filter((t) => t.heading_id === h.id)
+        .sort((a, b) => (a.sort_order_project ?? 0) - (b.sort_order_project ?? 0))
+        .map(taskToPlain),
+    }))
+
+    // Resolve area for the project
+    const area = project.area_id
+      ? await localDb.areas.get(project.area_id)
+      : undefined
+
+    return {
+      ...projectToPlain(project),
+      area: area ? { id: area.id, title: area.title } : { id: project.area_id, title: project.area_id },
+      task_count: openTasks.length + completedTasks.length,
+      completed_task_count: completedTasks.length,
+      headings: headingsWithTasks,
+      tasks_without_heading: tasksWithoutHeading,
+      completed_tasks: completedTasks.map(taskToPlain),
+    } as ProjectDetail
+  }, [projectId])
+}
+
+/**
+ * Full area detail with projects, tasks, and completed tasks.
+ * Mirrors the AreaDetail shape from the server API.
+ */
+export function useLocalAreaDetail(areaId: string): AreaDetail | undefined {
+  return useLiveQuery(async () => {
+    if (!areaId) return undefined
+
+    const area = await localDb.areas.get(areaId)
+    if (!area) return undefined
+
+    const [projects, allTasks] = await Promise.all([
+      localDb.projects
+        .where('area_id')
+        .equals(areaId)
+        .filter((p) => p.status === 'open')
+        .sortBy('sort_order'),
+      localDb.tasks
+        .where('area_id')
+        .equals(areaId)
+        .filter((t) => !t.deleted_at && !t.project_id)
+        .toArray(),
+    ])
+
+    const openTasks = allTasks
+      .filter((t) => t.status === 'open')
+      .sort((a, b) => (a.sort_order_today ?? 0) - (b.sort_order_today ?? 0))
+    const completedTasks = allTasks.filter(
+      (t) => t.status === 'completed' || t.status === 'canceled' || t.status === 'wont_do',
+    )
+
+    // Get task counts per project
+    const projectsWithCounts = await Promise.all(
+      projects.map(async (p) => {
+        const pTasks = await localDb.tasks
+          .where('project_id')
+          .equals(p.id)
+          .filter((t) => !t.deleted_at)
+          .toArray()
+        const openCount = pTasks.filter((t) => t.status === 'open').length
+        const completedCount = pTasks.length - openCount
+        return {
+          ...projectToPlain(p),
+          task_count: pTasks.length,
+          completed_task_count: completedCount,
+        }
+      }),
+    )
+
+    return {
+      ...areaToPlain(area),
+      project_count: projects.length,
+      task_count: openTasks.length + completedTasks.length,
+      standalone_task_count: openTasks.length,
+      projects: projectsWithCounts,
+      tasks: openTasks.map(taskToPlain),
+      completed_tasks: completedTasks.map(taskToPlain),
+    } as AreaDetail
+  }, [areaId])
 }

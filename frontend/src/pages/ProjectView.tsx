@@ -1,7 +1,8 @@
 import { useState } from 'react'
 import { useParams, useNavigate } from 'react-router'
 import { Trash2 } from 'lucide-react'
-import { useProject, useDeleteProject, useSettings } from '../hooks/queries'
+import { useDeleteProject, useSettings } from '../hooks/queries'
+import { useLocalProjectDetail } from '../hooks/localQueries'
 import { TaskGroup } from '../components/TaskGroup'
 import { SortableTaskList } from '../components/SortableTaskList'
 import { CompletedTasksSection } from '../components/CompletedTasksSection'
@@ -10,7 +11,8 @@ import { ConfirmDialog } from '../components/ConfirmDialog'
 export function ProjectView() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
-  const { data: project, isLoading } = useProject(id!)
+  const project = useLocalProjectDetail(id!)
+  const isLoading = project === undefined
   const { data: settings } = useSettings()
   const deleteProject = useDeleteProject()
   const [showDelete, setShowDelete] = useState(false)

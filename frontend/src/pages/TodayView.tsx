@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react'
 import { format } from 'date-fns'
 import { AnimatePresence } from 'framer-motion'
 import { ChevronRight } from 'lucide-react'
-import { useToday } from '../hooks/queries'
+import { useLocalToday } from '../hooks/localQueries'
 import { SortableTaskList } from '../components/SortableTaskList'
 import { TaskItem } from '../components/TaskItem'
 import { CompletedTasksSection } from '../components/CompletedTasksSection'
@@ -13,7 +13,8 @@ import { useFilterStore } from '../stores/filters'
 import { filterTasks, filterTodaySections, hasFilters } from '../lib/filter-tasks'
 
 export function TodayView() {
-  const { data, isLoading } = useToday()
+  const data = useLocalToday()
+  const isLoading = data === undefined
   const filterBarOpen = useAppStore((s) => s.filterBarOpen)
   const filters = useFilterStore()
   const active = hasFilters(filters)

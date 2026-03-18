@@ -31,7 +31,8 @@ import { CSS } from '@dnd-kit/utilities'
 
 import { motion, AnimatePresence, LayoutGroup } from 'framer-motion'
 import { ApiError } from '../api/client'
-import { useAreas, useProjects, useTags, useCreateProject, useCreateArea, useViewCounts, useUpdateProject, useUpdateArea, useUpdateTag, useSettings, useReorderAreas, useReorderProjects, useReorderTags, useMe, useLogout } from '../hooks/queries'
+import { useCreateProject, useCreateArea, useUpdateProject, useUpdateArea, useUpdateTag, useSettings, useReorderAreas, useReorderProjects, useReorderTags, useMe, useLogout } from '../hooks/queries'
+import { useLocalViewCounts, useLocalAreas, useLocalProjects, useLocalTags } from '../hooks/localQueries'
 import { useAppStore } from '../stores/app'
 import { ThemeToggle } from './ThemeToggle'
 import { SidebarDropTarget } from './SidebarDropTarget'
@@ -272,7 +273,7 @@ const countKeyMap: Record<string, keyof import('../api/types').ViewCounts | null
 }
 
 function SmartListNav() {
-  const { data: counts } = useViewCounts()
+  const counts = useLocalViewCounts()
   const { data: settings } = useSettings()
   const overdueCount = counts?.overdue ?? 0
   const reviewCount = counts?.review ?? 0
@@ -426,8 +427,8 @@ function sortAlpha<T extends { title: string }>(items: T[], direction: 'a-z' | '
 }
 
 function AreaList() {
-  const { data: areasData } = useAreas()
-  const { data: projectsData } = useProjects()
+  const areasArr = useLocalAreas()
+  const projectsArr = useLocalProjects()
   const { data: settings } = useSettings()
   const reorderAreasMut = useReorderAreas()
   const reorderProjectsMut = useReorderProjects()
@@ -439,9 +440,6 @@ function AreaList() {
   const updateProject = useUpdateProject()
   const updateArea = useUpdateArea()
   const showCounts = settings?.show_count_projects !== false
-
-  const areasArr = areasData?.areas
-  const projectsArr = projectsData?.projects
 
   const areas = useMemo(() => areasArr ?? [], [areasArr])
   const projects = useMemo(() => projectsArr ?? [], [projectsArr])
@@ -859,7 +857,7 @@ function TagSidebarItem({
 }
 
 function TagList() {
-  const { data } = useTags()
+  const tagsArr = useLocalTags()
   const { data: settings } = useSettings()
   const reorderTagsMut = useReorderTags()
   const open = useAppStore((s) => s.sidebarTagsOpen)
@@ -867,7 +865,6 @@ function TagList() {
   const [editingItemId, setEditingItemId] = useState<string | null>(null)
   const updateTag = useUpdateTag()
   const showCounts = settings?.show_count_tags !== false
-  const tagsArr = data?.tags
 
   const tags = useMemo(() => tagsArr ?? [], [tagsArr])
 
@@ -1154,7 +1151,7 @@ export function Sidebar() {
   const mobileSidebarOpen = useAppStore((s) => s.mobileSidebarOpen)
   const closeMobileSidebar = useAppStore((s) => s.closeMobileSidebar)
   const navigate = useNavigate()
-  const { data: counts } = useViewCounts()
+  const counts = useLocalViewCounts()
   const overdueCount = counts?.overdue ?? 0
   const reviewCount = counts?.review ?? 0
 
