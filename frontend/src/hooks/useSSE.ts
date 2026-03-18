@@ -196,11 +196,9 @@ export function useSSE() {
       }
 
       source.onerror = () => {
-        // Close when offline to stop auto-reconnect spam
-        if (!navigator.onLine) {
-          source.close()
-          sourceRef.current = null
-        }
+        // Always close on error — we manage reconnection ourselves via online/visibility events
+        source.close()
+        sourceRef.current = null
       }
     }
 

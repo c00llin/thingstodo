@@ -11,6 +11,9 @@ export class ApiError extends Error {
 }
 
 async function request<T>(path: string, options?: RequestInit): Promise<T> {
+  if (!navigator.onLine) {
+    throw new ApiError(0, 'offline')
+  }
   const res = await fetch(`${BASE_URL}${path}`, {
     ...options,
     credentials: 'include',
