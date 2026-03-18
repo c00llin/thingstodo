@@ -49,7 +49,8 @@ async function queueChange(
     createdAt: now(),
   }
   await localDb.syncQueue.add(entry as SyncQueueEntry)
-  syncNow().catch(() => {})
+  // Fire-and-forget sync — errors are handled by the sync engine
+  try { syncNow().catch(() => {}) } catch { /* ignore */ }
 }
 
 // ---------------------------------------------------------------------------

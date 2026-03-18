@@ -196,20 +196,38 @@ export function useSSE() {
       }
 
       source.onerror = () => {
-        // EventSource auto-reconnects on error
+        // Close when offline to stop auto-reconnect spam
+        if (!navigator.onLine) {
+          source.close()
+          sourceRef.current = null
+        }
       }
     }
 
-    connect()
+    function handleOnline() {
+      if (!sourceRef.current) connect()
+    }
+
+    function handleOffline() {
+      if (sourceRef.current) {
+        sourceRef.current.close()
+        sourceRef.current = null
+      }
+    }
+
+    if (navigator.onLine) {
+      connect()
+    }
+    window.addEventListener('online', handleOnline)
+    window.addEventListener('offline', handleOffline)
 
     function handleVisibility() {
       if (document.hidden) {
         sourceRef.current?.close()
         sourceRef.current = null
       } else {
-        if (!sourceRef.current) {
+        if (!sourceRef.current && navigator.onLine) {
           connect()
-          // Refetch stale data when returning to tab
           queryClient.invalidateQueries()
         }
       }
@@ -219,6 +237,8 @@ export function useSSE() {
 
     return () => {
       document.removeEventListener('visibilitychange', handleVisibility)
+      window.removeEventListener('online', handleOnline)
+      window.removeEventListener('offline', handleOffline)
       sourceRef.current?.close()
       sourceRef.current = null
     }

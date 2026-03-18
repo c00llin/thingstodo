@@ -879,6 +879,8 @@ export function useSettings() {
   return useQuery({
     queryKey: queryKeys.settings,
     queryFn: () => settingsApi.getSettings(),
+    retry: navigator.onLine ? 1 : false, // don't retry when offline
+    networkMode: 'offlineFirst', // use cache when offline, fetch when online
   })
 }
 
