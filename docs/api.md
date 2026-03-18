@@ -1252,6 +1252,125 @@ SSE: broadcasts `saved_filter_changed` with `{ "view": "<view>" }`.
 
 ---
 
+## Sync
+
+Endpoints for local-first synchronization. All endpoints require authentication.
+
+### GET /api/sync/pull
+Returns changes to the database since a given sequence number.
+
+Query params:
+- `since` (int64, default 0): Return changes after this sequence number
+- `limit` (int, default 500, max 1000): Maximum number of changes to return
+
+Response (200):
+```json
+{
+  "changes": [
+    {
+      "seq": 42,
+      "entity": "task",
+      "entity_id": "abc12345",
+      "action": "create|update|delete",
+      "fields": "title,notes",
+      "snapshot": "{...full entity JSON...}",
+      "user_id": "user123",
+      "device_id": "device456",
+      "created_at": "2026-03-15T10:30:00Z"
+    }
+  ],
+  "cursor": 42,
+  "has_more": false
+}
+```
+
+Response (410 Gone): Cursor has been purged, perform a full sync
+```json
+{
+  "error": "cursor expired: change log has been purged, perform a full sync",
+  "code": "CURSOR_EXPIRED"
+}
+```
+
+| Field | Description |
+|-------|-------------|
+| `seq` | Monotonically increasing sequence number (cursor) |
+| `entity` | Entity type: task, project, area, tag, heading, checklist_item, attachment, schedule, reminder, repeat_rule |
+| `entity_id` | ID of the entity that changed |
+| `action` | Type of change: create, update, or delete |
+| `fields` | Comma-separated list of fields that changed (for updates); null for create/delete |
+| `snapshot` | Full entity state as JSON string (always populated for create/update, empty string for delete) |
+| `user_id` | User ID (omitted if empty) |
+| `device_id` | Device ID of origin (omitted if empty) |
+| `created_at` | ISO 8601 timestamp when change was recorded |
+
+### GET /api/sync/full
+Returns the complete current state of all entities, used for initial sync or when cursor has expired.
+
+Response (200):
+```json
+{
+  "tasks": [/* array of task objects */],
+  "projects": [/* array of project objects */],
+  "areas": [/* array of area objects */],
+  "tags": [/* array of tag objects */],
+  "headings": [/* array of heading objects */],
+  "checklist": [/* array of checklist item objects */],
+  "attachments": [/* array of attachment objects */],
+  "schedules": [/* array of schedule objects */],
+  "reminders": [/* array of reminder objects */],
+  "repeat_rules": [/* array of repeat rule objects */],
+  "cursor": 1000
+}
+```
+
+### POST /api/sync/push
+Applies changes from a client device to the server. Uses last-write-wins (LWW) conflict resolution per entity based on `updated_at` timestamps.
+
+Request:
+```json
+{
+  "device_id": "string (required)",
+  "changes": [
+    {
+      "entity": "task|project|area|tag",
+      "entity_id": "string",
+      "action": "create|update|delete",
+      "data": { "title": "string", "notes": "string", ... },
+      "fields": ["title", "notes"],
+      "client_updated_at": "2026-03-15T10:30:00Z or 2026-03-15 10:30:00"
+    }
+  ]
+}
+```
+
+Response (200):
+```json
+{
+  "results": [
+    {
+      "entity": "task",
+      "entity_id": "abc12345",
+      "status": "applied|conflict_resolved|error",
+      "seq": 1001,
+      "error": "optional error message"
+    }
+  ]
+}
+```
+
+| Status | Meaning |
+|--------|---------|
+| `applied` | Change was applied without conflict |
+| `conflict_resolved` | Change conflicted with server state (server was newer), but was still recorded for audit |
+| `error` | Change could not be applied; check `error` field for details |
+
+**Supported entities:** task, project, area, tag
+
+**Conflict resolution:** For task, project, and area updates, if the server's `updated_at` is strictly newer than the client's `client_updated_at`, the status is marked as `conflict_resolved`. The client's change is still recorded in the change log. The client is responsible for pulling the latest state and reapplying their changes if needed.
+
+---
+
 ## Health
 
 ### GET /health
