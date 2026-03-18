@@ -847,7 +847,7 @@ export function useSearch(query: string) {
 export function useMe() {
   return useQuery({
     queryKey: queryKeys.auth.me,
-    queryFn: () => navigator.onLine ? authApi.getMe() : Promise.resolve(undefined as any),
+    queryFn: () => navigator.onLine ? authApi.getMe() : Promise.resolve(undefined as never),
     retry: false,
   })
 }
@@ -878,7 +878,7 @@ export function useLogout() {
 export function useSettings() {
   return useQuery({
     queryKey: queryKeys.settings,
-    queryFn: () => navigator.onLine ? settingsApi.getSettings() : Promise.resolve(undefined as any),
+    queryFn: () => navigator.onLine ? settingsApi.getSettings() : Promise.resolve(undefined as never),
   })
 }
 
@@ -915,7 +915,7 @@ export function useUpdateSettings() {
 export function useSavedFilters(view: string) {
   return useQuery({
     queryKey: queryKeys.savedFilters(view),
-    queryFn: () => navigator.onLine ? savedFiltersApi.listSavedFilters(view) : Promise.resolve(undefined as any),
+    queryFn: () => navigator.onLine ? savedFiltersApi.listSavedFilters(view) : Promise.resolve(undefined as never),
     staleTime: 30_000,
     enabled: view !== '',
   })
