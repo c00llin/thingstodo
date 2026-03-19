@@ -32,6 +32,88 @@ export function generateNanoid(): string {
     .join('')
 }
 
+/**
+ * Replicate server's syncFirstScheduleDate logic locally.
+ * - when_date is null → delete all schedules for the task
+ * - first schedule exists → update its when_date
+ * - no schedule exists → create one
+ */
+async function syncFirstScheduleDate(taskId: string, whenDate: string | null): Promise<void> {
+  if (whenDate === null) {
+    // Delete all schedule entries for this task
+    const schedules = await localDb.schedules.where('task_id').equals(taskId).toArray()
+    for (const s of schedules) {
+      await localDb.schedules.delete(s.id)
+      await queueChange('schedule', s.id, 'delete', { id: s.id })
+    }
+    return
+  }
+
+  // Find the first schedule entry (lowest sort_order)
+  const existing = await localDb.schedules
+    .where('task_id')
+    .equals(taskId)
+    .sortBy('sort_order')
+
+  if (existing.length === 0) {
+    // Create a new schedule entry
+    const id = generateNanoid()
+    const timestamp = now()
+    const schedule: LocalSchedule = {
+      id,
+      task_id: taskId,
+      when_date: whenDate,
+      start_time: null,
+      end_time: null,
+      completed: false,
+      sort_order: 0,
+      created_at: timestamp,
+      _syncStatus: 'pending',
+      _localUpdatedAt: timestamp,
+    }
+    await localDb.schedules.put(schedule)
+    await queueChange('schedule', id, 'create', schedule as unknown as Record<string, unknown>)
+  } else {
+    // Update the first entry's when_date
+    const first = existing[0]
+    if (first.when_date !== whenDate) {
+      const timestamp = now()
+      const updated: LocalSchedule = {
+        ...first,
+        when_date: whenDate,
+        _syncStatus: 'pending',
+        _localUpdatedAt: timestamp,
+      }
+      await localDb.schedules.put(updated)
+      await queueChange(
+        'schedule',
+        first.id,
+        'update',
+        { when_date: whenDate } as Record<string, unknown>,
+        ['when_date'],
+      )
+    }
+  }
+}
+
+/**
+ * Resolve tag_ids to TagRef[] from the local tags table.
+ * Returns the denormalized tags array for storing on the task.
+ */
+async function resolveTagRefs(tagIds: string[]): Promise<Array<{ id: string; title: string; color: string | null }>> {
+  const refs: Array<{ id: string; title: string; color: string | null }> = []
+  for (const tagId of tagIds) {
+    const tag = await localDb.tags.get(tagId)
+    if (tag) {
+      refs.push({ id: tag.id, title: tag.title, color: tag.color })
+    } else {
+      // Tag not in local DB yet — preserve the ID with a placeholder
+      refs.push({ id: tagId, title: '', color: null })
+    }
+  }
+  return refs
+}
+
 async function queueChange(
   entity: SyncEntity,
   entityId: string,
@@ -57,11 +139,19 @@ async function queueChange(
 // Task mutations
 // ---------------------------------------------------------------------------
 
-export type CreateTaskData = Partial<Omit<LocalTask, 'id' | '_syncStatus' | '_localUpdatedAt'>>
+export type CreateTaskData = Partial<Omit<LocalTask, 'id' | '_syncStatus' | '_localUpdatedAt'>> & {
+  tag_ids?: string[]
+}
 
 export async function createTask(data: CreateTaskData): Promise<string> {
   const id = generateNanoid()
   const timestamp = now()
+
+  // Resolve tag_ids to TagRef[] if provided
+  const tags = data.tag_ids
+    ? await resolveTagRefs(data.tag_ids)
+    : (data.tags ?? [])
+
   const task: LocalTask = {
     id,
     title: data.title ?? '',
@@ -81,7 +171,7 @@ export async function createTask(data: CreateTaskData): Promise<string> {
     deleted_at: data.deleted_at ?? null,
     created_at: data.created_at ?? timestamp,
     updated_at: data.updated_at ?? timestamp,
-    tags: data.tags ?? [],
+    tags,
     checklist_count: data.checklist_count ?? 0,
     checklist_done: data.checklist_done ?? 0,
     has_notes: data.has_notes ?? false,
@@ -105,32 +195,64 @@ export async function createTask(data: CreateTaskData): Promise<string> {
     _localUpdatedAt: timestamp,
   }
   await localDb.tasks.put(task)
-  await queueChange('task', id, 'create', task as unknown as Record<string, unknown>)
+
+  // Build sync payload: use tag_ids (not denormalized tags) for the server
+  const syncData = { ...(task as unknown as Record<string, unknown>) }
+  if (data.tag_ids) {
+    syncData.tag_ids = data.tag_ids
+  }
+  await queueChange('task', id, 'create', syncData)
+
+  // Sync first schedule entry if when_date is set
+  if (task.when_date) {
+    await syncFirstScheduleDate(id, task.when_date)
+  }
+
   return id
 }
 
 export async function updateTask(
   id: string,
-  fields: Partial<Omit<LocalTask, 'id' | '_syncStatus' | '_localUpdatedAt'>>,
+  fields: Partial<Omit<LocalTask, 'id' | '_syncStatus' | '_localUpdatedAt'>> & { tag_ids?: string[] },
 ): Promise<void> {
   const existing = await localDb.tasks.get(id)
   if (!existing) return
   const timestamp = now()
+
+  // Resolve tag_ids → tags (TagRef[]) for the local store
+  const resolvedFields = { ...fields }
+  const { tag_ids, ...fieldsWithoutTagIds } = resolvedFields
+  if (tag_ids !== undefined) {
+    ;(fieldsWithoutTagIds as Record<string, unknown>).tags = await resolveTagRefs(tag_ids)
+  }
+
   const updated: LocalTask = {
     ...existing,
-    ...fields,
+    ...fieldsWithoutTagIds,
     updated_at: timestamp,
     _syncStatus: 'pending',
     _localUpdatedAt: timestamp,
   }
   await localDb.tasks.put(updated)
-  await queueChange(
-    'task',
-    id,
-    'update',
-    fields as unknown as Record<string, unknown>,
-    Object.keys(fields),
-  )
+
+  // Build sync payload: send tag_ids (not tags) for the server
+  const syncFields: Record<string, unknown> = { ...(fieldsWithoutTagIds as Record<string, unknown>) }
+  const syncFieldKeys = [...Object.keys(fieldsWithoutTagIds)]
+  if (tag_ids !== undefined) {
+    syncFields.tag_ids = tag_ids
+    syncFieldKeys.push('tag_ids')
+    // Don't send denormalized tags to the server
+    delete syncFields.tags
+    const tagsKeyIdx = syncFieldKeys.indexOf('tags')
+    if (tagsKeyIdx !== -1) syncFieldKeys.splice(tagsKeyIdx, 1)
+  }
+
+  await queueChange('task', id, 'update', syncFields, syncFieldKeys)
+
+  // Sync first schedule entry when when_date changes
+  if ('when_date' in fields) {
+    await syncFirstScheduleDate(id, fields.when_date ?? null)
+  }
 }
 
 export async function completeTask(id: string): Promise<void> {

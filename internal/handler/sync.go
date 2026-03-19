@@ -355,6 +355,15 @@ func (h *SyncHandler) applyTaskChange(change SyncChange) SyncPushResult {
 			s := v.(string)
 			input.HeadingID = &s
 		}
+		if v, ok := change.Data["tag_ids"]; ok && v != nil {
+			if arr, ok := v.([]interface{}); ok {
+				for _, item := range arr {
+					if s, ok := item.(string); ok {
+						input.TagIDs = append(input.TagIDs, s)
+					}
+				}
+			}
+		}
 
 		task, err := h.tasks.Create(input)
 		if err != nil {
@@ -440,6 +449,21 @@ func (h *SyncHandler) applyTaskChange(change SyncChange) SyncPushResult {
 				if val != nil {
 					s := val.(string)
 					input.HeadingID = &s
+				}
+			case "tag_ids":
+				if val != nil {
+					if arr, ok := val.([]interface{}); ok {
+						tagIDs := make([]string, 0, len(arr))
+						for _, item := range arr {
+							if s, ok := item.(string); ok {
+								tagIDs = append(tagIDs, s)
+							}
+						}
+						input.TagIDs = tagIDs
+					}
+				} else {
+					// Explicit null → clear all tags
+					input.TagIDs = []string{}
 				}
 			case "status":
 				if s, ok := val.(string); ok {
