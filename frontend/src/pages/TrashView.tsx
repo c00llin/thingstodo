@@ -5,6 +5,7 @@ import { TaskGroup } from '../components/TaskGroup'
 import { ConfirmDialog } from '../components/ConfirmDialog'
 import { formatRelativeDate } from '../lib/format-date'
 import { purgeTask } from '../api/tasks'
+import { localDb } from '../db/index'
 
 export function TrashView() {
   const data = useLocalTrash()
@@ -19,7 +20,10 @@ export function TrashView() {
     if (!hasTasks) return
     setShowConfirm(false)
     setPurging(true)
-    await Promise.all(allTasks.map((t) => purgeTask(t.id)))
+    await Promise.all(allTasks.map(async (t) => {
+      await purgeTask(t.id)
+      await localDb.tasks.delete(t.id)
+    }))
     setPurging(false)
   }
 
