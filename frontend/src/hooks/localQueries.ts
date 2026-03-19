@@ -397,11 +397,10 @@ export function useLocalToday(eveningStartsAt = '18:00'): TodayView | undefined 
       }
     }
 
-    candidates.sort((a, b) => (a.sort_order_today ?? 0) - (b.sort_order_today ?? 0))
-
-    // Split into today vs evening based on schedule start_time
-    const todayTasks: LocalTask[] = []
-    const eveningTasks: LocalTask[] = []
+    // Split into today vs evening based on schedule start_time,
+    // tracking each task's start_time for sorting
+    const todayTasks: Array<{ task: LocalTask; startTime: string | null }> = []
+    const eveningTasks: Array<{ task: LocalTask; startTime: string | null }> = []
     for (const t of candidates) {
       const schedules = await localDb.schedules
         .where('task_id')
@@ -412,11 +411,22 @@ export function useLocalToday(eveningStartsAt = '18:00'): TodayView | undefined 
         (s) => s.start_time !== null && s.start_time >= eveningStartsAt,
       )
       if (eveningSchedule) {
-        eveningTasks.push(t)
+        eveningTasks.push({ task: t, startTime: eveningSchedule.start_time })
       } else {
-        todayTasks.push(t)
+        const firstTime = schedules.find((s) => s.start_time !== null)
+        todayTasks.push({ task: t, startTime: firstTime?.start_time ?? null })
       }
     }
+
+    // Sort by sort_order_today, then start_time (null sorts last)
+    const sortSection = (items: Array<{ task: LocalTask; startTime: string | null }>) =>
+      items.sort((a, b) =>
+        (a.task.sort_order_today ?? 0) - (b.task.sort_order_today ?? 0) ||
+        (a.startTime ?? '\xff').localeCompare(b.startTime ?? '\xff'),
+      ).map((i) => i.task)
+
+    const sortedTodayTasks = sortSection(todayTasks)
+    const sortedEveningTasks = sortSection(eveningTasks)
 
     // Overdue: open tasks with deadline < today
     const overdueTasks = await localDb.tasks
@@ -471,8 +481,8 @@ export function useLocalToday(eveningStartsAt = '18:00'): TodayView | undefined 
     })
 
     const sections: TodayViewSection[] = [
-      { title: 'Today', groups: await groupByProject(todayTasks) },
-      { title: 'This Evening', groups: await groupByProject(eveningTasks) },
+      { title: 'Today', groups: await groupByProject(sortedTodayTasks) },
+      { title: 'This Evening', groups: await groupByProject(sortedEveningTasks) },
     ]
 
     return {
