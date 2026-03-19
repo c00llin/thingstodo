@@ -21,7 +21,6 @@ import type {
   LocalSchedule,
   LocalReminder,
   LocalRepeatRule,
-  LocalHeading,
 } from '../db/schema'
 import type {
   Task,
