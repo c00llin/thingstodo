@@ -536,11 +536,12 @@ export function useLocalUpcoming(): UpcomingView | undefined {
       dateMap.get(d)!.push(enriched)
     }
 
-    // Sort tasks within each date by start_time then sort_order_today
+    // Sort tasks within each date by: high_priority desc, sort_order_today asc, start_time asc (null last)
     for (const tasks of dateMap.values()) {
       tasks.sort((a, b) =>
-        (a.first_schedule_time ?? '').localeCompare(b.first_schedule_time ?? '') ||
-        (a.sort_order_today ?? 0) - (b.sort_order_today ?? 0),
+        (b.high_priority ? 1 : 0) - (a.high_priority ? 1 : 0) ||
+        (a.sort_order_today ?? 0) - (b.sort_order_today ?? 0) ||
+        (a.first_schedule_time ?? '\xff').localeCompare(b.first_schedule_time ?? '\xff'),
       )
     }
 
