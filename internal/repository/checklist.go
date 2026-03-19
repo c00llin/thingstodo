@@ -81,8 +81,8 @@ func (r *ChecklistRepository) Create(taskID string, input model.CreateChecklistI
 
 	var c model.ChecklistItem
 	var completed int
-	_ = r.db.QueryRow("SELECT id, title, completed, sort_order FROM checklist_items WHERE id = ?", id).
-		Scan(&c.ID, &c.Title, &completed, &c.SortOrder)
+	_ = r.db.QueryRow("SELECT id, task_id, title, completed, sort_order FROM checklist_items WHERE id = ?", id).
+		Scan(&c.ID, &c.TaskID, &c.Title, &completed, &c.SortOrder)
 	c.Completed = completed == 1
 	logChange(r.changeLog, "checklist_item", id, "create", nil, &c, "", "")
 	return &c, nil
@@ -101,8 +101,8 @@ func (r *ChecklistRepository) Update(id string, input model.UpdateChecklistInput
 
 	var c model.ChecklistItem
 	var completed int
-	err := r.db.QueryRow("SELECT id, title, completed, sort_order FROM checklist_items WHERE id = ?", id).
-		Scan(&c.ID, &c.Title, &completed, &c.SortOrder)
+	err := r.db.QueryRow("SELECT id, task_id, title, completed, sort_order FROM checklist_items WHERE id = ?", id).
+		Scan(&c.ID, &c.TaskID, &c.Title, &completed, &c.SortOrder)
 	if err == sql.ErrNoRows {
 		return nil, nil
 	}

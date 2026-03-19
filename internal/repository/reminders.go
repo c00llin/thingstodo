@@ -75,8 +75,8 @@ func (r *ReminderRepository) Create(taskID string, input model.CreateReminderInp
 
 	var rm model.Reminder
 	err = r.db.QueryRow(
-		"SELECT id, type, value, exact_at, created_at FROM reminders WHERE id = ?", id).
-		Scan(&rm.ID, &rm.Type, &rm.Value, &rm.ExactAt, &rm.CreatedAt)
+		"SELECT id, task_id, type, value, exact_at, created_at FROM reminders WHERE id = ?", id).
+		Scan(&rm.ID, &rm.TaskID, &rm.Type, &rm.Value, &rm.ExactAt, &rm.CreatedAt)
 	if err != nil {
 		return nil, fmt.Errorf("read back reminder: %w", err)
 	}
