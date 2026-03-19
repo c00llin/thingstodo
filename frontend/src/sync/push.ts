@@ -42,8 +42,8 @@ export async function pushChanges(deviceId: string): Promise<number> {
   })
 
   // Remove successfully pushed entries and unrecoverable errors from queue.
-  // "unsupported entity type" errors are permanent — the server handles those
-  // entities via side effects (e.g., schedule sync on when_date change).
+  // "unsupported entity type" errors should not happen but are cleared
+  // to prevent them from blocking the queue permanently.
   const processedEntityIds = new Set<string>()
   for (const r of response.results) {
     if (r.status !== 'error') {

@@ -301,6 +301,16 @@ func (h *SyncHandler) applyChange(change SyncChange) SyncPushResult {
 		return h.applyAreaChange(change)
 	case "tag":
 		return h.applyTagChange(change)
+	case "schedule":
+		return h.applyScheduleChange(change)
+	case "checklistItem":
+		return h.applyChecklistChange(change)
+	case "attachment":
+		return h.applyAttachmentChange(change)
+	case "reminder":
+		return h.applyReminderChange(change)
+	case "heading":
+		return h.applyHeadingChange(change)
 	default:
 		return SyncPushResult{
 			Entity:   change.Entity,
@@ -812,6 +822,317 @@ func (h *SyncHandler) applyTagChange(change SyncChange) SyncPushResult {
 	return result
 }
 
+// --- Schedule change application ---
+
+func (h *SyncHandler) applyScheduleChange(change SyncChange) SyncPushResult {
+	result := SyncPushResult{Entity: "schedule", EntityID: change.EntityID}
+	taskID := stringFromData(change.Data, "task_id")
+
+	switch change.Action {
+	case "create":
+		if taskID == "" {
+			result.Status = "error"
+			result.Error = "task_id is required"
+			return result
+		}
+		input := model.CreateTaskScheduleInput{
+			WhenDate: stringFromData(change.Data, "when_date"),
+		}
+		if v, ok := change.Data["start_time"]; ok && v != nil {
+			s := v.(string)
+			input.StartTime = &s
+		}
+		if v, ok := change.Data["end_time"]; ok && v != nil {
+			s := v.(string)
+			input.EndTime = &s
+		}
+		_, err := h.schedules.Create(taskID, input)
+		if err != nil {
+			result.Status = "error"
+			result.Error = err.Error()
+			return result
+		}
+		result.Status = "applied"
+
+	case "update":
+		input := model.UpdateTaskScheduleInput{
+			Raw: make(map[string]json.RawMessage),
+		}
+		for _, field := range change.Fields {
+			val := change.Data[field]
+			rawVal, _ := json.Marshal(val)
+			input.Raw[field] = rawVal
+			switch field {
+			case "when_date":
+				if val != nil {
+					s := val.(string)
+					input.WhenDate = &s
+				}
+			case "start_time":
+				if val != nil {
+					s := val.(string)
+					input.StartTime = &s
+				}
+			case "end_time":
+				if val != nil {
+					s := val.(string)
+					input.EndTime = &s
+				}
+			case "completed":
+				if b, ok := val.(bool); ok {
+					input.Completed = &b
+				}
+			case "sort_order":
+				if f, ok := val.(float64); ok {
+					input.SortOrder = &f
+				}
+			}
+		}
+		_, err := h.schedules.Update(change.EntityID, input)
+		if err != nil {
+			result.Status = "error"
+			result.Error = err.Error()
+			return result
+		}
+		result.Status = "applied"
+
+	case "delete":
+		err := h.schedules.Delete(change.EntityID)
+		if err != nil {
+			result.Status = "error"
+			result.Error = err.Error()
+			return result
+		}
+		result.Status = "applied"
+
+	default:
+		result.Status = "error"
+		result.Error = "unsupported action: " + change.Action
+	}
+	return result
+}
+
+// --- Checklist change application ---
+
+func (h *SyncHandler) applyChecklistChange(change SyncChange) SyncPushResult {
+	result := SyncPushResult{Entity: "checklistItem", EntityID: change.EntityID}
+	taskID := stringFromData(change.Data, "task_id")
+
+	switch change.Action {
+	case "create":
+		if taskID == "" {
+			result.Status = "error"
+			result.Error = "task_id is required"
+			return result
+		}
+		input := model.CreateChecklistInput{
+			Title: stringFromData(change.Data, "title"),
+		}
+		_, err := h.checklist.Create(taskID, input)
+		if err != nil {
+			result.Status = "error"
+			result.Error = err.Error()
+			return result
+		}
+		result.Status = "applied"
+
+	case "update":
+		input := model.UpdateChecklistInput{}
+		for _, field := range change.Fields {
+			val := change.Data[field]
+			switch field {
+			case "title":
+				s := stringFromData(change.Data, "title")
+				input.Title = &s
+			case "completed":
+				if b, ok := val.(bool); ok {
+					input.Completed = &b
+				}
+			case "sort_order":
+				if f, ok := val.(float64); ok {
+					input.SortOrder = &f
+				}
+			}
+		}
+		_, err := h.checklist.Update(change.EntityID, input)
+		if err != nil {
+			result.Status = "error"
+			result.Error = err.Error()
+			return result
+		}
+		result.Status = "applied"
+
+	case "delete":
+		err := h.checklist.Delete(change.EntityID)
+		if err != nil {
+			result.Status = "error"
+			result.Error = err.Error()
+			return result
+		}
+		result.Status = "applied"
+
+	default:
+		result.Status = "error"
+		result.Error = "unsupported action: " + change.Action
+	}
+	return result
+}
+
+// --- Attachment change application ---
+
+func (h *SyncHandler) applyAttachmentChange(change SyncChange) SyncPushResult {
+	result := SyncPushResult{Entity: "attachment", EntityID: change.EntityID}
+	taskID := stringFromData(change.Data, "task_id")
+
+	switch change.Action {
+	case "create":
+		if taskID == "" {
+			result.Status = "error"
+			result.Error = "task_id is required"
+			return result
+		}
+		input := model.CreateAttachmentInput{
+			Type:     stringFromData(change.Data, "type"),
+			Title:    stringFromData(change.Data, "title"),
+			URL:      stringFromData(change.Data, "url"),
+			MimeType: stringFromData(change.Data, "mime_type"),
+		}
+		if v, ok := change.Data["file_size"]; ok {
+			if f, ok := v.(float64); ok {
+				input.FileSize = int64(f)
+			}
+		}
+		_, err := h.attachments.Create(taskID, input)
+		if err != nil {
+			result.Status = "error"
+			result.Error = err.Error()
+			return result
+		}
+		result.Status = "applied"
+
+	case "delete":
+		err := h.attachments.Delete(change.EntityID)
+		if err != nil {
+			result.Status = "error"
+			result.Error = err.Error()
+			return result
+		}
+		result.Status = "applied"
+
+	default:
+		result.Status = "error"
+		result.Error = "unsupported action: " + change.Action
+	}
+	return result
+}
+
+// --- Reminder change application ---
+
+func (h *SyncHandler) applyReminderChange(change SyncChange) SyncPushResult {
+	result := SyncPushResult{Entity: "reminder", EntityID: change.EntityID}
+	taskID := stringFromData(change.Data, "task_id")
+
+	switch change.Action {
+	case "create":
+		if taskID == "" {
+			result.Status = "error"
+			result.Error = "task_id is required"
+			return result
+		}
+		input := model.CreateReminderInput{
+			Type:  model.ReminderType(stringFromData(change.Data, "type")),
+			Value: int(floatFromData(change.Data, "value")),
+		}
+		if v, ok := change.Data["exact_at"]; ok && v != nil {
+			s := v.(string)
+			input.ExactAt = &s
+		}
+		_, err := h.reminders.Create(taskID, input)
+		if err != nil {
+			result.Status = "error"
+			result.Error = err.Error()
+			return result
+		}
+		result.Status = "applied"
+
+	case "delete":
+		err := h.reminders.Delete(change.EntityID)
+		if err != nil {
+			result.Status = "error"
+			result.Error = err.Error()
+			return result
+		}
+		result.Status = "applied"
+
+	default:
+		result.Status = "error"
+		result.Error = "unsupported action: " + change.Action
+	}
+	return result
+}
+
+// --- Heading change application ---
+
+func (h *SyncHandler) applyHeadingChange(change SyncChange) SyncPushResult {
+	result := SyncPushResult{Entity: "heading", EntityID: change.EntityID}
+	projectID := stringFromData(change.Data, "project_id")
+
+	switch change.Action {
+	case "create":
+		if projectID == "" {
+			result.Status = "error"
+			result.Error = "project_id is required"
+			return result
+		}
+		input := model.CreateHeadingInput{
+			Title: stringFromData(change.Data, "title"),
+		}
+		_, err := h.headings.Create(projectID, input)
+		if err != nil {
+			result.Status = "error"
+			result.Error = err.Error()
+			return result
+		}
+		result.Status = "applied"
+
+	case "update":
+		input := model.UpdateHeadingInput{}
+		for _, field := range change.Fields {
+			val := change.Data[field]
+			switch field {
+			case "title":
+				s := stringFromData(change.Data, "title")
+				input.Title = &s
+			case "sort_order":
+				if f, ok := val.(float64); ok {
+					input.SortOrder = &f
+				}
+			}
+		}
+		_, err := h.headings.Update(change.EntityID, input)
+		if err != nil {
+			result.Status = "error"
+			result.Error = err.Error()
+			return result
+		}
+		result.Status = "applied"
+
+	case "delete":
+		err := h.headings.Delete(change.EntityID)
+		if err != nil {
+			result.Status = "error"
+			result.Error = err.Error()
+			return result
+		}
+		result.Status = "applied"
+
+	default:
+		result.Status = "error"
+		result.Error = "unsupported action: " + change.Action
+	}
+	return result
+}
+
 // --- Helpers ---
 
 func stringFromData(data map[string]interface{}, key string) string {
@@ -821,6 +1142,15 @@ func stringFromData(data map[string]interface{}, key string) string {
 		}
 	}
 	return ""
+}
+
+func floatFromData(data map[string]interface{}, key string) float64 {
+	if v, ok := data[key]; ok && v != nil {
+		if f, ok := v.(float64); ok {
+			return f
+		}
+	}
+	return 0
 }
 
 func parseTimes(clientUpdatedAt, serverUpdatedAt string) (time.Time, time.Time) {
