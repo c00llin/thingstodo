@@ -314,35 +314,10 @@ export function useLocalInbox(reviewAfterDays?: number | null, reviewIncludeRecu
 /**
  * Group tasks by project_id, resolving project names from the local DB.
  */
-async function groupByProject(tasks: LocalTask[]): Promise<TodayViewGroup[]> {
+/** Enrich tasks and return as a single flat group. */
+async function tasksToGroups(tasks: LocalTask[]): Promise<TodayViewGroup[]> {
   const enriched = await enrichTasks(tasks)
-  const projectMap = new Map<string | null, Task[]>()
-  for (const t of enriched) {
-    const key = t.project_id ?? null
-    if (!projectMap.has(key)) projectMap.set(key, [])
-    projectMap.get(key)!.push(t)
-  }
-
-  const projectIds = [...projectMap.keys()].filter((k): k is string => k !== null)
-  const projects = projectIds.length
-    ? await localDb.projects.bulkGet(projectIds)
-    : []
-  const projectNames = new Map<string, string>()
-  for (const p of projects) {
-    if (p) projectNames.set(p.id, p.title)
-  }
-
-  const groups: TodayViewGroup[] = []
-  if (projectMap.has(null)) {
-    groups.push({ project: null, tasks: projectMap.get(null)! })
-  }
-  for (const pid of projectIds) {
-    groups.push({
-      project: { id: pid, title: projectNames.get(pid) ?? pid },
-      tasks: projectMap.get(pid) ?? [],
-    })
-  }
-  return groups
+  return [{ project: null, tasks: enriched }]
 }
 
 /**
@@ -418,12 +393,12 @@ export function useLocalToday(eveningStartsAt = '18:00'): TodayView | undefined 
       }
     }
 
-    // Sort by: high_priority desc, start_time asc (null last), sort_order_today asc
+    // Sort by: high_priority desc, start_time asc (null last), title asc
     const sortSection = (items: Array<{ task: LocalTask; startTime: string | null }>) =>
       items.sort((a, b) =>
         (b.task.high_priority ? 1 : 0) - (a.task.high_priority ? 1 : 0) ||
         (a.startTime ?? '\xff').localeCompare(b.startTime ?? '\xff') ||
-        (a.task.sort_order_today ?? 0) - (b.task.sort_order_today ?? 0),
+        (a.task.title ?? '').localeCompare(b.task.title ?? ''),
       ).map((i) => i.task)
 
     const sortedTodayTasks = sortSection(todayTasks)
@@ -482,8 +457,8 @@ export function useLocalToday(eveningStartsAt = '18:00'): TodayView | undefined 
     })
 
     const sections: TodayViewSection[] = [
-      { title: 'Today', groups: await groupByProject(sortedTodayTasks) },
-      { title: 'This Evening', groups: await groupByProject(sortedEveningTasks) },
+      { title: 'Today', groups: await tasksToGroups(sortedTodayTasks) },
+      { title: 'This Evening', groups: await tasksToGroups(sortedEveningTasks) },
     ]
 
     return {
@@ -536,12 +511,12 @@ export function useLocalUpcoming(): UpcomingView | undefined {
       dateMap.get(d)!.push(enriched)
     }
 
-    // Sort tasks within each date by: high_priority desc, start_time asc (null last), sort_order_today asc
+    // Sort tasks within each date by: high_priority desc, start_time asc (null last), title asc
     for (const tasks of dateMap.values()) {
       tasks.sort((a, b) =>
         (b.high_priority ? 1 : 0) - (a.high_priority ? 1 : 0) ||
         (a.first_schedule_time ?? '\xff').localeCompare(b.first_schedule_time ?? '\xff') ||
-        (a.sort_order_today ?? 0) - (b.sort_order_today ?? 0),
+        (a.title ?? '').localeCompare(b.title ?? ''),
       )
     }
 
