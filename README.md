@@ -26,6 +26,18 @@ A self-hosted, Things 3 / Todoist inspired task manager.
 - **Single Binary** — Go backend with embedded SPA frontend, SQLite database
 - **Sync** — bidirectional push/pull sync with last-write-wins conflict resolution; works across multiple devices
 
+### Offline Limitations
+
+Most features work fully offline. The following require an internet connection:
+
+- **Recurring task rules** — creating, editing, or deleting repeat rules (the recurrence engine runs server-side)
+- **File uploads** — uploading new file attachments (requires server-side multipart processing)
+- **Search** — full-text search uses server-side FTS5; offline search falls back to basic string matching
+- **Settings changes** — user settings are not stored locally and will be lost if changed offline
+- **Saved filters** — creating or deleting saved filter presets
+- **Reminder scheduling** — the reminder scheduler runs server-side; reminders set offline will fire after sync
+- **Logbook/Trash pagination** — local views load all entries (no pagination); may be slow with very large histories
+
 ## Quick Start
 
 ```yaml
