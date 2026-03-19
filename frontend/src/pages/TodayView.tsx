@@ -3,6 +3,7 @@ import { format } from 'date-fns'
 import { AnimatePresence } from 'framer-motion'
 import { ChevronRight } from 'lucide-react'
 import { useLocalToday } from '../hooks/localQueries'
+import { useSettings } from '../hooks/queries'
 import { SortableTaskList } from '../components/SortableTaskList'
 import { TaskItem } from '../components/TaskItem'
 import { CompletedTasksSection } from '../components/CompletedTasksSection'
@@ -13,7 +14,8 @@ import { useFilterStore } from '../stores/filters'
 import { filterTasks, filterTodaySections, hasFilters } from '../lib/filter-tasks'
 
 export function TodayView() {
-  const data = useLocalToday()
+  const { data: settings } = useSettings()
+  const data = useLocalToday(settings?.evening_starts_at ?? '18:00')
   const isLoading = data === undefined
   const filterBarOpen = useAppStore((s) => s.filterBarOpen)
   const filters = useFilterStore()

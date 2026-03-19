@@ -178,19 +178,38 @@ async function groupByProject(tasks: LocalTask[]): Promise<TodayViewGroup[]> {
 
 /**
  * Today: open tasks where when_date equals today's date, not deleted,
- * sorted by sort_order_today. Includes overdue (deadline < today),
- * earlier (when_date < today with uncompleted past schedules), and
- * completed-today tasks.
+ * sorted by sort_order_today. Split into Today and This Evening sections
+ * based on eveningStartsAt. Includes overdue, earlier, and completed-today.
  */
-export function useLocalToday(): TodayView | undefined {
+export function useLocalToday(eveningStartsAt = '18:00'): TodayView | undefined {
   return useLiveQuery(async () => {
     const today = todayString()
 
-    const todayTasks = await localDb.tasks
+    const allTodayTasks = await localDb.tasks
       .where('when_date')
       .equals(today)
       .filter((t) => t.status === 'open' && !t.deleted_at)
       .sortBy('sort_order_today')
+
+    // Split into today vs evening based on schedule start_time
+    const todayTasks: LocalTask[] = []
+    const eveningTasks: LocalTask[] = []
+    for (const t of allTodayTasks) {
+      // Check if this task has a schedule with start_time >= eveningStartsAt
+      const schedules = await localDb.schedules
+        .where('task_id')
+        .equals(t.id)
+        .filter((s) => s.when_date === today && !s.completed)
+        .toArray()
+      const eveningSchedule = schedules.find(
+        (s) => s.start_time !== null && s.start_time >= eveningStartsAt,
+      )
+      if (eveningSchedule) {
+        eveningTasks.push(t)
+      } else {
+        todayTasks.push(t)
+      }
+    }
 
     // Overdue: open tasks with deadline < today
     const overdueTasks = await localDb.tasks
@@ -234,15 +253,18 @@ export function useLocalToday(): TodayView | undefined {
       return bTs.localeCompare(aTs)
     })
 
-    const section: TodayViewSection = { title: 'Today', groups: await groupByProject(todayTasks) }
+    const sections: TodayViewSection[] = [
+      { title: 'Today', groups: await groupByProject(todayTasks) },
+      { title: 'This Evening', groups: await groupByProject(eveningTasks) },
+    ]
 
     return {
-      sections: [section],
+      sections,
       overdue: overdueTasks.map(taskToPlain),
       earlier: earlierTasks.map(taskToPlain),
       completed: completedTasks.map(taskToPlain),
     } satisfies TodayView
-  })
+  }, [eveningStartsAt])
 }
 
 /**

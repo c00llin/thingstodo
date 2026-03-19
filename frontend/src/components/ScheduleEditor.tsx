@@ -434,7 +434,12 @@ export function ScheduleEditor({
                     <button
                       onClick={() => updateSchedule.mutate({
                         id: entry.id,
-                        data: { when_date: today, completed: false },
+                        data: {
+                          when_date: today,
+                          completed: false,
+                          ...(entry.start_time ? { start_time: entry.start_time } : {}),
+                          ...(entry.end_time ? { end_time: entry.end_time } : {}),
+                        },
                       })}
                       className="flex items-center gap-1 rounded px-1.5 py-0.5 text-xs font-medium text-red-600 transition-colors hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/30"
                       aria-label="Reschedule to today"
