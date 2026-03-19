@@ -8,7 +8,7 @@ import { useAppStore } from '../stores/app'
 
 export function InboxView() {
   const { data: settings } = useSettings()
-  const data = useLocalInbox(settings?.review_after_days)
+  const data = useLocalInbox(settings?.review_after_days, settings?.review_include_recurring ?? true)
   const isLoading = data === undefined
   const hasTasks = (data?.tasks.length ?? 0) > 0
   const hasReview = (data?.review.length ?? 0) > 0

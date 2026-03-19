@@ -221,6 +221,11 @@ function GeneralSettings({ settings, updateSettings }: { settings: UserSettings;
           value={settings.review_after_days}
           onChange={(v) => updateSettings.mutate({ review_after_days: v })}
         />
+        <CheckboxSetting
+          label="Include recurring tasks in Review"
+          checked={settings.review_include_recurring}
+          onChange={(v) => updateSettings.mutate({ review_include_recurring: v })}
+        />
       </section>
 
       <div className="mb-8 border-b border-neutral-200 dark:border-neutral-700" />

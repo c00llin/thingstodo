@@ -135,6 +135,7 @@ export const mockUserSettings: UserSettings = {
   show_count_projects: true,
   show_count_tags: true,
   review_after_days: 7,
+  review_include_recurring: true,
   sort_areas: 'manual',
   sort_tags: 'manual',
 }

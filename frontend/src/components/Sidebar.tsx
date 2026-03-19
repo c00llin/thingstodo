@@ -274,7 +274,7 @@ const countKeyMap: Record<string, keyof import('../api/types').ViewCounts | null
 
 function SmartListNav() {
   const { data: settings } = useSettings()
-  const counts = useLocalViewCounts(settings?.review_after_days)
+  const counts = useLocalViewCounts(settings?.review_after_days, settings?.review_include_recurring ?? true)
   const overdueCount = counts?.overdue ?? 0
   const reviewCount = counts?.review ?? 0
   const showCounts = settings?.show_count_main !== false
@@ -1152,7 +1152,7 @@ export function Sidebar() {
   const closeMobileSidebar = useAppStore((s) => s.closeMobileSidebar)
   const navigate = useNavigate()
   const { data: sidebarSettings } = useSettings()
-  const counts = useLocalViewCounts(sidebarSettings?.review_after_days)
+  const counts = useLocalViewCounts(sidebarSettings?.review_after_days, sidebarSettings?.review_include_recurring ?? true)
   const overdueCount = counts?.overdue ?? 0
   const reviewCount = counts?.review ?? 0
 

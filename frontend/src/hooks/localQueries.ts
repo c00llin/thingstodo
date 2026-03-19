@@ -96,8 +96,9 @@ function tagToPlain(t: LocalTag): Tag {
 /**
  * Inbox: open tasks with no project_id, no area_id, no when_date, not deleted.
  * Review: open tasks not updated in `reviewAfterDays`, excluding inbox tasks.
+ * When `reviewIncludeRecurring` is false, recurring tasks are excluded from review.
  */
-export function useLocalInbox(reviewAfterDays?: number | null): InboxView | undefined {
+export function useLocalInbox(reviewAfterDays?: number | null, reviewIncludeRecurring = true): InboxView | undefined {
   return useLiveQuery(async () => {
     const tasks = await localDb.tasks
       .where('status')
@@ -126,7 +127,8 @@ export function useLocalInbox(reviewAfterDays?: number | null): InboxView | unde
           (t) =>
             !t.deleted_at &&
             !inboxIds.has(t.id) &&
-            (t.updated_at ?? '').slice(0, 10) < cutoffStr,
+            (t.updated_at ?? '').slice(0, 10) < cutoffStr &&
+            (reviewIncludeRecurring || !t.has_repeat_rule),
         )
         .toArray()
 
@@ -138,7 +140,7 @@ export function useLocalInbox(reviewAfterDays?: number | null): InboxView | unde
       tasks: tasks.map(taskToPlain),
       review,
     } satisfies InboxView
-  }, [reviewAfterDays])
+  }, [reviewAfterDays, reviewIncludeRecurring])
 }
 
 /**
@@ -609,7 +611,7 @@ export function useLocalTags(): Tag[] | undefined {
 /**
  * View counts for sidebar badges — mirrors ViewCounts from the server.
  */
-export function useLocalViewCounts(reviewAfterDays?: number | null): ViewCounts | undefined {
+export function useLocalViewCounts(reviewAfterDays?: number | null, reviewIncludeRecurring = true): ViewCounts | undefined {
   return useLiveQuery(async () => {
     const today = todayString()
 
@@ -696,7 +698,8 @@ export function useLocalViewCounts(reviewAfterDays?: number | null): ViewCounts 
           (t) =>
             !t.deleted_at &&
             !inboxIds.has(t.id) &&
-            (t.updated_at ?? '').slice(0, 10) < cutoffStr,
+            (t.updated_at ?? '').slice(0, 10) < cutoffStr &&
+            (reviewIncludeRecurring || !t.has_repeat_rule),
         )
         .count()
     }
@@ -711,7 +714,7 @@ export function useLocalViewCounts(reviewAfterDays?: number | null): ViewCounts 
       logbook: logbookCount,
       trash: trashCount,
     } satisfies ViewCounts
-  }, [reviewAfterDays])
+  }, [reviewAfterDays, reviewIncludeRecurring])
 }
 
 // ---------------------------------------------------------------------------

@@ -545,6 +545,7 @@ export interface UserSettings {
   show_count_projects: boolean
   show_count_tags: boolean
   review_after_days: number | null
+  review_include_recurring: boolean
   sort_areas: SortPreference
   sort_tags: SortPreference
   evening_starts_at: string

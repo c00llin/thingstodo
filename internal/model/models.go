@@ -228,6 +228,7 @@ type UserSettings struct {
 	NtfyAccessToken          string `json:"ntfy_access_token"`
 	BaseURL                  string `json:"base_url"`
 	PrivacyMode              bool   `json:"privacy_mode"`
+	ReviewIncludeRecurring   bool   `json:"review_include_recurring"`
 }
 
 type UpdateUserSettingsInput struct {
@@ -252,6 +253,7 @@ type UpdateUserSettingsInput struct {
 	NtfyAccessToken          *string `json:"ntfy_access_token"`
 	BaseURL                  *string `json:"base_url"`
 	PrivacyMode              *bool   `json:"privacy_mode"`
+	ReviewIncludeRecurring   *bool   `json:"review_include_recurring"`
 	Raw                      map[string]json.RawMessage `json:"-"`
 }
 
