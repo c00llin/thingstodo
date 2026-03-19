@@ -74,8 +74,9 @@ async function syncFirstScheduleDate(taskId: string, whenDate: string | null): P
       _localUpdatedAt: timestamp,
     }
     await localDb.schedules.put(schedule)
-  } else {
-    // Update the first entry's when_date locally
+  } else if (existing.length === 1) {
+    // Only update the first entry when there's a single schedule.
+    // Multi-schedule tasks are managed independently by ScheduleEditor.
     const first = existing[0]
     if (first.when_date !== whenDate) {
       const timestamp = now()
