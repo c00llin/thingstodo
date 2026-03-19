@@ -176,9 +176,9 @@ export function useLocalToday(): TodayView | undefined {
       .toArray()
     overdueTasks.sort((a, b) => (a.deadline ?? '').localeCompare(b.deadline ?? ''))
 
-    // Earlier: open tasks with when_date < today, not someday, not overdue (deadline >= today or no deadline),
-    // and has uncompleted past schedule entries
-    const earlierCandidates = await localDb.tasks
+    // Earlier: open tasks with when_date < today, not someday,
+    // not overdue (deadline >= today or no deadline)
+    const earlierTasks = await localDb.tasks
       .where('when_date')
       .below(today)
       .filter(
@@ -190,19 +190,6 @@ export function useLocalToday(): TodayView | undefined {
           (t.deadline === null || t.deadline === undefined || t.deadline >= today),
       )
       .toArray()
-
-    // Filter to only those with uncompleted past schedule entries
-    const earlierTasks: LocalTask[] = []
-    for (const t of earlierCandidates) {
-      const pastSchedules = await localDb.schedules
-        .where('task_id')
-        .equals(t.id)
-        .filter((s) => s.when_date < today && s.when_date !== 'someday' && !s.completed)
-        .count()
-      if (pastSchedules > 0) {
-        earlierTasks.push(t)
-      }
-    }
     earlierTasks.sort((a, b) =>
       (a.when_date ?? '').localeCompare(b.when_date ?? '') ||
       (a.sort_order_today ?? 0) - (b.sort_order_today ?? 0),
@@ -276,9 +263,9 @@ export function useLocalUpcoming(): UpcomingView | undefined {
       .toArray()
     overdueTasks.sort((a, b) => (a.deadline ?? '').localeCompare(b.deadline ?? ''))
 
-    // Earlier: open tasks with when_date < today, not someday, not overdue,
-    // with uncompleted past schedule entries
-    const earlierCandidates = await localDb.tasks
+    // Earlier: open tasks with when_date < today, not someday,
+    // not overdue (deadline >= today or no deadline)
+    const earlierTasks = await localDb.tasks
       .where('when_date')
       .below(today)
       .filter(
@@ -290,18 +277,6 @@ export function useLocalUpcoming(): UpcomingView | undefined {
           (t.deadline === null || t.deadline === undefined || t.deadline >= today),
       )
       .toArray()
-
-    const earlierTasks: LocalTask[] = []
-    for (const t of earlierCandidates) {
-      const pastSchedules = await localDb.schedules
-        .where('task_id')
-        .equals(t.id)
-        .filter((s) => s.when_date < today && s.when_date !== 'someday' && !s.completed)
-        .count()
-      if (pastSchedules > 0) {
-        earlierTasks.push(t)
-      }
-    }
     earlierTasks.sort((a, b) =>
       (a.when_date ?? '').localeCompare(b.when_date ?? '') ||
       (a.sort_order_today ?? 0) - (b.sort_order_today ?? 0),
