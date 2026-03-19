@@ -327,7 +327,13 @@ func (r *TaskRepository) Move(id string, input model.MoveTaskInput) (*model.Task
 func (r *TaskRepository) Delete(id string) error {
 	_, err := r.db.Exec("UPDATE tasks SET deleted_at = datetime('now'), updated_at = datetime('now') WHERE id = ?", id)
 	if err == nil {
-		logChange(r.changeLog, "task", id, "delete", nil, map[string]string{"id": id}, "", "")
+		// Log the full task snapshot so the pull client sees deleted_at and soft-deletes
+		task, getErr := r.GetByID(id)
+		if getErr == nil && task != nil {
+			logChange(r.changeLog, "task", id, "delete", nil, task, "", "")
+		} else {
+			logChange(r.changeLog, "task", id, "delete", nil, map[string]string{"id": id}, "", "")
+		}
 	}
 	return err
 }
