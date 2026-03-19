@@ -247,6 +247,11 @@ export async function updateTask(
   if ('when_date' in fields) {
     await syncFirstScheduleDate(id, fields.when_date ?? null)
   }
+
+  // Update has_notes flag when notes change
+  if ('notes' in fields) {
+    await refreshNotesFlag(id)
+  }
 }
 
 export async function completeTask(id: string): Promise<void> {
@@ -430,6 +435,44 @@ export async function updateTag(
 }
 
 // ---------------------------------------------------------------------------
+// Denormalized count helpers
+// ---------------------------------------------------------------------------
+
+/** Recompute checklist_count and checklist_done on the parent task. */
+async function refreshChecklistCounts(taskId: string): Promise<void> {
+  const task = await localDb.tasks.get(taskId)
+  if (!task) return
+  const items = await localDb.checklistItems.where('task_id').equals(taskId).toArray()
+  const count = items.length
+  const done = items.filter((i) => i.completed).length
+  if (task.checklist_count !== count || task.checklist_done !== done) {
+    await localDb.tasks.update(taskId, { checklist_count: count, checklist_done: done })
+  }
+}
+
+/** Recompute has_links and has_files on the parent task. */
+async function refreshAttachmentFlags(taskId: string): Promise<void> {
+  const task = await localDb.tasks.get(taskId)
+  if (!task) return
+  const attachments = await localDb.attachments.where('task_id').equals(taskId).toArray()
+  const hasLinks = attachments.some((a) => a.type === 'link')
+  const hasFiles = attachments.some((a) => a.type === 'file')
+  if (task.has_links !== hasLinks || task.has_files !== hasFiles) {
+    await localDb.tasks.update(taskId, { has_links: hasLinks, has_files: hasFiles })
+  }
+}
+
+/** Update has_notes on the parent task based on current notes content. */
+async function refreshNotesFlag(taskId: string): Promise<void> {
+  const task = await localDb.tasks.get(taskId)
+  if (!task) return
+  const hasNotes = !!task.notes
+  if (task.has_notes !== hasNotes) {
+    await localDb.tasks.update(taskId, { has_notes: hasNotes })
+  }
+}
+
+// ---------------------------------------------------------------------------
 // Checklist item mutations
 // ---------------------------------------------------------------------------
 
@@ -451,6 +494,7 @@ export async function createChecklistItem(data: CreateChecklistItemData): Promis
   }
   await localDb.checklistItems.put(item)
   await queueChange('checklistItem', id, 'create', item as unknown as Record<string, unknown>)
+  await refreshChecklistCounts(data.task_id)
   return id
 }
 
@@ -475,6 +519,9 @@ export async function updateChecklistItem(
     fields as unknown as Record<string, unknown>,
     Object.keys(fields),
   )
+  if ('completed' in fields) {
+    await refreshChecklistCounts(existing.task_id)
+  }
 }
 
 export async function deleteChecklistItem(id: string): Promise<void> {
@@ -482,6 +529,7 @@ export async function deleteChecklistItem(id: string): Promise<void> {
   if (!existing) return
   await localDb.checklistItems.delete(id)
   await queueChange('checklistItem', id, 'delete', { id })
+  await refreshChecklistCounts(existing.task_id)
 }
 
 // ---------------------------------------------------------------------------
@@ -510,14 +558,17 @@ export async function createAttachment(data: CreateAttachmentData): Promise<stri
   }
   await localDb.attachments.put(attachment)
   await queueChange('attachment', id, 'create', attachment as unknown as Record<string, unknown>)
+  await refreshAttachmentFlags(data.task_id)
   return id
 }
 
 export async function deleteAttachment(id: string): Promise<void> {
   const existing = await localDb.attachments.get(id)
   if (!existing) return
+  const taskId = existing.task_id
   await localDb.attachments.delete(id)
   await queueChange('attachment', id, 'delete', { id })
+  await refreshAttachmentFlags(taskId)
 }
 
 // ---------------------------------------------------------------------------

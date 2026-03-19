@@ -78,7 +78,45 @@ function taskToPlain(t: LocalTask): Task {
 }
 
 /**
- * Enrich a task with denormalized project_name, area_name, and first schedule time.
+ * Compute schedule flags on a plain Task from its local schedule entries.
+ * Mirrors the server's populateActionableScheduleFlags / populatePastScheduleCounts.
+ */
+async function computeScheduleFlags(plain: Task): Promise<void> {
+  const today = todayString()
+  const allSchedules = await localDb.schedules
+    .where('task_id')
+    .equals(plain.id)
+    .toArray()
+
+  if (allSchedules.length === 0) return
+
+  // has_actionable_schedules: uncompleted entries not for today (or someday)
+  plain.has_actionable_schedules = allSchedules.some(
+    (s) => !s.completed && (s.when_date !== today || s.when_date === 'someday'),
+  )
+
+  // all_today_schedules_completed: all entries are completed
+  const total = allSchedules.length
+  const completed = allSchedules.filter((s) => s.completed).length
+  plain.all_today_schedules_completed = total > 0 && completed === total
+
+  // first_schedule_completed: the displayed entry is completed
+  if (plain.schedule_entry_id) {
+    const entry = allSchedules.find((s) => s.id === plain.schedule_entry_id)
+    if (entry) plain.first_schedule_completed = entry.completed
+  } else if (plain.first_schedule_time) {
+    const sorted = [...allSchedules].sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0))
+    if (sorted.length > 0) plain.first_schedule_completed = sorted[0].completed
+  }
+
+  // past_schedule_count: uncompleted entries with when_date < today
+  plain.past_schedule_count = allSchedules.filter(
+    (s) => !s.completed && s.when_date < today && s.when_date !== 'someday',
+  ).length
+}
+
+/**
+ * Enrich a task with denormalized project_name, area_name, schedule time, and flags.
  * The server does this via SQL JOINs; we do it by looking up related entities.
  */
 async function enrichTask(t: LocalTask): Promise<Task> {
@@ -108,6 +146,7 @@ async function enrichTask(t: LocalTask): Promise<Task> {
     }
   }
 
+  await computeScheduleFlags(plain)
   return plain
 }
 
@@ -155,6 +194,7 @@ async function enrichTasks(tasks: LocalTask[]): Promise<Task[]> {
         plain.schedule_entry_id = schedules[0].id
       }
     }
+    await computeScheduleFlags(plain)
     result.push(plain)
   }
   return result
@@ -342,8 +382,9 @@ export function useLocalToday(eveningStartsAt = '18:00'): TodayView | undefined 
     overdueTasks.sort((a, b) => (a.deadline ?? '').localeCompare(b.deadline ?? ''))
 
     // Earlier: open tasks with when_date < today, not someday,
-    // not overdue (deadline >= today or no deadline)
-    const earlierTasks = await localDb.tasks
+    // not overdue (deadline >= today or no deadline),
+    // AND has at least one uncompleted past schedule entry
+    const earlierCandidates = await localDb.tasks
       .where('when_date')
       .below(today)
       .filter(
@@ -355,6 +396,15 @@ export function useLocalToday(eveningStartsAt = '18:00'): TodayView | undefined 
           (t.deadline === null || t.deadline === undefined || t.deadline >= today),
       )
       .toArray()
+    const earlierTasks: LocalTask[] = []
+    for (const t of earlierCandidates) {
+      const pastCount = await localDb.schedules
+        .where('task_id')
+        .equals(t.id)
+        .filter((s) => !s.completed && s.when_date < today && s.when_date !== 'someday')
+        .count()
+      if (pastCount > 0) earlierTasks.push(t)
+    }
     earlierTasks.sort((a, b) =>
       (a.when_date ?? '').localeCompare(b.when_date ?? '') ||
       (a.sort_order_today ?? 0) - (b.sort_order_today ?? 0),
@@ -452,8 +502,9 @@ export function useLocalUpcoming(): UpcomingView | undefined {
     overdueTasks.sort((a, b) => (a.deadline ?? '').localeCompare(b.deadline ?? ''))
 
     // Earlier: open tasks with when_date < today, not someday,
-    // not overdue (deadline >= today or no deadline)
-    const earlierTasks = await localDb.tasks
+    // not overdue (deadline >= today or no deadline),
+    // AND has at least one uncompleted past schedule entry
+    const earlierCandidates = await localDb.tasks
       .where('when_date')
       .below(today)
       .filter(
@@ -465,6 +516,15 @@ export function useLocalUpcoming(): UpcomingView | undefined {
           (t.deadline === null || t.deadline === undefined || t.deadline >= today),
       )
       .toArray()
+    const earlierTasks: LocalTask[] = []
+    for (const t of earlierCandidates) {
+      const pastCount = await localDb.schedules
+        .where('task_id')
+        .equals(t.id)
+        .filter((s) => !s.completed && s.when_date < today && s.when_date !== 'someday')
+        .count()
+      if (pastCount > 0) earlierTasks.push(t)
+    }
     earlierTasks.sort((a, b) =>
       (a.when_date ?? '').localeCompare(b.when_date ?? '') ||
       (a.sort_order_today ?? 0) - (b.sort_order_today ?? 0),
