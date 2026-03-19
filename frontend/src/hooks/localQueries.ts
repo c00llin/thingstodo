@@ -158,6 +158,17 @@ async function enrichTask(t: LocalTask): Promise<Task> {
     plain.first_reminder_exact_at = first.exact_at ?? null
   }
 
+  // Re-derive boolean flags from actual data
+  plain.has_notes = !!plain.notes
+  const attachments = await localDb.attachments.where('task_id').equals(t.id).toArray()
+  plain.has_links = attachments.some((a) => a.type === 'link')
+  plain.has_files = attachments.some((a) => a.type === 'file')
+  const repeatRules = await localDb.repeatRules.where('task_id').equals(t.id).count()
+  plain.has_repeat_rule = repeatRules > 0
+  const checklistItems = await localDb.checklistItems.where('task_id').equals(t.id).toArray()
+  plain.checklist_count = checklistItems.length
+  plain.checklist_done = checklistItems.filter((c) => c.completed).length
+
   await computeScheduleFlags(plain)
   return plain
 }
@@ -218,6 +229,16 @@ async function enrichTasks(tasks: LocalTask[]): Promise<Task[]> {
       plain.first_reminder_value = first.value ?? null
       plain.first_reminder_exact_at = first.exact_at ?? null
     }
+    // Re-derive boolean flags from actual data
+    plain.has_notes = !!plain.notes
+    const attachments = await localDb.attachments.where('task_id').equals(t.id).toArray()
+    plain.has_links = attachments.some((a) => a.type === 'link')
+    plain.has_files = attachments.some((a) => a.type === 'file')
+    const repeatRules = await localDb.repeatRules.where('task_id').equals(t.id).count()
+    plain.has_repeat_rule = repeatRules > 0
+    const checklistItems = await localDb.checklistItems.where('task_id').equals(t.id).toArray()
+    plain.checklist_count = checklistItems.length
+    plain.checklist_done = checklistItems.filter((c) => c.completed).length
     await computeScheduleFlags(plain)
     result.push(plain)
   }
