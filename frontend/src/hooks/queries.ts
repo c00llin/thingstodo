@@ -833,21 +833,28 @@ export function useCreateTaskSchedule(taskId: string) {
       const existingSchedules = await localDb.schedules
         .where('task_id')
         .equals(taskId)
-        .count()
-      if (existingSchedules === 0) {
+        .sortBy('sort_order')
+      if (existingSchedules.length === 0) {
         const task = await localDb.tasks.get(taskId)
         if (task?.when_date) {
           await localMutations.createSchedule({
             task_id: taskId,
             when_date: task.when_date,
+            start_time: task.first_schedule_time ?? undefined,
+            end_time: task.first_schedule_end_time ?? undefined,
             sort_order: 0,
           })
         }
       }
 
+      // Use a sort_order higher than all existing entries
+      const maxSort = existingSchedules.length > 0
+        ? Math.max(...existingSchedules.map((s) => s.sort_order ?? 0))
+        : 0
       const id = await localMutations.createSchedule({
         task_id: taskId,
         ...(data as Omit<localMutations.CreateScheduleData, 'task_id'>),
+        sort_order: maxSort + 1024,
       })
       return { id, task_id: taskId, ...data }
     },
