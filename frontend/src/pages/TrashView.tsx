@@ -23,6 +23,7 @@ export function TrashView() {
     await Promise.all(allTasks.map(async (t) => {
       await purgeTask(t.id)
       await localDb.tasks.delete(t.id)
+      await localDb.syncQueue.where('entityId').equals(t.id).delete()
     }))
     setPurging(false)
   }

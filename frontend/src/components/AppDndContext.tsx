@@ -15,7 +15,9 @@ import {
 } from '@dnd-kit/core'
 import { sortableKeyboardCoordinates } from '@dnd-kit/sortable'
 import { Package } from 'lucide-react'
-import { updateTask, reopenTask, restoreTask, deleteTask, completeTask, reorderTasks, bulkAction } from '../api/tasks'
+import { reorderTasks, bulkAction } from '../api/tasks'
+import * as localMutations from '../db/mutations'
+import { localDb } from '../db/index'
 import { updateProject, reorderProjects } from '../api/projects'
 import { reorderAreas } from '../api/areas'
 import { reorderTags } from '../api/tags'
@@ -226,32 +228,47 @@ function AppDndContextInner({ children }: AppDndContextProps) {
         let handled = false
 
         if (overId === 'sidebar-today') {
+          Promise.all(ids.map((id) => localMutations.updateTask(id, { when_date: today }))).catch(() => {})
           bulkAction({ task_ids: ids, action: 'set_when', params: { when_date: today } })
             .then(() => forceInvalidate())
           handled = true
         } else if (overId === 'sidebar-someday') {
+          Promise.all(ids.map((id) => localMutations.updateTask(id, { when_date: 'someday' }))).catch(() => {})
           bulkAction({ task_ids: ids, action: 'set_when', params: { when_date: 'someday' } })
             .then(() => forceInvalidate())
           handled = true
         } else if (overId === 'sidebar-anytime') {
+          Promise.all(ids.map((id) => localMutations.updateTask(id, { when_date: null }))).catch(() => {})
           bulkAction({ task_ids: ids, action: 'set_when', params: { when_date: '' } })
             .then(() => forceInvalidate())
           handled = true
         } else if (overId.startsWith('sidebar-project-')) {
           const projectId = overId.replace('sidebar-project-', '')
+          const project = projects.find((p) => p.id === projectId)
+          Promise.all(ids.map((id) => localMutations.updateTask(id, { project_id: projectId, area_id: project?.area_id ?? null }))).catch(() => {})
           bulkAction({ task_ids: ids, action: 'move_project', params: { project_id: projectId } })
             .then(() => forceInvalidate())
           handled = true
         } else if (overId.startsWith('sidebar-tag-')) {
           const tagId = overId.replace('sidebar-tag-', '')
+          // Add tag to each task locally (read existing tags first)
+          Promise.all(ids.map(async (id) => {
+            const task = await localDb.tasks.get(id)
+            const existingTagIds = task?.tags?.map((t) => t.id) ?? []
+            if (!existingTagIds.includes(tagId)) {
+              await localMutations.updateTask(id, { tag_ids: [...existingTagIds, tagId] })
+            }
+          })).catch(() => {})
           bulkAction({ task_ids: ids, action: 'add_tags', params: { tag_ids: [tagId] } })
             .then(() => forceInvalidate())
           handled = true
         } else if (overId === 'sidebar-trash') {
+          Promise.all(ids.map((id) => localMutations.deleteTask(id))).catch(() => {})
           bulkAction({ task_ids: ids, action: 'delete' })
             .then(() => forceInvalidate())
           handled = true
         } else if (overId === 'sidebar-completed') {
+          Promise.all(ids.map((id) => localMutations.completeTask(id))).catch(() => {})
           bulkAction({ task_ids: ids, action: 'complete' })
             .then(() => forceInvalidate())
           handled = true
@@ -385,15 +402,14 @@ function AppDndContextInner({ children }: AppDndContextProps) {
             deleted_at: new Date().toISOString(),
           } as Partial<Task>)
           useAppStore.getState().setDepartingTaskId(taskId)
-          deleteTask(taskId).then(() => {
-            setTimeout(() => {
-              useAppStore.getState().setDepartingTaskId(null)
-              queryClient.invalidateQueries({ queryKey: ['views'] })
-              queryClient.invalidateQueries({ queryKey: ['projects'] })
-              queryClient.invalidateQueries({ queryKey: ['areas'] })
-              queryClient.invalidateQueries({ queryKey: ['tags'] })
-            }, 800)
-          })
+          localMutations.deleteTask(taskId).catch(() => {})
+          setTimeout(() => {
+            useAppStore.getState().setDepartingTaskId(null)
+            queryClient.invalidateQueries({ queryKey: ['views'] })
+            queryClient.invalidateQueries({ queryKey: ['projects'] })
+            queryClient.invalidateQueries({ queryKey: ['areas'] })
+            queryClient.invalidateQueries({ queryKey: ['tags'] })
+          }, 800)
           return
         }
 
@@ -415,14 +431,14 @@ function AppDndContextInner({ children }: AppDndContextProps) {
                 },
               )
               updateTaskInCache(queryClient, taskId, { deleted_at: null } as Partial<Task>)
-              await restoreTask(taskId)
+              await localMutations.restoreTask(taskId)
             }
             updateTaskInCache(queryClient, taskId, {
               status: 'completed',
               completed_at: new Date().toISOString(),
             } as Partial<Task>)
             useAppStore.getState().setDepartingTaskId(taskId)
-            await completeTask(taskId)
+            await localMutations.completeTask(taskId)
             setTimeout(() => {
               useAppStore.getState().setDepartingTaskId(null)
               queryClient.invalidateQueries({ queryKey: ['views'] })
@@ -442,18 +458,26 @@ function AppDndContextInner({ children }: AppDndContextProps) {
         // Drag TO Tag: just add the tag, don't restore/reopen
         if (overId.startsWith('sidebar-tag-')) {
           const tagId = overId.replace('sidebar-tag-', '')
-          const existingTagIds = draggedTask?.tags?.map((t) => t.id) ?? []
-          if (!existingTagIds.includes(tagId)) {
-            const tag = allTags.find((t: Tag) => t.id === tagId)
-            const newTagRef = { id: tagId, title: tag?.title ?? '', color: tag?.color ?? null }
-            updateTaskInCache(queryClient, taskId, {
-              tags: [...(draggedTask?.tags ?? []), newTagRef],
-            } as Partial<Task>)
-            updateTask(taskId, { tag_ids: [...existingTagIds, tagId] }).then(() => {
+          // Read existing tags from local DB for accurate tag_ids
+          const doTagDrop = async () => {
+            const localTask = await localDb.tasks.get(taskId)
+            const existingTagIds = localTask?.tags?.map((t) => t.id) ?? draggedTask?.tags?.map((t) => t.id) ?? []
+            if (!existingTagIds.includes(tagId)) {
+              const tag = allTags.find((t: Tag) => t.id === tagId)
+              const newTagRef = { id: tagId, title: tag?.title ?? '', color: tag?.color ?? null }
+              updateTaskInCache(queryClient, taskId, {
+                tags: [...(draggedTask?.tags ?? []), newTagRef],
+              } as Partial<Task>)
+              const newTagIds = [...existingTagIds, tagId]
+              await localMutations.updateTask(taskId, { tag_ids: newTagIds })
               queryClient.invalidateQueries({ queryKey: ['views'] })
               queryClient.invalidateQueries({ queryKey: ['tags'] })
-            })
+            }
           }
+          doTagDrop().catch(() => {
+            queryClient.invalidateQueries({ queryKey: ['views'] })
+            queryClient.invalidateQueries({ queryKey: ['tags'] })
+          })
           return
         }
 
@@ -477,7 +501,7 @@ function AppDndContextInner({ children }: AppDndContextProps) {
             updateTaskInCache(queryClient, taskId, {
               deleted_at: null,
             } as Partial<Task>)
-            await restoreTask(taskId)
+            await localMutations.restoreTask(taskId)
           }
           // Reopen non-open tasks when dropped on a sidebar target
           if (needsReopen) {
@@ -486,25 +510,25 @@ function AppDndContextInner({ children }: AppDndContextProps) {
               completed_at: null,
               canceled_at: null,
             } as Partial<Task>)
-            await reopenTask(taskId)
+            await localMutations.reopenTask(taskId)
           }
           if (overId === 'sidebar-today') {
             const today = new Date().toISOString().split('T')[0]
             updateTaskInCache(queryClient, taskId, { when_date: today } as Partial<Task>)
-            await updateTask(taskId, { when_date: today })
+            await localMutations.updateTask(taskId, { when_date: today })
           } else if (overId === 'sidebar-anytime') {
             updateTaskInCache(queryClient, taskId, { when_date: null } as Partial<Task>)
-            await updateTask(taskId, { when_date: null })
+            await localMutations.updateTask(taskId, { when_date: null })
           } else if (overId === 'sidebar-someday') {
             updateTaskInCache(queryClient, taskId, { when_date: 'someday' } as Partial<Task>)
-            await updateTask(taskId, { when_date: 'someday' })
+            await localMutations.updateTask(taskId, { when_date: 'someday' })
           } else if (overId === 'sidebar-inbox') {
             updateTaskInCache(queryClient, taskId, {
               project_id: null, project_name: null,
               area_id: null, area_name: null,
               when_date: null,
             } as Partial<Task>)
-            await updateTask(taskId, { project_id: null, area_id: null, when_date: null })
+            await localMutations.updateTask(taskId, { project_id: null, area_id: null, when_date: null })
           } else if (overId.startsWith('sidebar-project-')) {
             const projectId = overId.replace('sidebar-project-', '')
             const project = projects.find((p) => p.id === projectId)
@@ -515,7 +539,7 @@ function AppDndContextInner({ children }: AppDndContextProps) {
               area_id: project?.area_id ?? null,
               area_name: projectArea?.title ?? null,
             } as Partial<Task>)
-            await updateTask(taskId, { project_id: projectId, area_id: project?.area_id ?? null })
+            await localMutations.updateTask(taskId, { project_id: projectId, area_id: project?.area_id ?? null })
           } else if (overId.startsWith('sidebar-area-')) {
             const areaId = overId.replace('sidebar-area-', '')
             const area = areas.find((a) => a.id === areaId)
@@ -525,9 +549,9 @@ function AppDndContextInner({ children }: AppDndContextProps) {
               area_id: areaId,
               area_name: area?.title ?? null,
             } as Partial<Task>)
-            await updateTask(taskId, { project_id: null, area_id: areaId })
+            await localMutations.updateTask(taskId, { project_id: null, area_id: areaId })
           }
-          // Invalidate after all API calls complete
+          // Invalidate after local mutations complete
           queryClient.invalidateQueries({ queryKey: ['views'] })
           queryClient.invalidateQueries({ queryKey: ['tags'] })
           if (overId.startsWith('sidebar-project-') || overId.startsWith('sidebar-area-')) {
@@ -564,6 +588,9 @@ function AppDndContextInner({ children }: AppDndContextProps) {
         )
         // Optimistic: reorder the task array in cache immediately
         reorderTaskInCache(queryClient, movedTask.id, sortField, newPosition)
+        // Update local IndexedDB immediately
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        localDb.tasks.update(movedTask.id, { [sortField]: newPosition } as any).catch(() => {})
         // Persist to backend, then reconcile
         reorderTasks([
           { id: movedTask.id, sort_field: sortField, sort_order: newPosition },

@@ -2,6 +2,7 @@ import { useMutation } from '@tanstack/react-query'
 import type { BulkActionRequest } from '../api/types'
 import { useAppStore } from '../stores/app'
 import * as localMutations from '../db/mutations'
+import { localDb } from '../db/index'
 
 const DESTRUCTIVE_ACTIONS = new Set(['complete', 'cancel', 'wontdo', 'delete', 'mark_reviewed'])
 
@@ -45,10 +46,43 @@ async function applyBulkAction(data: BulkActionRequest): Promise<void> {
         })
         break
       case 'add_tags':
+        {
+          const tagIds = (data.params?.tag_ids as string[]) ?? []
+          const task = await localDb.tasks.get(id)
+          if (task) {
+            const currentIds = (task.tags ?? []).map((t) => t.id)
+            const merged = [...new Set([...currentIds, ...tagIds])]
+            await localMutations.updateTask(id, { tag_ids: merged })
+          }
+        }
+        break
       case 'remove_tags':
+        {
+          const tagIds = (data.params?.tag_ids as string[]) ?? []
+          const removeSet = new Set(tagIds)
+          const task = await localDb.tasks.get(id)
+          if (task) {
+            const remaining = (task.tags ?? []).map((t) => t.id).filter((tid) => !removeSet.has(tid))
+            await localMutations.updateTask(id, { tag_ids: remaining })
+          }
+        }
+        break
       case 'toggle_tags':
-        // Tag mutations require server — these are complex join operations
-        // Fall through to no-op locally; sync will handle it
+        {
+          const tagIds = (data.params?.tag_ids as string[]) ?? []
+          const task = await localDb.tasks.get(id)
+          if (task) {
+            const currentIds = new Set((task.tags ?? []).map((t) => t.id))
+            for (const tid of tagIds) {
+              if (currentIds.has(tid)) {
+                currentIds.delete(tid)
+              } else {
+                currentIds.add(tid)
+              }
+            }
+            await localMutations.updateTask(id, { tag_ids: [...currentIds] })
+          }
+        }
         break
       case 'mark_reviewed':
         await localMutations.updateTask(id, { updated_at: new Date().toISOString() })

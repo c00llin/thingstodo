@@ -6,9 +6,7 @@ import {
   useCreateTaskSchedule,
   useUpdateTaskSchedule,
   useDeleteTaskSchedule,
-  queryKeys,
 } from '../hooks/queries'
-import { useQueryClient } from '@tanstack/react-query'
 import type { TaskSchedule } from '../api/types'
 import { reorderSchedules } from '../api/schedules'
 import { localDb } from '../db/index'
@@ -51,7 +49,6 @@ export function ScheduleEditor({
   const createSchedule = useCreateTaskSchedule(taskId)
   const updateSchedule = useUpdateTaskSchedule(taskId)
   const deleteSchedule = useDeleteTaskSchedule(taskId)
-  const queryClient = useQueryClient()
 
   // Refs to imperatively focus start/end-time inputs, keyed by entry id
   const startTimeRefs = useRef<Record<string, TimeInputHandle | null>>({})

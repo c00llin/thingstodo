@@ -510,7 +510,10 @@ export function useDeleteProject() {
 export function useReorderProjects() {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: (items: SimpleReorderItem[]) => projectsApi.reorderProjects(items),
+    mutationFn: async (items: SimpleReorderItem[]) => {
+      await Promise.all(items.map((item) => localDb.projects.update(item.id, { sort_order: item.sort_order })))
+      return projectsApi.reorderProjects(items)
+    },
     onMutate: async (items) => {
       // Cancel in-flight project fetches so they don't overwrite optimistic area_id changes
       await queryClient.cancelQueries({ queryKey: queryKeys.projects.all })
@@ -572,8 +575,10 @@ export function useUpdateArea() {
 export function useDeleteArea() {
   const queryClient = useQueryClient()
   return useMutation({
-    // Area deletion is still an API call — no local delete for areas yet
-    mutationFn: (id: string) => areasApi.deleteArea(id),
+    mutationFn: async (id: string) => {
+      await localDb.areas.delete(id)
+      return areasApi.deleteArea(id)
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.areas.all })
       queryClient.invalidateQueries({ queryKey: ['views'] })
@@ -584,7 +589,10 @@ export function useDeleteArea() {
 export function useReorderAreas() {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: (items: SimpleReorderItem[]) => areasApi.reorderAreas(items),
+    mutationFn: async (items: SimpleReorderItem[]) => {
+      await Promise.all(items.map((item) => localDb.areas.update(item.id, { sort_order: item.sort_order })))
+      return areasApi.reorderAreas(items)
+    },
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.areas.all })
     },
@@ -629,8 +637,10 @@ export function useUpdateTag() {
 export function useDeleteTag() {
   const queryClient = useQueryClient()
   return useMutation({
-    // Tag deletion is still an API call — no local delete for tags yet
-    mutationFn: (id: string) => tagsApi.deleteTag(id),
+    mutationFn: async (id: string) => {
+      await localDb.tags.delete(id)
+      return tagsApi.deleteTag(id)
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.tags.all })
       queryClient.invalidateQueries({ queryKey: ['views'] })
@@ -641,7 +651,10 @@ export function useDeleteTag() {
 export function useReorderTags() {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: (items: SimpleReorderItem[]) => tagsApi.reorderTags(items),
+    mutationFn: async (items: SimpleReorderItem[]) => {
+      await Promise.all(items.map((item) => localDb.tags.update(item.id, { sort_order: item.sort_order })))
+      return tagsApi.reorderTags(items)
+    },
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.tags.all })
     },
@@ -722,7 +735,18 @@ export function useUploadFile(taskId: string) {
   const queryClient = useQueryClient()
   return useMutation({
     // File uploads require multipart server processing — keep as API call
-    mutationFn: (file: File) => attachmentsApi.uploadFile(taskId, file),
+    mutationFn: async (file: File) => {
+      const result = await attachmentsApi.uploadFile(taskId, file)
+      if (result) {
+        await localDb.attachments.put({
+          ...result,
+          task_id: taskId,
+          _syncStatus: 'synced',
+          _localUpdatedAt: new Date().toISOString(),
+        } as never)
+      }
+      return result
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.tasks.attachments(taskId) })
       queryClient.invalidateQueries({ queryKey: queryKeys.tasks.detail(taskId) })
@@ -747,9 +771,11 @@ export function useAddLink(taskId: string) {
 export function useUpdateAttachment(taskId: string) {
   const queryClient = useQueryClient()
   return useMutation({
-    // Attachment update (rename) — no local mutation for update; keep as API call
-    mutationFn: ({ id, data }: { id: string; data: UpdateAttachmentRequest }) =>
-      attachmentsApi.updateAttachment(id, data),
+    mutationFn: async ({ id, data }: { id: string; data: UpdateAttachmentRequest }) => {
+      const result = await attachmentsApi.updateAttachment(id, data)
+      await localDb.attachments.update(id, data)
+      return result
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.tasks.attachments(taskId) })
     },
@@ -768,7 +794,11 @@ export function useDeleteAttachment(_taskId: string) {
 export function useUpsertRepeatRule(taskId: string) {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: (data: UpsertRepeatRuleRequest) => repeatApi.upsertRepeatRule(taskId, data),
+    mutationFn: async (data: UpsertRepeatRuleRequest) => {
+      const result = await repeatApi.upsertRepeatRule(taskId, data)
+      await localDb.tasks.update(taskId, { has_repeat_rule: true })
+      return result
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.tasks.detail(taskId) })
       updateTaskInCache(queryClient, taskId, { has_repeat_rule: true })
@@ -779,7 +809,13 @@ export function useUpsertRepeatRule(taskId: string) {
 export function useDeleteRepeatRule(taskId: string) {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: () => repeatApi.deleteRepeatRule(taskId),
+    mutationFn: async () => {
+      const result = await repeatApi.deleteRepeatRule(taskId)
+      await localDb.tasks.update(taskId, { has_repeat_rule: false })
+      const rules = await localDb.repeatRules.where('task_id').equals(taskId).toArray()
+      for (const r of rules) await localDb.repeatRules.delete(r.id)
+      return result
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.tasks.detail(taskId) })
       updateTaskInCache(queryClient, taskId, { has_repeat_rule: false })
@@ -858,9 +894,10 @@ export function useDeleteTaskSchedule(taskId: string) {
 export function useReorderTaskSchedules(taskId: string) {
   const queryClient = useQueryClient()
   return useMutation({
-    // Schedule reorder has no local equivalent — keep as API call
-    mutationFn: (items: SimpleReorderItem[]) =>
-      schedulesApi.reorderSchedules(taskId, items),
+    mutationFn: async (items: SimpleReorderItem[]) => {
+      await Promise.all(items.map((item) => localDb.schedules.update(item.id, { sort_order: item.sort_order })))
+      return schedulesApi.reorderSchedules(taskId, items)
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.tasks.schedules(taskId) })
       queryClient.invalidateQueries({ queryKey: queryKeys.tasks.detail(taskId) })
