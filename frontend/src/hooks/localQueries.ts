@@ -418,9 +418,10 @@ export function useLocalToday(eveningStartsAt = '18:00'): TodayView | undefined 
       }
     }
 
-    // Sort by sort_order_today, then start_time (null sorts last)
+    // Sort by: high_priority desc, sort_order_today asc, start_time asc (null last)
     const sortSection = (items: Array<{ task: LocalTask; startTime: string | null }>) =>
       items.sort((a, b) =>
+        (b.task.high_priority ? 1 : 0) - (a.task.high_priority ? 1 : 0) ||
         (a.task.sort_order_today ?? 0) - (b.task.sort_order_today ?? 0) ||
         (a.startTime ?? '\xff').localeCompare(b.startTime ?? '\xff'),
       ).map((i) => i.task)
