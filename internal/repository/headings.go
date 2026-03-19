@@ -62,7 +62,10 @@ func (r *HeadingRepository) ListAll() ([]model.Heading, error) {
 }
 
 func (r *HeadingRepository) Create(projectID string, input model.CreateHeadingInput) (*model.Heading, error) {
-	id := model.NewID()
+	id := input.ID
+	if id == "" {
+		id = model.NewID()
+	}
 	var maxSort float64
 	_ = r.db.QueryRow("SELECT COALESCE(MAX(sort_order), 0) FROM headings WHERE project_id = ?", projectID).Scan(&maxSort)
 

@@ -66,7 +66,10 @@ func (r *ChecklistRepository) ListAll() ([]model.ChecklistItem, error) {
 }
 
 func (r *ChecklistRepository) Create(taskID string, input model.CreateChecklistInput) (*model.ChecklistItem, error) {
-	id := model.NewID()
+	id := input.ID
+	if id == "" {
+		id = model.NewID()
+	}
 	var maxSort float64
 	_ = r.db.QueryRow("SELECT COALESCE(MAX(sort_order), 0) FROM checklist_items WHERE task_id = ?", taskID).Scan(&maxSort)
 

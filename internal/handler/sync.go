@@ -836,6 +836,7 @@ func (h *SyncHandler) applyScheduleChange(change SyncChange) SyncPushResult {
 			return result
 		}
 		input := model.CreateTaskScheduleInput{
+			ID:       change.EntityID,
 			WhenDate: stringFromData(change.Data, "when_date"),
 		}
 		if v, ok := change.Data["start_time"]; ok && v != nil {
@@ -926,6 +927,7 @@ func (h *SyncHandler) applyChecklistChange(change SyncChange) SyncPushResult {
 			return result
 		}
 		input := model.CreateChecklistInput{
+			ID:    change.EntityID,
 			Title: stringFromData(change.Data, "title"),
 		}
 		_, err := h.checklist.Create(taskID, input)
@@ -992,6 +994,7 @@ func (h *SyncHandler) applyAttachmentChange(change SyncChange) SyncPushResult {
 			return result
 		}
 		input := model.CreateAttachmentInput{
+			ID:       change.EntityID,
 			Type:     stringFromData(change.Data, "type"),
 			Title:    stringFromData(change.Data, "title"),
 			URL:      stringFromData(change.Data, "url"),
@@ -1040,6 +1043,7 @@ func (h *SyncHandler) applyReminderChange(change SyncChange) SyncPushResult {
 			return result
 		}
 		input := model.CreateReminderInput{
+			ID:    change.EntityID,
 			Type:  model.ReminderType(stringFromData(change.Data, "type")),
 			Value: int(floatFromData(change.Data, "value")),
 		}
@@ -1085,6 +1089,7 @@ func (h *SyncHandler) applyHeadingChange(change SyncChange) SyncPushResult {
 			return result
 		}
 		input := model.CreateHeadingInput{
+			ID:    change.EntityID,
 			Title: stringFromData(change.Data, "title"),
 		}
 		_, err := h.headings.Create(projectID, input)

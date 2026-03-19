@@ -62,7 +62,10 @@ func (r *ScheduleRepository) ListAll() ([]model.TaskSchedule, error) {
 }
 
 func (r *ScheduleRepository) Create(taskID string, input model.CreateTaskScheduleInput) (*model.TaskSchedule, error) {
-	id := model.NewID()
+	id := input.ID
+	if id == "" {
+		id = model.NewID()
+	}
 	var maxSort float64
 	_ = r.db.QueryRow("SELECT COALESCE(MAX(sort_order), 0) FROM task_schedules WHERE task_id = ?", taskID).Scan(&maxSort)
 

@@ -347,6 +347,7 @@ type UpdateTagInput struct {
 }
 
 type CreateHeadingInput struct {
+	ID    string `json:"id,omitempty"`
 	Title string `json:"title"`
 }
 
@@ -356,6 +357,7 @@ type UpdateHeadingInput struct {
 }
 
 type CreateChecklistInput struct {
+	ID    string `json:"id,omitempty"`
 	Title string `json:"title"`
 }
 
@@ -366,6 +368,7 @@ type UpdateChecklistInput struct {
 }
 
 type CreateTaskScheduleInput struct {
+	ID        string  `json:"id,omitempty"`
 	WhenDate  string  `json:"when_date"`
 	StartTime *string `json:"start_time"`
 	EndTime   *string `json:"end_time"`
@@ -381,6 +384,7 @@ type UpdateTaskScheduleInput struct {
 }
 
 type CreateAttachmentInput struct {
+	ID       string `json:"id,omitempty"`
 	Type     string `json:"type"`
 	Title    string `json:"title"`
 	URL      string `json:"url"`

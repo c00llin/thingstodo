@@ -21,6 +21,7 @@ type Reminder struct {
 }
 
 type CreateReminderInput struct {
+	ID      string       `json:"id,omitempty"`
 	Type    ReminderType `json:"type"`
 	Value   int          `json:"value"`
 	ExactAt *string      `json:"exact_at,omitempty"`

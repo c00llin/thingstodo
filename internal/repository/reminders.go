@@ -62,7 +62,10 @@ func (r *ReminderRepository) ListAll() ([]model.Reminder, error) {
 }
 
 func (r *ReminderRepository) Create(taskID string, input model.CreateReminderInput) (*model.Reminder, error) {
-	id := model.NewID()
+	id := input.ID
+	if id == "" {
+		id = model.NewID()
+	}
 	_, err := r.db.Exec(
 		"INSERT INTO reminders (id, task_id, type, value, exact_at) VALUES (?, ?, ?, ?, ?)",
 		id, taskID, input.Type, input.Value, input.ExactAt)

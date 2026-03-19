@@ -76,7 +76,10 @@ func (r *AttachmentRepository) GetByID(id string) (*model.Attachment, error) {
 }
 
 func (r *AttachmentRepository) Create(taskID string, input model.CreateAttachmentInput) (*model.Attachment, error) {
-	id := model.NewID()
+	id := input.ID
+	if id == "" {
+		id = model.NewID()
+	}
 	var maxSort float64
 	_ = r.db.QueryRow("SELECT COALESCE(MAX(sort_order), 0) FROM attachments WHERE task_id = ?", taskID).Scan(&maxSort)
 
