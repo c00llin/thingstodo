@@ -1168,8 +1168,8 @@ export function Sidebar() {
       <div className="flex items-center justify-between border-t border-neutral-200 px-3 py-2 dark:border-neutral-700">
         <PlusMenu side="top" />
         <SyncStatus />
-        <div className="group/settings relative flex items-center">
-          <div className="pointer-events-none absolute right-full mr-1 flex items-center gap-1 opacity-0 transition-opacity group-hover/settings:pointer-events-auto group-hover/settings:opacity-100">
+        <div className="group/settings relative flex items-center gap-1">
+          <div className="flex items-center gap-1 overflow-hidden max-w-0 transition-all duration-200 group-hover/settings:max-w-[80px]">
             <ThemeToggle />
             <LogoutButton />
           </div>
