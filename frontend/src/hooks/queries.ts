@@ -800,20 +800,44 @@ export function useCreateTaskSchedule(taskId: string) {
   })
 }
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-export function useUpdateTaskSchedule(_taskId: string) {
+export function useUpdateTaskSchedule(taskId: string) {
   return useMutation({
     mutationFn: async ({ id, data }: { id: string; data: UpdateTaskScheduleRequest }) => {
+      if (id.startsWith('synth-')) {
+        // Synthesized schedule — create a real one and update the task's when_date
+        const newId = await localMutations.createSchedule({
+          task_id: taskId,
+          when_date: data.when_date ?? '',
+          start_time: data.start_time ?? null,
+          end_time: data.end_time ?? null,
+          completed: data.completed ?? false,
+          sort_order: 0,
+        })
+        if (data.when_date !== undefined) {
+          await localMutations.updateTask(taskId, { when_date: data.when_date })
+        }
+        return { id: newId, ...data }
+      }
       await localMutations.updateSchedule(id, data as Parameters<typeof localMutations.updateSchedule>[1])
+      // Keep task's when_date in sync when the first schedule's date changes
+      if (data.when_date !== undefined) {
+        await localMutations.updateTask(taskId, { when_date: data.when_date })
+      }
       return { id, ...data }
     },
   })
 }
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-export function useDeleteTaskSchedule(_taskId: string) {
+export function useDeleteTaskSchedule(taskId: string) {
   return useMutation({
-    mutationFn: (id: string) => localMutations.deleteSchedule(id),
+    mutationFn: async (id: string) => {
+      if (id.startsWith('synth-')) {
+        // Synthesized schedule — just clear the task's when_date
+        await localMutations.updateTask(taskId, { when_date: null })
+        return
+      }
+      await localMutations.deleteSchedule(id)
+    },
   })
 }
 
