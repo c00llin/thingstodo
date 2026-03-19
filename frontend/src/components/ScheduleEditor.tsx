@@ -11,6 +11,7 @@ import {
 import { useQueryClient } from '@tanstack/react-query'
 import type { TaskSchedule } from '../api/types'
 import { reorderSchedules } from '../api/schedules'
+import { localDb } from '../db/index'
 import { formatRelativeDate } from '../lib/format-date'
 
 interface ScheduleEditorProps {
@@ -106,10 +107,14 @@ export function ScheduleEditor({
       if (!needsReorder) return
 
       const items = sorted.map((s, i) => ({ id: s.id, sort_order: i }))
-      reorderSchedules(taskIdRef.current, items).then(() => {
-        queryClient.invalidateQueries({ queryKey: queryKeys.tasks.detail(taskIdRef.current) })
-        queryClient.invalidateQueries({ queryKey: ['views'] })
-      })
+      // Update local IndexedDB sort_order immediately
+      Promise.all(
+        items
+          .filter((item) => !item.id.startsWith('synth-'))
+          .map((item) => localDb.schedules.update(item.id, { sort_order: item.sort_order })),
+      ).catch(() => {})
+      // Also send to server
+      reorderSchedules(taskIdRef.current, items).catch(() => {})
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
