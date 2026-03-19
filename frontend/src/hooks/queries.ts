@@ -16,6 +16,7 @@ import * as schedulesApi from '../api/schedules'
 // remindersApi removed — reminders now use local mutations
 import * as savedFiltersApi from '../api/savedFilters'
 import * as localMutations from '../db/mutations'
+import { localDb } from '../db/index'
 import { playCompleteSound, playReviewSound } from '../lib/sounds'
 import type {
   Task,
@@ -791,6 +792,23 @@ export function useDeleteRepeatRule(taskId: string) {
 export function useCreateTaskSchedule(taskId: string) {
   return useMutation({
     mutationFn: async (data: CreateTaskScheduleRequest) => {
+      // If the task has no real schedule entries yet (only a synth entry),
+      // materialize the first entry from when_date before adding the new one.
+      const existingSchedules = await localDb.schedules
+        .where('task_id')
+        .equals(taskId)
+        .count()
+      if (existingSchedules === 0) {
+        const task = await localDb.tasks.get(taskId)
+        if (task?.when_date) {
+          await localMutations.createSchedule({
+            task_id: taskId,
+            when_date: task.when_date,
+            sort_order: 0,
+          })
+        }
+      }
+
       const id = await localMutations.createSchedule({
         task_id: taskId,
         ...(data as Omit<localMutations.CreateScheduleData, 'task_id'>),
