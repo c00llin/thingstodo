@@ -193,7 +193,7 @@ export function useLocalInbox(reviewAfterDays?: number | null, reviewIncludeRecu
           !t.when_date &&
           !t.deleted_at,
       )
-      .toArray()
+      .sortBy('sort_order_today')
 
     const inboxIds = new Set(tasks.map((t) => t.id))
 
@@ -261,25 +261,63 @@ async function groupByProject(tasks: LocalTask[]): Promise<TodayViewGroup[]> {
 }
 
 /**
- * Today: open tasks where when_date equals today's date, not deleted,
- * sorted by sort_order_today. Split into Today and This Evening sections
- * based on eveningStartsAt. Includes overdue, earlier, and completed-today.
+ * Today: open tasks matching today via when_date, deadline, or schedule entry.
+ * Split into Today and This Evening sections based on eveningStartsAt.
+ * Includes overdue, earlier, and completed-today.
  */
 export function useLocalToday(eveningStartsAt = '18:00'): TodayView | undefined {
   return useLiveQuery(async () => {
     const today = todayString()
 
-    const allTodayTasks = await localDb.tasks
+    // Collect all tasks that should appear in Today:
+    // 1) when_date = today
+    // 2) deadline = today (even if no when_date)
+    // 3) has a schedule entry with when_date = today and not completed
+    const seenIds = new Set<string>()
+    const candidates: LocalTask[] = []
+
+    // 1) when_date = today
+    const byWhenDate = await localDb.tasks
       .where('when_date')
       .equals(today)
       .filter((t) => t.status === 'open' && !t.deleted_at)
-      .sortBy('sort_order_today')
+      .toArray()
+    for (const t of byWhenDate) {
+      if (!seenIds.has(t.id)) { seenIds.add(t.id); candidates.push(t) }
+    }
+
+    // 2) deadline = today
+    const byDeadline = await localDb.tasks
+      .where('deadline')
+      .equals(today)
+      .filter((t) => t.status === 'open' && !t.deleted_at)
+      .toArray()
+    for (const t of byDeadline) {
+      if (!seenIds.has(t.id)) { seenIds.add(t.id); candidates.push(t) }
+    }
+
+    // 3) schedule entry with when_date = today (task's when_date may differ)
+    const todaySchedules = await localDb.schedules
+      .where('when_date')
+      .equals(today)
+      .filter((s) => !s.completed)
+      .toArray()
+    const scheduleTaskIds = new Set(todaySchedules.map((s) => s.task_id))
+    for (const taskId of scheduleTaskIds) {
+      if (seenIds.has(taskId)) continue
+      const t = await localDb.tasks.get(taskId)
+      if (t && t.status === 'open' && !t.deleted_at) {
+        seenIds.add(t.id)
+        candidates.push(t)
+      }
+    }
+
+    candidates.sort((a, b) => (a.sort_order_today ?? 0) - (b.sort_order_today ?? 0))
 
     // Split into today vs evening based on schedule start_time
     const todayTasks: LocalTask[] = []
     const eveningTasks: LocalTask[] = []
-    for (const t of allTodayTasks) {
-      // Check if this task has a schedule with start_time >= eveningStartsAt
+    for (const t of candidates) {
       const schedules = await localDb.schedules
         .where('task_id')
         .equals(t.id)
@@ -361,47 +399,45 @@ export function useLocalUpcoming(): UpcomingView | undefined {
   return useLiveQuery(async () => {
     const today = todayString()
 
-    // Collect tasks with when_date >= today, then expand per schedule entry
-    const tasks = await localDb.tasks
+    // Server uses INNER JOIN on task_schedules — only tasks with schedule entries appear.
+    // Expand per uncompleted schedule entry (task with N entries appears N times).
+    const allSchedules = await localDb.schedules
       .where('when_date')
       .aboveOrEqual(today)
-      .filter((t) => t.status === 'open' && !t.deleted_at && t.when_date !== 'someday')
-      .sortBy('when_date')
+      .filter((s) => !s.completed && s.when_date !== 'someday')
+      .toArray()
 
-    // Expand tasks: for each task, get its uncompleted schedule entries.
-    // A task with multiple schedule entries appears once per entry date.
+    // Group schedule entries by date, sorted by date then start_time
+    allSchedules.sort((a, b) =>
+      a.when_date.localeCompare(b.when_date) ||
+      (a.start_time ?? '').localeCompare(b.start_time ?? '') ||
+      (a.sort_order ?? 0) - (b.sort_order ?? 0),
+    )
+
     const dateMap = new Map<string, Task[]>()
     const dateOrder: string[] = []
 
-    for (const t of tasks) {
-      const schedules = await localDb.schedules
-        .where('task_id')
-        .equals(t.id)
-        .filter((s) => !s.completed && s.when_date >= today && s.when_date !== 'someday')
-        .sortBy('when_date')
+    for (const s of allSchedules) {
+      const t = await localDb.tasks.get(s.task_id)
+      if (!t || t.status !== 'open' || t.deleted_at) continue
 
-      if (schedules.length === 0) {
-        // No schedule entries — use task's when_date
-        const d = t.when_date!
-        if (!dateMap.has(d)) { dateMap.set(d, []); dateOrder.push(d) }
-        const enriched = await enrichTask(t)
-        dateMap.get(d)!.push(enriched)
-      } else {
-        // One entry per schedule
-        for (const s of schedules) {
-          const d = s.when_date
-          if (!dateMap.has(d)) { dateMap.set(d, []); dateOrder.push(d) }
-          const enriched = await enrichTask(t)
-          // Override schedule fields for this specific entry
-          enriched.first_schedule_time = s.start_time ?? null
-          enriched.first_schedule_end_time = s.end_time ?? null
-          enriched.schedule_entry_id = s.id
-          dateMap.get(d)!.push(enriched)
-        }
-      }
+      const d = s.when_date
+      if (!dateMap.has(d)) { dateMap.set(d, []); dateOrder.push(d) }
+      const enriched = await enrichTask(t)
+      enriched.first_schedule_time = s.start_time ?? null
+      enriched.first_schedule_end_time = s.end_time ?? null
+      enriched.schedule_entry_id = s.id
+      dateMap.get(d)!.push(enriched)
     }
 
-    dateOrder.sort()
+    // Sort tasks within each date by start_time then sort_order_today
+    for (const tasks of dateMap.values()) {
+      tasks.sort((a, b) =>
+        (a.first_schedule_time ?? '').localeCompare(b.first_schedule_time ?? '') ||
+        (a.sort_order_today ?? 0) - (b.sort_order_today ?? 0),
+      )
+    }
+
     const dates: UpcomingViewDate[] = dateOrder.map((date) => ({
       date,
       tasks: dateMap.get(date) ?? [],
@@ -456,7 +492,7 @@ export function useLocalAnytime(): AnytimeView | undefined {
         (t) =>
           !t.when_date &&
           !t.deleted_at &&
-          (!!t.project_id || !!t.area_id),
+          (!!t.project_id || !!t.area_id || !!t.deadline),
       )
       .toArray()
 
@@ -489,7 +525,10 @@ export function useLocalSomeday(): SomedayView | undefined {
 async function buildAnytimeShape(
   rawTasks: LocalTask[],
 ): Promise<AnytimeView> {
-  // Collect unique area/project IDs and look up titles
+  // Sort tasks by sort_order_today within groups
+  rawTasks.sort((a, b) => (a.sort_order_today ?? 0) - (b.sort_order_today ?? 0))
+
+  // Collect unique area/project IDs and look up full records for sort_order
   const areaIds = new Set<string>()
   const projectIds = new Set<string>()
   for (const t of rawTasks) {
@@ -497,15 +536,15 @@ async function buildAnytimeShape(
     if (t.project_id) projectIds.add(t.project_id)
   }
 
-  const areaTitles = new Map<string, string>()
-  const projectTitles = new Map<string, string>()
+  const areaRecords = new Map<string, LocalArea>()
+  const projectRecords = new Map<string, LocalProject>()
   for (const aId of areaIds) {
     const area = await localDb.areas.get(aId)
-    if (area) areaTitles.set(aId, area.title)
+    if (area) areaRecords.set(aId, area)
   }
   for (const pId of projectIds) {
     const project = await localDb.projects.get(pId)
-    if (project) projectTitles.set(pId, project.title)
+    if (project) projectRecords.set(pId, project)
   }
 
   // Group by area_id, then project_id
@@ -520,18 +559,28 @@ async function buildAnytimeShape(
     pMap.get(pKey)!.push(t)
   }
 
+  // Sort area IDs by area sort_order
+  const sortedAreaIds = [...areaMap.keys()]
+    .filter((k): k is string => k !== null)
+    .sort((a, b) => (areaRecords.get(a)?.sort_order ?? 0) - (areaRecords.get(b)?.sort_order ?? 0))
+
   const areas: AnytimeViewAreaGroup[] = []
   const noAreaProjectMap = areaMap.get(null)
 
-  // Tasks that belong to areas
-  for (const [aId, pMap] of areaMap.entries()) {
-    if (aId === null) continue
-    const areaName = areaTitles.get(aId) ?? aId
+  // Tasks that belong to areas (in area sort_order)
+  for (const aId of sortedAreaIds) {
+    const pMap = areaMap.get(aId)!
+    const areaName = areaRecords.get(aId)?.title ?? aId
 
     const projects: AnytimeViewProjectGroup[] = []
-    for (const [pId, ptasks] of pMap.entries()) {
-      if (pId === null) continue
-      const projName = projectTitles.get(pId) ?? pId
+    // Sort project IDs by project sort_order
+    const sortedPIds = [...pMap.keys()]
+      .filter((k): k is string => k !== null)
+      .sort((a, b) => (projectRecords.get(a)?.sort_order ?? 0) - (projectRecords.get(b)?.sort_order ?? 0))
+
+    for (const pId of sortedPIds) {
+      const ptasks = pMap.get(pId) ?? []
+      const projName = projectRecords.get(pId)?.title ?? pId
       projects.push({
         project: { id: pId, title: projName },
         tasks: await enrichTasks(ptasks),
@@ -552,16 +601,21 @@ async function buildAnytimeShape(
   const noAreaStandalone: Task[] = []
 
   if (noAreaProjectMap) {
-    for (const [pId, ptasks] of noAreaProjectMap.entries()) {
-      if (pId === null) {
-        noAreaStandalone.push(...await enrichTasks(ptasks))
-      } else {
-        const projName = projectTitles.get(pId) ?? pId
-        noAreaProjects.push({
-          project: { id: pId, title: projName },
-          tasks: await enrichTasks(ptasks),
-        })
-      }
+    const sortedNoAreaPIds = [...noAreaProjectMap.keys()]
+      .filter((k): k is string => k !== null)
+      .sort((a, b) => (projectRecords.get(a)?.sort_order ?? 0) - (projectRecords.get(b)?.sort_order ?? 0))
+
+    for (const pId of sortedNoAreaPIds) {
+      const ptasks = noAreaProjectMap.get(pId) ?? []
+      const projName = projectRecords.get(pId)?.title ?? pId
+      noAreaProjects.push({
+        project: { id: pId, title: projName },
+        tasks: await enrichTasks(ptasks),
+      })
+    }
+    const standalone = noAreaProjectMap.get(null)
+    if (standalone) {
+      noAreaStandalone.push(...await enrichTasks(standalone))
     }
   }
 
@@ -745,7 +799,7 @@ export function useLocalViewCounts(reviewAfterDays?: number | null, reviewInclud
   return useLiveQuery(async () => {
     const today = todayString()
 
-    const [inboxCount, todayCount, , anytimeCount, somedayCount, logbookCount, trashCount] =
+    const [inboxCount, , , , somedayCount, logbookCount, trashCount] =
       await Promise.all([
         // inbox: open, no project, no area, no when_date, not deleted
         localDb.tasks
@@ -754,26 +808,9 @@ export function useLocalViewCounts(reviewAfterDays?: number | null, reviewInclud
           .filter((t) => !t.project_id && !t.area_id && !t.when_date && !t.deleted_at)
           .count(),
 
-        // today: open, when_date === today, not deleted
-        localDb.tasks
-          .where('when_date')
-          .equals(today)
-          .filter((t) => t.status === 'open' && !t.deleted_at)
-          .count(),
-
-        // upcoming: open, when_date > today, not deleted
-        localDb.tasks
-          .where('when_date')
-          .above(today)
-          .filter((t) => t.status === 'open' && !t.deleted_at && t.when_date !== 'someday')
-          .count(),
-
-        // anytime: open, no when_date, has project or area, not deleted
-        localDb.tasks
-          .where('status')
-          .equals('open')
-          .filter((t) => !t.when_date && !t.deleted_at && (!!t.project_id || !!t.area_id))
-          .count(),
+        Promise.resolve(0), // today — computed below
+        Promise.resolve(0), // unused
+        Promise.resolve(0), // anytime — computed below
 
         // someday: open, when_date === 'someday', not deleted
         localDb.tasks
@@ -794,6 +831,30 @@ export function useLocalViewCounts(reviewAfterDays?: number | null, reviewInclud
         // trash: deleted_at set
         localDb.tasks.filter((t) => !!t.deleted_at).count(),
       ])
+
+    // today: open, (when_date = today OR deadline = today), not deleted
+    const todayCount = await localDb.tasks
+      .where('status')
+      .equals('open')
+      .filter(
+        (t) =>
+          !t.deleted_at &&
+          (t.when_date === today || t.deadline === today) &&
+          (t.deadline === null || t.deadline === undefined || t.deadline >= today),
+      )
+      .count()
+
+    // anytime: open, no when_date, (has project or area or deadline), not deleted
+    const anytimeCount = await localDb.tasks
+      .where('status')
+      .equals('open')
+      .filter(
+        (t) =>
+          !t.when_date &&
+          !t.deleted_at &&
+          (!!t.project_id || !!t.area_id || !!t.deadline),
+      )
+      .count()
 
     // Overdue: open tasks with when_date < today, not deleted
     const overdueCount = await localDb.tasks

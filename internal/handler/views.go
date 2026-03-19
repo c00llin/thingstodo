@@ -17,21 +17,22 @@ func NewViewHandler(repo *repository.ViewRepository, settingsRepo *repository.Us
 	return &ViewHandler{repo: repo, settingsRepo: settingsRepo}
 }
 
-func (h *ViewHandler) getReviewDays(r *http.Request) *int {
+func (h *ViewHandler) getReviewSettings(r *http.Request) (*int, bool) {
 	userID, ok := r.Context().Value(mw.UserIDKey).(string)
 	if !ok || userID == "" {
-		return nil
+		return nil, true
 	}
 	settings, err := h.settingsRepo.GetOrCreate(userID)
 	if err != nil {
-		log.Printf("WARN views.getReviewDays: %v", err)
-		return nil
+		log.Printf("WARN views.getReviewSettings: %v", err)
+		return nil, true
 	}
-	return settings.ReviewAfterDays
+	return settings.ReviewAfterDays, settings.ReviewIncludeRecurring
 }
 
 func (h *ViewHandler) Inbox(w http.ResponseWriter, r *http.Request) {
-	view, err := h.repo.Inbox(h.getReviewDays(r))
+	reviewDays, includeRecurring := h.getReviewSettings(r)
+	view, err := h.repo.Inbox(reviewDays, includeRecurring)
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, err.Error(), "INTERNAL")
 		return
@@ -113,7 +114,8 @@ func (h *ViewHandler) Trash(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *ViewHandler) Counts(w http.ResponseWriter, r *http.Request) {
-	counts, err := h.repo.Counts(h.getReviewDays(r))
+	reviewDays, includeRecurring := h.getReviewSettings(r)
+	counts, err := h.repo.Counts(reviewDays, includeRecurring)
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, err.Error(), "INTERNAL")
 		return

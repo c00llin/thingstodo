@@ -16,7 +16,7 @@ func NewViewRepository(db *sql.DB) *ViewRepository {
 	return &ViewRepository{db: db}
 }
 
-func (r *ViewRepository) Inbox(reviewAfterDays *int) (*model.InboxView, error) {
+func (r *ViewRepository) Inbox(reviewAfterDays *int, includeRecurring bool) (*model.InboxView, error) {
 	rows, err := r.db.Query(`
 		SELECT t.id, t.title, t.notes, t.status, t.when_date, t.when_evening, t.high_priority,
 			t.deadline, t.project_id, t.area_id, t.heading_id,
@@ -81,11 +81,15 @@ func (r *ViewRepository) Inbox(reviewAfterDays *int) (*model.InboxView, error) {
 		allReview := scanTaskListItems(r.db, reviewRows)
 		populateActionableScheduleFlags(r.db, allReview)
 
-		// Exclude tasks already in inbox
+		// Exclude tasks already in inbox, and optionally exclude recurring tasks
 		for _, t := range allReview {
-			if !inboxIDs[t.ID] {
-				reviewTasks = append(reviewTasks, t)
+			if inboxIDs[t.ID] {
+				continue
 			}
+			if !includeRecurring && t.HasRepeatRule {
+				continue
+			}
+			reviewTasks = append(reviewTasks, t)
 		}
 	}
 	if reviewTasks == nil {
@@ -864,7 +868,7 @@ func groupByProject(db *sql.DB, tasks []model.TaskListItem) []model.TaskGroup {
 	return groups
 }
 
-func (r *ViewRepository) Counts(reviewAfterDays *int) (*model.ViewCounts, error) {
+func (r *ViewRepository) Counts(reviewAfterDays *int, includeRecurring bool) (*model.ViewCounts, error) {
 	today := time.Now().Format("2006-01-02")
 	var c model.ViewCounts
 	err := r.db.QueryRow(`
@@ -883,12 +887,16 @@ func (r *ViewRepository) Counts(reviewAfterDays *int) (*model.ViewCounts, error)
 
 	// Review count: all open non-deleted tasks stale by X days, excluding inbox tasks
 	if reviewAfterDays != nil && *reviewAfterDays > 0 {
+		recurringClause := ""
+		if !includeRecurring {
+			recurringClause = " AND NOT EXISTS(SELECT 1 FROM repeat_rules WHERE task_id = tasks.id)"
+		}
 		_ = r.db.QueryRow(`
 			SELECT COUNT(*) FROM tasks
 			WHERE status = 'open' AND deleted_at IS NULL
 				AND date(updated_at) < date('now', '-' || ? || ' days')
 				AND NOT (project_id IS NULL AND area_id IS NULL AND when_date IS NULL)
-		`, *reviewAfterDays).Scan(&c.Review)
+		`+recurringClause, *reviewAfterDays).Scan(&c.Review)
 	}
 
 	return &c, nil
