@@ -120,92 +120,197 @@ export function useLocalInbox(): InboxView | undefined {
 }
 
 /**
+ * Group tasks by project_id, resolving project names from the local DB.
+ */
+async function groupByProject(tasks: LocalTask[]): Promise<TodayViewGroup[]> {
+  const projectMap = new Map<string | null, Task[]>()
+  for (const t of tasks) {
+    const key = t.project_id ?? null
+    if (!projectMap.has(key)) projectMap.set(key, [])
+    projectMap.get(key)!.push(taskToPlain(t))
+  }
+
+  const projectIds = [...projectMap.keys()].filter((k): k is string => k !== null)
+  const projects = projectIds.length
+    ? await localDb.projects.bulkGet(projectIds)
+    : []
+  const projectNames = new Map<string, string>()
+  for (const p of projects) {
+    if (p) projectNames.set(p.id, p.title)
+  }
+
+  const groups: TodayViewGroup[] = []
+  if (projectMap.has(null)) {
+    groups.push({ project: null, tasks: projectMap.get(null)! })
+  }
+  for (const pid of projectIds) {
+    groups.push({
+      project: { id: pid, title: projectNames.get(pid) ?? pid },
+      tasks: projectMap.get(pid) ?? [],
+    })
+  }
+  return groups
+}
+
+/**
  * Today: open tasks where when_date equals today's date, not deleted,
- * sorted by sort_order_today.
- * Returns a simplified TodayView with a single section.
+ * sorted by sort_order_today. Includes overdue (deadline < today),
+ * earlier (when_date < today with uncompleted past schedules), and
+ * completed-today tasks.
  */
 export function useLocalToday(): TodayView | undefined {
   return useLiveQuery(async () => {
     const today = todayString()
 
-    const tasks = await localDb.tasks
+    const todayTasks = await localDb.tasks
       .where('when_date')
       .equals(today)
       .filter((t) => t.status === 'open' && !t.deleted_at)
       .sortBy('sort_order_today')
 
-    // Group by project_id — mirrors the server's grouping behaviour
-    const projectMap = new Map<string | null, Task[]>()
-    for (const t of tasks) {
-      const key = t.project_id ?? null
-      if (!projectMap.has(key)) projectMap.set(key, [])
-      projectMap.get(key)!.push(taskToPlain(t))
-    }
+    // Overdue: open tasks with deadline < today
+    const overdueTasks = await localDb.tasks
+      .where('deadline')
+      .below(today)
+      .filter((t) => t.status === 'open' && !t.deleted_at && !!t.deadline)
+      .toArray()
+    overdueTasks.sort((a, b) => (a.deadline ?? '').localeCompare(b.deadline ?? ''))
 
-    // Fetch project names for grouping labels
-    const projectIds = [...projectMap.keys()].filter((k): k is string => k !== null)
-    const projects = projectIds.length
-      ? await localDb.projects.bulkGet(projectIds)
-      : []
-    const projectNames = new Map<string, string>()
-    for (const p of projects) {
-      if (p) projectNames.set(p.id, p.title)
-    }
+    // Earlier: open tasks with when_date < today, not someday, not overdue (deadline >= today or no deadline),
+    // and has uncompleted past schedule entries
+    const earlierCandidates = await localDb.tasks
+      .where('when_date')
+      .below(today)
+      .filter(
+        (t) =>
+          t.status === 'open' &&
+          !t.deleted_at &&
+          !!t.when_date &&
+          t.when_date !== 'someday' &&
+          (t.deadline === null || t.deadline === undefined || t.deadline >= today),
+      )
+      .toArray()
 
-    const groups: TodayViewGroup[] = []
-    // No-project tasks first, then project groups
-    if (projectMap.has(null)) {
-      groups.push({ project: null, tasks: projectMap.get(null)! })
+    // Filter to only those with uncompleted past schedule entries
+    const earlierTasks: LocalTask[] = []
+    for (const t of earlierCandidates) {
+      const pastSchedules = await localDb.schedules
+        .where('task_id')
+        .equals(t.id)
+        .filter((s) => s.when_date < today && s.when_date !== 'someday' && !s.completed)
+        .count()
+      if (pastSchedules > 0) {
+        earlierTasks.push(t)
+      }
     }
-    for (const pid of projectIds) {
-      groups.push({
-        project: { id: pid, title: projectNames.get(pid) ?? pid },
-        tasks: projectMap.get(pid) ?? [],
-      })
-    }
+    earlierTasks.sort((a, b) =>
+      (a.when_date ?? '').localeCompare(b.when_date ?? '') ||
+      (a.sort_order_today ?? 0) - (b.sort_order_today ?? 0),
+    )
 
-    const section: TodayViewSection = { title: 'Today', groups }
+    // Completed today
+    const completedTasks = await localDb.tasks
+      .filter(
+        (t) =>
+          !t.deleted_at &&
+          (t.status === 'completed' || t.status === 'canceled' || t.status === 'wont_do') &&
+          (t.completed_at ?? t.canceled_at ?? t.updated_at ?? '') >= today,
+      )
+      .toArray()
+    completedTasks.sort((a, b) => {
+      const aTs = a.completed_at ?? a.canceled_at ?? a.updated_at ?? ''
+      const bTs = b.completed_at ?? b.canceled_at ?? b.updated_at ?? ''
+      return bTs.localeCompare(aTs)
+    })
+
+    const section: TodayViewSection = { title: 'Today', groups: await groupByProject(todayTasks) }
 
     return {
       sections: [section],
-      overdue: [],
-      earlier: [],
-      completed: [],
+      overdue: overdueTasks.map(taskToPlain),
+      earlier: earlierTasks.map(taskToPlain),
+      completed: completedTasks.map(taskToPlain),
     } satisfies TodayView
   })
 }
 
 /**
- * Upcoming: open tasks where when_date > today, not deleted,
- * sorted by when_date then sort_order_today.
+ * Upcoming: open tasks where when_date >= today (includes today),
+ * not deleted, sorted by when_date then sort_order_today.
+ * Also includes overdue (deadline < today) and earlier (when_date < today
+ * with uncompleted past schedules).
  */
 export function useLocalUpcoming(): UpcomingView | undefined {
   return useLiveQuery(async () => {
     const today = todayString()
 
+    // Use aboveOrEqual to include today's date
     const tasks = await localDb.tasks
       .where('when_date')
-      .above(today)
+      .aboveOrEqual(today)
       .filter((t) => t.status === 'open' && !t.deleted_at && t.when_date !== 'someday')
       .sortBy('when_date')
 
     // Group by date
-    const dateMap = new Map<string, Task[]>()
+    const dateMap = new Map<string, LocalTask[]>()
+    const dateOrder: string[] = []
     for (const t of tasks) {
       const d = t.when_date!
-      if (!dateMap.has(d)) dateMap.set(d, [])
-      dateMap.get(d)!.push(taskToPlain(t))
+      if (!dateMap.has(d)) {
+        dateMap.set(d, [])
+        dateOrder.push(d)
+      }
+      dateMap.get(d)!.push(t)
     }
 
-    const dates: UpcomingViewDate[] = [...dateMap.entries()].map(([date, dateTasks]) => ({
+    const dates: UpcomingViewDate[] = dateOrder.map((date) => ({
       date,
-      tasks: dateTasks,
+      tasks: (dateMap.get(date) ?? []).map(taskToPlain),
     }))
 
+    // Overdue: open tasks with deadline < today
+    const overdueTasks = await localDb.tasks
+      .where('deadline')
+      .below(today)
+      .filter((t) => t.status === 'open' && !t.deleted_at && !!t.deadline)
+      .toArray()
+    overdueTasks.sort((a, b) => (a.deadline ?? '').localeCompare(b.deadline ?? ''))
+
+    // Earlier: open tasks with when_date < today, not someday, not overdue,
+    // with uncompleted past schedule entries
+    const earlierCandidates = await localDb.tasks
+      .where('when_date')
+      .below(today)
+      .filter(
+        (t) =>
+          t.status === 'open' &&
+          !t.deleted_at &&
+          !!t.when_date &&
+          t.when_date !== 'someday' &&
+          (t.deadline === null || t.deadline === undefined || t.deadline >= today),
+      )
+      .toArray()
+
+    const earlierTasks: LocalTask[] = []
+    for (const t of earlierCandidates) {
+      const pastSchedules = await localDb.schedules
+        .where('task_id')
+        .equals(t.id)
+        .filter((s) => s.when_date < today && s.when_date !== 'someday' && !s.completed)
+        .count()
+      if (pastSchedules > 0) {
+        earlierTasks.push(t)
+      }
+    }
+    earlierTasks.sort((a, b) =>
+      (a.when_date ?? '').localeCompare(b.when_date ?? '') ||
+      (a.sort_order_today ?? 0) - (b.sort_order_today ?? 0),
+    )
+
     return {
-      overdue: [],
+      overdue: overdueTasks.map(taskToPlain),
       dates,
-      earlier: [],
+      earlier: earlierTasks.map(taskToPlain),
     } satisfies UpcomingView
   })
 }
