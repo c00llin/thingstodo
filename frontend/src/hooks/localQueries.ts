@@ -145,6 +145,19 @@ async function enrichTask(t: LocalTask): Promise<Task> {
     }
   }
 
+  // Resolve reminder fields
+  const reminders = await localDb.reminders
+    .where('task_id')
+    .equals(t.id)
+    .sortBy('created_at')
+  plain.has_reminders = reminders.length > 0
+  if (reminders.length > 0) {
+    const first = reminders[0]
+    plain.first_reminder_type = first.type ?? null
+    plain.first_reminder_value = first.value ?? null
+    plain.first_reminder_exact_at = first.exact_at ?? null
+  }
+
   await computeScheduleFlags(plain)
   return plain
 }
@@ -192,6 +205,18 @@ async function enrichTasks(tasks: LocalTask[]): Promise<Task[]> {
         plain.first_schedule_end_time = schedules[0].end_time ?? null
         plain.schedule_entry_id = schedules[0].id
       }
+    }
+    // Resolve reminder fields
+    const reminders = await localDb.reminders
+      .where('task_id')
+      .equals(t.id)
+      .sortBy('created_at')
+    plain.has_reminders = reminders.length > 0
+    if (reminders.length > 0) {
+      const first = reminders[0]
+      plain.first_reminder_type = first.type ?? null
+      plain.first_reminder_value = first.value ?? null
+      plain.first_reminder_exact_at = first.exact_at ?? null
     }
     await computeScheduleFlags(plain)
     result.push(plain)
