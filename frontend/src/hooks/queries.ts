@@ -445,9 +445,8 @@ export function useReviewTask() {
   const queryClient = useQueryClient()
   const invalidate = useInvalidateViews()
   return useMutation({
-    // reviewTask is a backend-only operation (bumps updated_at to clear review status)
-    // No local mutation equivalent; keep API call + animation side effects
-    mutationFn: (id: string) => tasksApi.reviewTask(id),
+    // Bumps updated_at locally to clear review status, syncs to server
+    mutationFn: (id: string) => localMutations.updateTask(id, { updated_at: localMutations.now() }),
     onMutate: async (id) => {
       useAppStore.getState().setDepartingTaskId(id)
       const settings = queryClient.getQueryData<UserSettings>(queryKeys.settings)
