@@ -418,12 +418,12 @@ export function useLocalToday(eveningStartsAt = '18:00'): TodayView | undefined 
       }
     }
 
-    // Sort by: high_priority desc, sort_order_today asc, start_time asc (null last)
+    // Sort by: high_priority desc, start_time asc (null last), sort_order_today asc
     const sortSection = (items: Array<{ task: LocalTask; startTime: string | null }>) =>
       items.sort((a, b) =>
         (b.task.high_priority ? 1 : 0) - (a.task.high_priority ? 1 : 0) ||
-        (a.task.sort_order_today ?? 0) - (b.task.sort_order_today ?? 0) ||
-        (a.startTime ?? '\xff').localeCompare(b.startTime ?? '\xff'),
+        (a.startTime ?? '\xff').localeCompare(b.startTime ?? '\xff') ||
+        (a.task.sort_order_today ?? 0) - (b.task.sort_order_today ?? 0),
       ).map((i) => i.task)
 
     const sortedTodayTasks = sortSection(todayTasks)
@@ -536,12 +536,12 @@ export function useLocalUpcoming(): UpcomingView | undefined {
       dateMap.get(d)!.push(enriched)
     }
 
-    // Sort tasks within each date by: high_priority desc, sort_order_today asc, start_time asc (null last)
+    // Sort tasks within each date by: high_priority desc, start_time asc (null last), sort_order_today asc
     for (const tasks of dateMap.values()) {
       tasks.sort((a, b) =>
         (b.high_priority ? 1 : 0) - (a.high_priority ? 1 : 0) ||
-        (a.sort_order_today ?? 0) - (b.sort_order_today ?? 0) ||
-        (a.first_schedule_time ?? '\xff').localeCompare(b.first_schedule_time ?? '\xff'),
+        (a.first_schedule_time ?? '\xff').localeCompare(b.first_schedule_time ?? '\xff') ||
+        (a.sort_order_today ?? 0) - (b.sort_order_today ?? 0),
       )
     }
 
