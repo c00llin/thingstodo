@@ -1,5 +1,40 @@
 # Changelog
 
+## [0.12.0] - 2026-03-19
+
+### Added
+- **Local-First / Offline Support** — all data is stored in IndexedDB (Dexie.js) and available offline. Changes sync to the server automatically when online.
+- **Sync Engine** — push/pull sync with 30-second polling, SSE-triggered immediate sync, and last-write-wins conflict resolution per field
+- **Full Sync Fallback** — if the change log cursor expires (after 90 days), the client falls back to a full entity sync
+- **Offline Task Management** — create, edit, complete, cancel, delete, and restore tasks while offline; changes queue and sync when connection returns
+- **Offline Sub-Entity Support** — schedules, checklist items, attachments (links), reminders, and headings all sync bidirectionally via the push endpoint
+- **Sync Status Indicator** — centered in the sidebar bottom bar, shows synced/syncing/offline/error/pending status with click-to-retry
+- **"Include recurring tasks in Review" setting** — new checkbox in Settings to exclude recurring tasks from the Inbox review section
+- **Recurring offline indicator** — repeat rule buttons are greyed out with tooltip guidance when offline (recurrence requires server connection)
+- **Catch-up reminders** — missed reminders while offline are delivered when the app reconnects
+- **Attachment file caching** — lazy LRU cache (100 MB budget) for offline file access
+
+### Changed
+- **Task sorting** — all views now sort by: high priority first, start time ascending (timeless last), title alphabetically
+- **Today view** — includes deadline-only tasks and tasks with schedule entries matching today; split into Today / This Evening sections based on evening_starts_at setting
+- **Upcoming view** — uses schedule entries as data source (tasks appear once per schedule date); includes overdue and earlier sections
+- **Anytime view** — includes deadline-only tasks with no project/area; areas and projects sorted by sort_order
+- **Earlier section** — requires uncompleted past schedule entries (matching server behavior)
+- **Task context enrichment** — all views show project/area names, schedule times, reminder info, and all denormalized flags derived from actual local data
+- **Sidebar bottom bar** — redesigned with centered sync status; theme toggle and logout revealed on settings icon hover
+- **Review section** — now computed locally from IndexedDB with correct review_after_days and review_include_recurring filtering; review badge in sidebar
+
+### Fixed
+- Server sync push now handles all sub-entity types (schedule, checklistItem, attachment, reminder, heading) — previously only task/project/area/tag were supported
+- Sub-entity creates use client-provided IDs to prevent client/server ID mismatch
+- All ListAll and Create/Update queries include parent IDs (task_id, project_id) in change_log snapshots
+- Full sync field name mapping corrected (checklist, repeat_rules)
+- Soft-delete change_log now includes full task snapshot so sync pull preserves deleted_at
+- All DnD sidebar drops, bulk actions, and reorder operations update IndexedDB immediately
+- Trash emptying deletes from IndexedDB and cleans up orphaned sync queue entries
+- Schedule date changes no longer cascade-overwrite other entries on multi-schedule tasks
+- Synthesized schedule entries (for tasks without local schedule data) handled correctly in create/update/delete
+
 ## [0.11.1] - 2026-03-12
 
 ### Fixed

@@ -6,6 +6,7 @@ A self-hosted, Things 3 / Todoist inspired task manager.
 
 ## Features
 
+- **Offline-First** — all data stored locally in IndexedDB; create, edit, and complete tasks offline with automatic sync when online
 - **Projects & Areas** — organize tasks into projects (completable) and areas (ongoing)
 - **Tags** — flexible labeling with inline `#tag` syntax and customizable colors
 - **Review Tasks** — tasks not edited for a configurable number of days surface in a Review section in Inbox, so nothing falls through the cracks
@@ -21,8 +22,9 @@ A self-hosted, Things 3 / Todoist inspired task manager.
 - **Dark Mode** — automatic or manual theme switching
 - **Reminders** — per-task reminders with relative (e.g. 15 min before) and exact time options, plus configurable defaults
 - **Push Notifications** — reminders via Browser Push (VAPID) or [ntfy](https://ntfy.sh), configurable in Settings
-- **PWA** — installable on mobile and desktop
+- **PWA** — installable on mobile and desktop with offline support
 - **Single Binary** — Go backend with embedded SPA frontend, SQLite database
+- **Sync** — bidirectional push/pull sync with last-write-wins conflict resolution; works across multiple devices
 
 ## Quick Start
 
