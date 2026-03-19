@@ -314,6 +314,15 @@ export function useLocalInbox(reviewAfterDays?: number | null, reviewIncludeRecu
 /**
  * Group tasks by project_id, resolving project names from the local DB.
  */
+/** Standard task sort: priority desc, start_time asc (null last), title asc. */
+function sortTasks(tasks: Task[]): Task[] {
+  return tasks.sort((a, b) =>
+    (b.high_priority ? 1 : 0) - (a.high_priority ? 1 : 0) ||
+    (a.first_schedule_time ?? '\xff').localeCompare(b.first_schedule_time ?? '\xff') ||
+    (a.title ?? '').localeCompare(b.title ?? ''),
+  )
+}
+
 /** Enrich tasks and return as a single flat group. */
 async function tasksToGroups(tasks: LocalTask[]): Promise<TodayViewGroup[]> {
   const enriched = await enrichTasks(tasks)
@@ -511,13 +520,9 @@ export function useLocalUpcoming(): UpcomingView | undefined {
       dateMap.get(d)!.push(enriched)
     }
 
-    // Sort tasks within each date by: high_priority desc, start_time asc (null last), title asc
+    // Sort tasks within each date
     for (const tasks of dateMap.values()) {
-      tasks.sort((a, b) =>
-        (b.high_priority ? 1 : 0) - (a.high_priority ? 1 : 0) ||
-        (a.first_schedule_time ?? '\xff').localeCompare(b.first_schedule_time ?? '\xff') ||
-        (a.title ?? '').localeCompare(b.title ?? ''),
-      )
+      sortTasks(tasks)
     }
 
     const dates: UpcomingViewDate[] = dateOrder.map((date) => ({
@@ -1015,14 +1020,14 @@ export function useLocalProjectTasks(projectId: string): Task[] | undefined {
       .where('project_id')
       .equals(projectId)
       .filter((t) => t.status === 'open' && !t.deleted_at)
-      .sortBy('sort_order_project')
+      .toArray()
 
-    return enrichTasks(tasks)
+    return sortTasks(await enrichTasks(tasks))
   }, [projectId])
 }
 
 /**
- * Open tasks for a specific area, sorted by sort_order_today.
+ * Open tasks for a specific area.
  */
 export function useLocalAreaTasks(areaId: string): Task[] | undefined {
   return useLiveQuery(async () => {
@@ -1032,9 +1037,9 @@ export function useLocalAreaTasks(areaId: string): Task[] | undefined {
       .where('area_id')
       .equals(areaId)
       .filter((t) => t.status === 'open' && !t.deleted_at)
-      .sortBy('sort_order_today')
+      .toArray()
 
-    return enrichTasks(tasks)
+    return sortTasks(await enrichTasks(tasks))
   }, [areaId])
 }
 
@@ -1059,7 +1064,7 @@ export function useLocalTagTasks(tagId: string): Task[] | undefined {
       )
       .toArray()
 
-    return enrichTasks(tasks)
+    return sortTasks(await enrichTasks(tasks))
   }, [tagId])
 }
 
@@ -1096,20 +1101,16 @@ export function useLocalProjectDetail(projectId: string): ProjectDetail | undefi
     )
 
     // Split open tasks by heading
-    const tasksWithoutHeading = await enrichTasks(
-      openTasks
-        .filter((t: LocalTask) => !t.heading_id)
-        .sort((a: LocalTask, b: LocalTask) => (a.sort_order_project ?? 0) - (b.sort_order_project ?? 0)),
-    )
+    const tasksWithoutHeading = sortTasks(await enrichTasks(
+      openTasks.filter((t: LocalTask) => !t.heading_id),
+    ))
 
     const headingsWithTasks: HeadingWithTasks[] = []
     for (const h of headings) {
-      const hTasks = openTasks
-        .filter((t: LocalTask) => t.heading_id === h.id)
-        .sort((a: LocalTask, b: LocalTask) => (a.sort_order_project ?? 0) - (b.sort_order_project ?? 0))
+      const hTasks = openTasks.filter((t: LocalTask) => t.heading_id === h.id)
       headingsWithTasks.push({
         ...stripSyncMeta(h),
-        tasks: await enrichTasks(hTasks),
+        tasks: sortTasks(await enrichTasks(hTasks)),
       })
     }
 
@@ -1156,7 +1157,6 @@ export function useLocalAreaDetail(areaId: string): AreaDetail | undefined {
 
     const openTasks = allTasks
       .filter((t: LocalTask) => t.status === 'open')
-      .sort((a: LocalTask, b: LocalTask) => (a.sort_order_today ?? 0) - (b.sort_order_today ?? 0))
     const completedTasks = allTasks.filter(
       (t: LocalTask) => t.status === 'completed' || t.status === 'canceled' || t.status === 'wont_do',
     )
@@ -1185,7 +1185,7 @@ export function useLocalAreaDetail(areaId: string): AreaDetail | undefined {
       task_count: openTasks.length + completedTasks.length,
       standalone_task_count: openTasks.length,
       projects: projectsWithCounts,
-      tasks: await enrichTasks(openTasks),
+      tasks: sortTasks(await enrichTasks(openTasks)),
       completed_tasks: await enrichTasks(completedTasks),
     } as AreaDetail
   }, [areaId])
