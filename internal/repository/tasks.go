@@ -708,6 +708,16 @@ func (r *TaskRepository) getRepeatRule(taskID string) (*model.RepeatRule, error)
 // Returns an error if the update would create a duplicate timeless date.
 func (r *TaskRepository) syncFirstScheduleDate(taskID string, whenDate *string) error {
 	if whenDate == nil {
+		// Log deletes for each schedule entry before removing them
+		rows, _ := r.db.Query("SELECT id FROM task_schedules WHERE task_id = ?", taskID)
+		if rows != nil {
+			defer rows.Close()
+			for rows.Next() {
+				var sid string
+				_ = rows.Scan(&sid)
+				logChange(r.changeLog, "schedule", sid, "delete", nil, map[string]string{"id": sid}, "", "")
+			}
+		}
 		// Clear all schedule entries
 		_, err := r.db.Exec("DELETE FROM task_schedules WHERE task_id = ?", taskID)
 		return err
@@ -724,6 +734,13 @@ func (r *TaskRepository) syncFirstScheduleDate(taskID string, whenDate *string) 
 		_, err = r.db.Exec(
 			"INSERT INTO task_schedules (id, task_id, when_date, sort_order) VALUES (?, ?, ?, 0)",
 			id, taskID, *whenDate)
+		if err == nil {
+			// Log the new schedule entry
+			var s model.TaskSchedule
+			_ = r.db.QueryRow("SELECT id, task_id, when_date, start_time, end_time, completed, sort_order FROM task_schedules WHERE id = ?", id).
+				Scan(&s.ID, &s.TaskID, &s.WhenDate, &s.StartTime, &s.EndTime, &s.Completed, &s.SortOrder)
+			logChange(r.changeLog, "schedule", id, "create", nil, &s, "", "")
+		}
 		return err
 	} else if err != nil {
 		return err
@@ -740,6 +757,13 @@ func (r *TaskRepository) syncFirstScheduleDate(taskID string, whenDate *string) 
 	}
 	// Update existing first entry's date
 	_, err = r.db.Exec("UPDATE task_schedules SET when_date = ? WHERE id = ?", *whenDate, existingID)
+	if err == nil {
+		// Log the schedule update
+		var s model.TaskSchedule
+		_ = r.db.QueryRow("SELECT id, task_id, when_date, start_time, end_time, completed, sort_order FROM task_schedules WHERE id = ?", existingID).
+			Scan(&s.ID, &s.TaskID, &s.WhenDate, &s.StartTime, &s.EndTime, &s.Completed, &s.SortOrder)
+		logChange(r.changeLog, "schedule", existingID, "update", []string{"when_date"}, &s, "", "")
+	}
 	return err
 }
 
