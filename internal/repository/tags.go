@@ -111,7 +111,19 @@ func (r *TagRepository) Reorder(items []model.SimpleReorderItem) error {
 			return err
 		}
 	}
-	return tx.Commit()
+	if err := tx.Commit(); err != nil {
+		return err
+	}
+
+	for _, item := range items {
+		var t model.Tag
+		err := r.db.QueryRow("SELECT id, title, color, parent_tag_id, sort_order FROM tags WHERE id = ?", item.ID).
+			Scan(&t.ID, &t.Title, &t.Color, &t.ParentTagID, &t.SortOrder)
+		if err == nil {
+			logChange(r.changeLog, "tag", item.ID, "update", []string{"sort_order"}, &t, "", "")
+		}
+	}
+	return nil
 }
 
 func (r *TagRepository) Delete(id string) error {

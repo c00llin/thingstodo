@@ -439,7 +439,18 @@ func (r *TaskRepository) Reorder(items []model.ReorderItem) error {
 			return err
 		}
 	}
-	return tx.Commit()
+	if err := tx.Commit(); err != nil {
+		return err
+	}
+
+	for _, item := range items {
+		task, err := r.GetByID(item.ID)
+		if err == nil && task != nil {
+			logChange(r.changeLog, "task", item.ID, "update", []string{item.SortField}, task, "", "")
+		}
+	}
+
+	return nil
 }
 
 func (r *TaskRepository) BulkAction(input model.BulkActionInput) (int, error) {
@@ -560,6 +571,14 @@ func (r *TaskRepository) BulkAction(input model.BulkActionInput) (int, error) {
 		for _, id := range input.TaskIDs {
 			wd := whenDate
 			_ = r.syncFirstScheduleDate(id, &wd)
+		}
+	}
+
+	// Log changes for each affected task
+	for _, id := range input.TaskIDs {
+		task, err := r.GetByID(id)
+		if err == nil && task != nil {
+			logChange(r.changeLog, "task", id, "update", nil, task, "", "")
 		}
 	}
 

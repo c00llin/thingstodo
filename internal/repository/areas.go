@@ -213,7 +213,19 @@ func (r *AreaRepository) Reorder(items []model.SimpleReorderItem) error {
 			return err
 		}
 	}
-	return tx.Commit()
+	if err := tx.Commit(); err != nil {
+		return err
+	}
+
+	for _, item := range items {
+		var a model.Area
+		err := r.db.QueryRow("SELECT id, title, sort_order, created_at, updated_at FROM areas WHERE id = ?", item.ID).
+			Scan(&a.ID, &a.Title, &a.SortOrder, &a.CreatedAt, &a.UpdatedAt)
+		if err == nil {
+			logChange(r.changeLog, "area", item.ID, "update", []string{"sort_order"}, &a, "", "")
+		}
+	}
+	return nil
 }
 
 func (r *AreaRepository) DeleteWithTasks(id string) error {
@@ -224,6 +236,19 @@ func (r *AreaRepository) DeleteWithTasks(id string) error {
 	if count > 0 {
 		return ErrAreaHasProjects
 	}
+
+	// Collect task IDs before deleting so we can log each deletion
+	rows, err := r.db.Query("SELECT id FROM tasks WHERE area_id = ? AND project_id IS NULL", id)
+	if err != nil {
+		return fmt.Errorf("collect task IDs: %w", err)
+	}
+	var taskIDs []string
+	for rows.Next() {
+		var tid string
+		_ = rows.Scan(&tid)
+		taskIDs = append(taskIDs, tid)
+	}
+	rows.Close()
 
 	tx, err := r.db.Begin()
 	if err != nil {
@@ -237,5 +262,13 @@ func (r *AreaRepository) DeleteWithTasks(id string) error {
 	if _, err := tx.Exec("DELETE FROM areas WHERE id = ?", id); err != nil {
 		return fmt.Errorf("delete area: %w", err)
 	}
-	return tx.Commit()
+	if err := tx.Commit(); err != nil {
+		return err
+	}
+
+	for _, tid := range taskIDs {
+		logChange(r.changeLog, "task", tid, "delete", nil, map[string]string{"id": tid}, "", "")
+	}
+	logChange(r.changeLog, "area", id, "delete", nil, map[string]string{"id": id}, "", "")
+	return nil
 }

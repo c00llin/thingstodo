@@ -93,8 +93,28 @@ func (r *ReminderRepository) Delete(id string) error {
 }
 
 func (r *ReminderRepository) DeleteAllByTask(taskID string) error {
-	_, err := r.db.Exec("DELETE FROM reminders WHERE task_id = ?", taskID)
-	return err
+	// Collect reminder IDs before deleting so we can log each deletion
+	rows, err := r.db.Query("SELECT id FROM reminders WHERE task_id = ?", taskID)
+	if err != nil {
+		return fmt.Errorf("collect reminder IDs: %w", err)
+	}
+	var ids []string
+	for rows.Next() {
+		var id string
+		_ = rows.Scan(&id)
+		ids = append(ids, id)
+	}
+	rows.Close()
+
+	_, err = r.db.Exec("DELETE FROM reminders WHERE task_id = ?", taskID)
+	if err != nil {
+		return err
+	}
+
+	for _, id := range ids {
+		logChange(r.changeLog, "reminder", id, "delete", nil, map[string]string{"id": id}, "", "")
+	}
+	return nil
 }
 
 // GetTaskIDForReminder returns the task_id that owns a given reminder.
@@ -117,6 +137,7 @@ func (r *ReminderRepository) HasBeenSent(reminderID, scheduleID, fireAt string) 
 }
 
 // MarkSent records that a reminder was sent.
+// No logChange here — reminder_log is not synced intentionally.
 func (r *ReminderRepository) MarkSent(reminderID, scheduleID, fireAt string) error {
 	id := model.NewID()
 	_, err := r.db.Exec(

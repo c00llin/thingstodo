@@ -127,5 +127,15 @@ func (r *HeadingRepository) Reorder(items []model.SimpleReorderItem) error {
 			return err
 		}
 	}
-	return tx.Commit()
+	if err := tx.Commit(); err != nil {
+		return err
+	}
+
+	for _, item := range items {
+		var h model.Heading
+		_ = r.db.QueryRow("SELECT id, title, project_id, sort_order FROM headings WHERE id = ?", item.ID).
+			Scan(&h.ID, &h.Title, &h.ProjectID, &h.SortOrder)
+		logChange(r.changeLog, "heading", item.ID, "update", []string{"sort_order"}, &h, "", "")
+	}
+	return nil
 }

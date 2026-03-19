@@ -248,6 +248,19 @@ func (r *ProjectRepository) Delete(id string) error {
 }
 
 func (r *ProjectRepository) DeleteWithTasks(id string) error {
+	// Collect task IDs before deleting so we can log each deletion
+	rows, err := r.db.Query("SELECT id FROM tasks WHERE project_id = ?", id)
+	if err != nil {
+		return fmt.Errorf("collect task IDs: %w", err)
+	}
+	var taskIDs []string
+	for rows.Next() {
+		var tid string
+		_ = rows.Scan(&tid)
+		taskIDs = append(taskIDs, tid)
+	}
+	rows.Close()
+
 	tx, err := r.db.Begin()
 	if err != nil {
 		return err
@@ -260,7 +273,15 @@ func (r *ProjectRepository) DeleteWithTasks(id string) error {
 	if _, err := tx.Exec("DELETE FROM projects WHERE id = ?", id); err != nil {
 		return fmt.Errorf("delete project: %w", err)
 	}
-	return tx.Commit()
+	if err := tx.Commit(); err != nil {
+		return err
+	}
+
+	for _, tid := range taskIDs {
+		logChange(r.changeLog, "task", tid, "delete", nil, map[string]string{"id": tid}, "", "")
+	}
+	logChange(r.changeLog, "project", id, "delete", nil, map[string]string{"id": id}, "", "")
+	return nil
 }
 
 func (r *ProjectRepository) Complete(id string) (*model.ProjectDetail, error) {
@@ -289,7 +310,17 @@ func (r *ProjectRepository) Reorder(items []model.SimpleReorderItem) error {
 			return err
 		}
 	}
-	return tx.Commit()
+	if err := tx.Commit(); err != nil {
+		return err
+	}
+
+	for _, item := range items {
+		p, err := r.GetByID(item.ID)
+		if err == nil && p != nil {
+			logChange(r.changeLog, "project", item.ID, "update", []string{"sort_order"}, p, "", "")
+		}
+	}
+	return nil
 }
 
 // --- shared helpers ---

@@ -147,7 +147,18 @@ func (r *ScheduleRepository) Reorder(items []model.SimpleReorderItem) error {
 			return err
 		}
 	}
-	return tx.Commit()
+	if err := tx.Commit(); err != nil {
+		return err
+	}
+
+	// Log sort_order changes after successful commit
+	for _, item := range items {
+		var s model.TaskSchedule
+		_ = r.db.QueryRow("SELECT id, task_id, when_date, start_time, end_time, completed, sort_order FROM task_schedules WHERE id = ?", item.ID).
+			Scan(&s.ID, &s.TaskID, &s.WhenDate, &s.StartTime, &s.EndTime, &s.Completed, &s.SortOrder)
+		logChange(r.changeLog, "schedule", item.ID, "update", []string{"sort_order"}, &s, "", "")
+	}
+	return nil
 }
 
 // GetTaskIDForSchedule returns the task_id owning the given schedule entry.
@@ -168,6 +179,9 @@ func (r *ScheduleRepository) CountByTask(taskID string) (int, error) {
 }
 
 // SyncPrimary updates tasks.when_date from the first schedule entry.
+// NOTE: This method does not log a "task" change because the pull client expects
+// a full task snapshot, and ScheduleRepository doesn't have access to TaskRepository.
+// The caller (schedule handler) already triggers task cache invalidation through other paths.
 func (r *ScheduleRepository) SyncPrimary(taskID string) error {
 	var whenDate sql.NullString
 
@@ -226,6 +240,12 @@ func (r *ScheduleRepository) CreateFirstEntry(taskID, date string) error {
 	_, err := r.db.Exec(
 		"INSERT INTO task_schedules (id, task_id, when_date, sort_order) VALUES (?, ?, ?, 0)",
 		id, taskID, date)
+	if err == nil {
+		var s model.TaskSchedule
+		_ = r.db.QueryRow("SELECT id, task_id, when_date, start_time, end_time, completed, sort_order FROM task_schedules WHERE id = ?", id).
+			Scan(&s.ID, &s.TaskID, &s.WhenDate, &s.StartTime, &s.EndTime, &s.Completed, &s.SortOrder)
+		logChange(r.changeLog, "schedule", id, "create", nil, &s, "", "")
+	}
 	return err
 }
 
@@ -247,6 +267,25 @@ func (r *ScheduleRepository) CleanupOnTaskDone(taskID, today string) error {
 		return fmt.Errorf("complete past/today schedules: %w", err)
 	}
 
+	// Collect IDs of future/someday entries before deleting them (for change log)
+	rows, err := tx.Query(
+		"SELECT id FROM task_schedules WHERE task_id = ? AND (when_date > ? OR when_date = 'someday') AND completed = 0",
+		taskID, today,
+	)
+	if err != nil {
+		return fmt.Errorf("query future schedule ids: %w", err)
+	}
+	var deletedIDs []string
+	for rows.Next() {
+		var id string
+		if err := rows.Scan(&id); err != nil {
+			rows.Close()
+			return fmt.Errorf("scan future schedule id: %w", err)
+		}
+		deletedIDs = append(deletedIDs, id)
+	}
+	rows.Close()
+
 	// Delete future (after today) and someday uncompleted entries
 	if _, err = tx.Exec(
 		"DELETE FROM task_schedules WHERE task_id = ? AND (when_date > ? OR when_date = 'someday') AND completed = 0",
@@ -255,7 +294,32 @@ func (r *ScheduleRepository) CleanupOnTaskDone(taskID, today string) error {
 		return fmt.Errorf("delete future schedules: %w", err)
 	}
 
-	return tx.Commit()
+	if err := tx.Commit(); err != nil {
+		return err
+	}
+
+	// Log completed entries
+	completedRows, err := r.db.Query(
+		"SELECT id, task_id, when_date, start_time, end_time, completed, sort_order FROM task_schedules WHERE task_id = ? AND when_date <= ? AND when_date != 'someday' AND completed = 1",
+		taskID, today,
+	)
+	if err == nil {
+		defer completedRows.Close()
+		for completedRows.Next() {
+			var s model.TaskSchedule
+			if err := completedRows.Scan(&s.ID, &s.TaskID, &s.WhenDate, &s.StartTime, &s.EndTime, &s.Completed, &s.SortOrder); err != nil {
+				break
+			}
+			logChange(r.changeLog, "schedule", s.ID, "update", []string{"completed"}, &s, "", "")
+		}
+	}
+
+	// Log deleted entries
+	for _, id := range deletedIDs {
+		logChange(r.changeLog, "schedule", id, "delete", nil, map[string]string{"id": id}, "", "")
+	}
+
+	return nil
 }
 
 // SyncFirstScheduleDate updates the first schedule entry's when_date to match tasks.when_date.

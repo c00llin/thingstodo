@@ -125,8 +125,22 @@ func (r *AttachmentRepository) Delete(id string) error {
 
 // DeleteByURL removes all attachment rows that reference the given stored file URL.
 func (r *AttachmentRepository) DeleteByURL(url string) error {
-	_, err := r.db.Exec("DELETE FROM attachments WHERE type = 'file' AND url = ?", url)
-	return err
+	// Collect attachment IDs before deleting so we can log each deletion
+	var id string
+	err := r.db.QueryRow("SELECT id FROM attachments WHERE type = 'file' AND url = ?", url).Scan(&id)
+	if err != nil && err != sql.ErrNoRows {
+		return fmt.Errorf("lookup attachment by url: %w", err)
+	}
+
+	_, execErr := r.db.Exec("DELETE FROM attachments WHERE type = 'file' AND url = ?", url)
+	if execErr != nil {
+		return execErr
+	}
+
+	if err == nil {
+		logChange(r.changeLog, "attachment", id, "delete", nil, map[string]string{"id": id}, "", "")
+	}
+	return nil
 }
 
 // CountByURL returns how many file attachments reference the given stored file URL.
