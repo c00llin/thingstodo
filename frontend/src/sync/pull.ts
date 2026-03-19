@@ -50,11 +50,11 @@ interface FullSyncResponse {
   projects: Record<string, unknown>[]
   areas: Record<string, unknown>[]
   tags: Record<string, unknown>[]
-  checklistItems?: Record<string, unknown>[]
+  checklist?: Record<string, unknown>[]
   attachments?: Record<string, unknown>[]
   schedules?: Record<string, unknown>[]
   reminders?: Record<string, unknown>[]
-  repeatRules?: Record<string, unknown>[]
+  repeat_rules?: Record<string, unknown>[]
   headings?: Record<string, unknown>[]
   cursor: number
 }
@@ -197,11 +197,11 @@ export async function fullSync(): Promise<void> {
       if (response.projects?.length) await localDb.projects.bulkPut(withMeta(response.projects) as Parameters<typeof localDb.projects.bulkPut>[0])
       if (response.areas?.length) await localDb.areas.bulkPut(withMeta(response.areas) as Parameters<typeof localDb.areas.bulkPut>[0])
       if (response.tags?.length) await localDb.tags.bulkPut(withMeta(response.tags) as Parameters<typeof localDb.tags.bulkPut>[0])
-      if (response.checklistItems?.length) await localDb.checklistItems.bulkPut(withMeta(response.checklistItems) as Parameters<typeof localDb.checklistItems.bulkPut>[0])
+      if (response.checklist?.length) await localDb.checklistItems.bulkPut(withMeta(response.checklist) as Parameters<typeof localDb.checklistItems.bulkPut>[0])
       if (response.attachments?.length) await localDb.attachments.bulkPut(withMeta(response.attachments) as Parameters<typeof localDb.attachments.bulkPut>[0])
       if (response.schedules?.length) await localDb.schedules.bulkPut(withMeta(response.schedules) as Parameters<typeof localDb.schedules.bulkPut>[0])
       if (response.reminders?.length) await localDb.reminders.bulkPut(withMeta(response.reminders) as Parameters<typeof localDb.reminders.bulkPut>[0])
-      if (response.repeatRules?.length) await localDb.repeatRules.bulkPut(withMeta(response.repeatRules) as Parameters<typeof localDb.repeatRules.bulkPut>[0])
+      if (response.repeat_rules?.length) await localDb.repeatRules.bulkPut(withMeta(response.repeat_rules) as Parameters<typeof localDb.repeatRules.bulkPut>[0])
       if (response.headings?.length) await localDb.headings.bulkPut(withMeta(response.headings) as Parameters<typeof localDb.headings.bulkPut>[0])
     },
   )

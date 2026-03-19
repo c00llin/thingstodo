@@ -18,7 +18,7 @@ func NewScheduleRepository(db *sql.DB, changeLog *ChangeLogRepository) *Schedule
 
 func (r *ScheduleRepository) ListByTask(taskID string) ([]model.TaskSchedule, error) {
 	rows, err := r.db.Query(
-		"SELECT id, when_date, start_time, end_time, completed, sort_order FROM task_schedules WHERE task_id = ? ORDER BY sort_order", taskID)
+		"SELECT id, task_id, when_date, start_time, end_time, completed, sort_order FROM task_schedules WHERE task_id = ? ORDER BY sort_order", taskID)
 	if err != nil {
 		return nil, err
 	}
@@ -27,7 +27,7 @@ func (r *ScheduleRepository) ListByTask(taskID string) ([]model.TaskSchedule, er
 	var items []model.TaskSchedule
 	for rows.Next() {
 		var s model.TaskSchedule
-		if err := rows.Scan(&s.ID, &s.WhenDate, &s.StartTime, &s.EndTime, &s.Completed, &s.SortOrder); err != nil {
+		if err := rows.Scan(&s.ID, &s.TaskID, &s.WhenDate, &s.StartTime, &s.EndTime, &s.Completed, &s.SortOrder); err != nil {
 			return nil, fmt.Errorf("scan schedule: %w", err)
 		}
 		items = append(items, s)
@@ -41,7 +41,7 @@ func (r *ScheduleRepository) ListByTask(taskID string) ([]model.TaskSchedule, er
 // ListAll returns all task schedules across all tasks.
 func (r *ScheduleRepository) ListAll() ([]model.TaskSchedule, error) {
 	rows, err := r.db.Query(
-		"SELECT id, when_date, start_time, end_time, completed, sort_order FROM task_schedules ORDER BY sort_order")
+		"SELECT id, task_id, when_date, start_time, end_time, completed, sort_order FROM task_schedules ORDER BY sort_order")
 	if err != nil {
 		return nil, err
 	}
@@ -50,7 +50,7 @@ func (r *ScheduleRepository) ListAll() ([]model.TaskSchedule, error) {
 	var items []model.TaskSchedule
 	for rows.Next() {
 		var s model.TaskSchedule
-		if err := rows.Scan(&s.ID, &s.WhenDate, &s.StartTime, &s.EndTime, &s.Completed, &s.SortOrder); err != nil {
+		if err := rows.Scan(&s.ID, &s.TaskID, &s.WhenDate, &s.StartTime, &s.EndTime, &s.Completed, &s.SortOrder); err != nil {
 			return nil, fmt.Errorf("scan schedule: %w", err)
 		}
 		items = append(items, s)
@@ -74,8 +74,8 @@ func (r *ScheduleRepository) Create(taskID string, input model.CreateTaskSchedul
 	}
 
 	var s model.TaskSchedule
-	_ = r.db.QueryRow("SELECT id, when_date, start_time, end_time, completed, sort_order FROM task_schedules WHERE id = ?", id).
-		Scan(&s.ID, &s.WhenDate, &s.StartTime, &s.EndTime, &s.Completed, &s.SortOrder)
+	_ = r.db.QueryRow("SELECT id, task_id, when_date, start_time, end_time, completed, sort_order FROM task_schedules WHERE id = ?", id).
+		Scan(&s.ID, &s.TaskID, &s.WhenDate, &s.StartTime, &s.EndTime, &s.Completed, &s.SortOrder)
 	logChange(r.changeLog, "schedule", id, "create", nil, &s, "", "")
 	return &s, nil
 }

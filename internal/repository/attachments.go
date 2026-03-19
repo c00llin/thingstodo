@@ -41,7 +41,7 @@ func (r *AttachmentRepository) ListByTask(taskID string) ([]model.Attachment, er
 // ListAll returns all attachments across all tasks.
 func (r *AttachmentRepository) ListAll() ([]model.Attachment, error) {
 	rows, err := r.db.Query(
-		"SELECT id, type, title, url, mime_type, file_size, sort_order, created_at FROM attachments ORDER BY sort_order")
+		"SELECT id, task_id, type, title, url, mime_type, file_size, sort_order, created_at FROM attachments ORDER BY sort_order")
 	if err != nil {
 		return nil, err
 	}
@@ -50,7 +50,7 @@ func (r *AttachmentRepository) ListAll() ([]model.Attachment, error) {
 	var items []model.Attachment
 	for rows.Next() {
 		var a model.Attachment
-		if err := rows.Scan(&a.ID, &a.Type, &a.Title, &a.URL, &a.MimeType, &a.FileSize, &a.SortOrder, &a.CreatedAt); err != nil {
+		if err := rows.Scan(&a.ID, &a.TaskID, &a.Type, &a.Title, &a.URL, &a.MimeType, &a.FileSize, &a.SortOrder, &a.CreatedAt); err != nil {
 			return nil, fmt.Errorf("scan attachment: %w", err)
 		}
 		items = append(items, a)

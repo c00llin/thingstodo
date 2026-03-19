@@ -41,7 +41,7 @@ func (r *ReminderRepository) ListByTask(taskID string) ([]model.Reminder, error)
 // ListAll returns all reminders across all tasks.
 func (r *ReminderRepository) ListAll() ([]model.Reminder, error) {
 	rows, err := r.db.Query(
-		"SELECT id, type, value, exact_at, created_at FROM reminders ORDER BY created_at")
+		"SELECT id, task_id, type, value, exact_at, created_at FROM reminders ORDER BY created_at")
 	if err != nil {
 		return nil, err
 	}
@@ -50,7 +50,7 @@ func (r *ReminderRepository) ListAll() ([]model.Reminder, error) {
 	var items []model.Reminder
 	for rows.Next() {
 		var rm model.Reminder
-		if err := rows.Scan(&rm.ID, &rm.Type, &rm.Value, &rm.ExactAt, &rm.CreatedAt); err != nil {
+		if err := rows.Scan(&rm.ID, &rm.TaskID, &rm.Type, &rm.Value, &rm.ExactAt, &rm.CreatedAt); err != nil {
 			return nil, fmt.Errorf("scan reminder: %w", err)
 		}
 		items = append(items, rm)
