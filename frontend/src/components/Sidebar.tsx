@@ -1166,13 +1166,13 @@ export function Sidebar() {
         </LayoutGroup>
       </div>
       <div className="flex items-center justify-between border-t border-neutral-200 px-3 py-2 dark:border-neutral-700">
-        <div className="flex items-center gap-1">
-          <PlusMenu side="top" />
-          <SyncStatus />
-        </div>
-        <div className="flex items-center gap-1">
-          <ThemeToggle />
-          <LogoutButton />
+        <PlusMenu side="top" />
+        <SyncStatus />
+        <div className="group/settings relative flex items-center">
+          <div className="pointer-events-none absolute right-full mr-1 flex items-center gap-1 opacity-0 transition-opacity group-hover/settings:pointer-events-auto group-hover/settings:opacity-100">
+            <ThemeToggle />
+            <LogoutButton />
+          </div>
           <button
             onClick={() => navigate('/settings')}
             className="rounded-lg p-1.5 text-neutral-500 hover:bg-neutral-200 dark:text-neutral-400 dark:hover:bg-neutral-700"
