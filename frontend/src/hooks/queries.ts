@@ -819,10 +819,6 @@ export function useUpdateTaskSchedule(taskId: string) {
         return { id: newId, ...data }
       }
       await localMutations.updateSchedule(id, data as Parameters<typeof localMutations.updateSchedule>[1])
-      // Keep task's when_date in sync when the first schedule's date changes
-      if (data.when_date !== undefined) {
-        await localMutations.updateTask(taskId, { when_date: data.when_date })
-      }
       return { id, ...data }
     },
   })
