@@ -514,6 +514,22 @@ export function useLocalTask(id: string): TaskDetail | undefined {
       task.heading_id ? localDb.headings.get(task.heading_id) : Promise.resolve(undefined),
     ])
 
+    // If task has when_date but no schedule entries locally, synthesize one
+    // so the ScheduleEditor has something to display.
+    let resolvedSchedules = schedules.map((s: LocalSchedule) => stripSyncMeta(s))
+    if (resolvedSchedules.length === 0 && task.when_date) {
+      resolvedSchedules = [{
+        id: `synth-${id}`,
+        task_id: id,
+        when_date: task.when_date,
+        start_time: null,
+        end_time: null,
+        completed: false,
+        sort_order: 0,
+        created_at: task.created_at,
+      }]
+    }
+
     return {
       ...taskToPlain(task),
       project: project ? { id: project.id, title: project.title } : null,
@@ -521,7 +537,7 @@ export function useLocalTask(id: string): TaskDetail | undefined {
       heading: heading ? { id: heading.id, title: heading.title } : null,
       checklist: checklist.map((c: LocalChecklistItem) => stripSyncMeta(c)),
       attachments: attachments.map((a: LocalAttachment) => stripSyncMeta(a)),
-      schedules: schedules.map((s: LocalSchedule) => stripSyncMeta(s)),
+      schedules: resolvedSchedules,
       reminders: reminders.map((r: LocalReminder) => stripSyncMeta(r)),
       repeat_rule: repeatRule
         ? (stripSyncMeta(repeatRule as LocalRepeatRule) as ReturnType<typeof stripSyncMeta>)
