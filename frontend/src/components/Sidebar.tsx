@@ -1169,7 +1169,7 @@ export function Sidebar() {
         <PlusMenu side="top" />
         <SyncStatus />
         <div className="group/settings relative flex items-center gap-1">
-          <div className="flex items-center gap-1 overflow-hidden max-w-0 transition-all duration-200 group-hover/settings:max-w-[80px]">
+          <div className="flex items-center gap-1 overflow-hidden max-w-[80px] md:max-w-0 transition-all duration-200 group-hover/settings:max-w-[80px]">
             <ThemeToggle />
             <LogoutButton />
           </div>
