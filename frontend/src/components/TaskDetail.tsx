@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, useSyncExternalStore } from 'react'
 import { createPortal } from 'react-dom'
 import * as Checkbox from '@radix-ui/react-checkbox'
 import { Check, Plus, Paperclip, Link, Trash2, X, Calendar, Flag, ListChecks, StickyNote, CircleMinus, CircleX, RefreshCw, CircleAlert, Bell } from 'lucide-react'
@@ -35,7 +35,11 @@ interface TaskDetailProps {
   toolbarPortalEl?: HTMLDivElement | null
 }
 
+const subscribeOnline = (cb: () => void) => { window.addEventListener('online', cb); window.addEventListener('offline', cb); return () => { window.removeEventListener('online', cb); window.removeEventListener('offline', cb) } }
+const getOnline = () => navigator.onLine
+
 export function TaskDetail({ taskId, isModal, toolbarPortalEl }: TaskDetailProps) {
+  const isOnline = useSyncExternalStore(subscribeOnline, getOnline)
   const task = useLocalTask(taskId)
   const isLoading = task === undefined
   const { data: settings } = useSettings()
@@ -443,20 +447,22 @@ export function TaskDetail({ taskId, isModal, toolbarPortalEl }: TaskDetailProps
         </button>
       ) : hasRepeatRule && !showRepeat && task.repeat_rule ? (
         <button
-          onClick={() => setShowRepeat(true)}
-          className="ml-1 flex items-center gap-1 rounded-md border border-neutral-200 px-1.5 py-0.5 text-neutral-400 hover:bg-neutral-100 hover:text-neutral-600 dark:border-neutral-600 dark:hover:bg-neutral-800 dark:hover:text-neutral-300"
+          onClick={() => isOnline && setShowRepeat(true)}
+          disabled={!isOnline}
+          className={`ml-1 flex items-center gap-1 rounded-md border border-neutral-200 px-1.5 py-0.5 dark:border-neutral-600 ${isOnline ? 'text-neutral-400 hover:bg-neutral-100 hover:text-neutral-600 dark:hover:bg-neutral-800 dark:hover:text-neutral-300' : 'text-neutral-300 cursor-not-allowed dark:text-neutral-600'}`}
           aria-label="Repeat"
-          title="Repeat"
+          title={isOnline ? 'Repeat' : 'Recurring requires an internet connection'}
         >
           <RefreshCw size={14} />
-          <span className="text-xs text-neutral-500">{formatRepeatRule(task.repeat_rule)}</span>
+          <span className={`text-xs ${isOnline ? 'text-neutral-500' : 'text-neutral-300 dark:text-neutral-600'}`}>{formatRepeatRule(task.repeat_rule)}</span>
         </button>
       ) : !showRepeat && (
         <button
-          onClick={() => setShowRepeat(true)}
-          className="rounded-md p-2 md:p-1 text-neutral-400 hover:bg-neutral-100 hover:text-neutral-600 dark:hover:bg-neutral-800 dark:hover:text-neutral-300"
+          onClick={() => isOnline && setShowRepeat(true)}
+          disabled={!isOnline}
+          className={`rounded-md p-2 md:p-1 ${isOnline ? 'text-neutral-400 hover:bg-neutral-100 hover:text-neutral-600 dark:hover:bg-neutral-800 dark:hover:text-neutral-300' : 'text-neutral-300 cursor-not-allowed dark:text-neutral-600'}`}
           aria-label="Repeat"
-          title="Repeat"
+          title={isOnline ? 'Repeat' : 'Recurring requires an internet connection'}
         >
           <RefreshCw size={16} />
         </button>
