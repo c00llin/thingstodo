@@ -136,9 +136,12 @@ export function ScheduleEditor({
   const canAdd = !isSomeday && !hasRepeatRule && schedules.length < 12
 
   // Measure the widest date label so all rows align their time fields
+  // Use a stable key derived from schedule dates so the effect fires on content changes
+  const scheduleDatesKey = schedules.map((e) => e.when_date).join(',')
   const dateLabels = useMemo(
     () => schedules.map((e) => formatRelativeDate(e.when_date)),
-    [schedules],
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [scheduleDatesKey],
   )
   const measureRef = useRef<HTMLSpanElement>(null)
   const [dateMinWidth, setDateMinWidth] = useState<number | undefined>(undefined)
