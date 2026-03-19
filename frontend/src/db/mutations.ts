@@ -33,18 +33,20 @@ export function generateNanoid(): string {
 }
 
 /**
- * Replicate server's syncFirstScheduleDate logic locally.
+ * Replicate server's syncFirstScheduleDate logic locally (IndexedDB only).
+ * Does NOT queue sync changes — the server handles schedule sync itself
+ * via its own syncFirstScheduleDate when it processes the task's when_date change.
+ *
  * - when_date is null → delete all schedules for the task
  * - first schedule exists → update its when_date
  * - no schedule exists → create one
  */
 async function syncFirstScheduleDate(taskId: string, whenDate: string | null): Promise<void> {
   if (whenDate === null) {
-    // Delete all schedule entries for this task
+    // Delete all schedule entries for this task locally
     const schedules = await localDb.schedules.where('task_id').equals(taskId).toArray()
     for (const s of schedules) {
       await localDb.schedules.delete(s.id)
-      await queueChange('schedule', s.id, 'delete', { id: s.id })
     }
     return
   }
@@ -56,7 +58,7 @@ async function syncFirstScheduleDate(taskId: string, whenDate: string | null): P
     .sortBy('sort_order')
 
   if (existing.length === 0) {
-    // Create a new schedule entry
+    // Create a new schedule entry locally
     const id = generateNanoid()
     const timestamp = now()
     const schedule: LocalSchedule = {
@@ -72,9 +74,8 @@ async function syncFirstScheduleDate(taskId: string, whenDate: string | null): P
       _localUpdatedAt: timestamp,
     }
     await localDb.schedules.put(schedule)
-    await queueChange('schedule', id, 'create', schedule as unknown as Record<string, unknown>)
   } else {
-    // Update the first entry's when_date
+    // Update the first entry's when_date locally
     const first = existing[0]
     if (first.when_date !== whenDate) {
       const timestamp = now()
@@ -85,13 +86,6 @@ async function syncFirstScheduleDate(taskId: string, whenDate: string | null): P
         _localUpdatedAt: timestamp,
       }
       await localDb.schedules.put(updated)
-      await queueChange(
-        'schedule',
-        first.id,
-        'update',
-        { when_date: whenDate } as Record<string, unknown>,
-        ['when_date'],
-      )
     }
   }
 }

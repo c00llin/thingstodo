@@ -41,13 +41,20 @@ export async function pushChanges(deviceId: string): Promise<number> {
     changes,
   })
 
-  // Remove successfully pushed entries from queue
-  const successfulEntityIds = response.results
-    .filter((r: PushResult) => r.status !== 'error')
-    .map((r: PushResult) => r.entity_id)
+  // Remove successfully pushed entries and unrecoverable errors from queue.
+  // "unsupported entity type" errors are permanent — the server handles those
+  // entities via side effects (e.g., schedule sync on when_date change).
+  const processedEntityIds = new Set<string>()
+  for (const r of response.results) {
+    if (r.status !== 'error') {
+      processedEntityIds.add(r.entity_id)
+    } else if (r.error?.includes('unsupported entity type')) {
+      processedEntityIds.add(r.entity_id)
+    }
+  }
 
   const idsToRemove = entries
-    .filter((e: SyncQueueEntry) => successfulEntityIds.includes(e.entityId))
+    .filter((e: SyncQueueEntry) => processedEntityIds.has(e.entityId))
     .map((e: SyncQueueEntry) => e.id!)
     .filter((id: number) => id !== undefined)
 
@@ -55,5 +62,5 @@ export async function pushChanges(deviceId: string): Promise<number> {
     await localDb.syncQueue.bulkDelete(idsToRemove)
   }
 
-  return successfulEntityIds.length
+  return processedEntityIds.size
 }
