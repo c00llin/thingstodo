@@ -221,10 +221,10 @@ function GeneralSettings({ settings, updateSettings }: { settings: UserSettings;
           value={settings.review_after_days}
           onChange={(v) => updateSettings.mutate({ review_after_days: v })}
         />
-        <CheckboxSetting
+        <SettingsCheckbox
           label="Include recurring tasks in Review"
           checked={settings.review_include_recurring}
-          onChange={(v) => updateSettings.mutate({ review_include_recurring: v })}
+          onChange={(v: boolean) => updateSettings.mutate({ review_include_recurring: v })}
         />
       </section>
 
