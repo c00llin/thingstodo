@@ -77,6 +77,89 @@ function taskToPlain(t: LocalTask): Task {
   return stripSyncMeta(t) as Task
 }
 
+/**
+ * Enrich a task with denormalized project_name, area_name, and first schedule time.
+ * The server does this via SQL JOINs; we do it by looking up related entities.
+ */
+async function enrichTask(t: LocalTask): Promise<Task> {
+  const plain = taskToPlain(t)
+
+  // Resolve project/area names
+  if (t.project_id && !plain.project_name) {
+    const project = await localDb.projects.get(t.project_id)
+    if (project) plain.project_name = project.title
+  }
+  if (t.area_id && !plain.area_name) {
+    const area = await localDb.areas.get(t.area_id)
+    if (area) plain.area_name = area.title
+  }
+
+  // Resolve first schedule time if not already set
+  if (!plain.first_schedule_time) {
+    const firstSchedule = await localDb.schedules
+      .where('task_id')
+      .equals(t.id)
+      .filter((s) => !s.completed)
+      .sortBy('sort_order')
+    if (firstSchedule.length > 0 && firstSchedule[0].start_time) {
+      plain.first_schedule_time = firstSchedule[0].start_time
+      plain.first_schedule_end_time = firstSchedule[0].end_time ?? null
+      plain.schedule_entry_id = firstSchedule[0].id
+    }
+  }
+
+  return plain
+}
+
+/**
+ * Batch-enrich tasks, caching project/area lookups.
+ */
+async function enrichTasks(tasks: LocalTask[]): Promise<Task[]> {
+  // Collect unique project/area IDs
+  const projectIds = new Set<string>()
+  const areaIds = new Set<string>()
+  for (const t of tasks) {
+    if (t.project_id && !t.project_name) projectIds.add(t.project_id)
+    if (t.area_id && !t.area_name) areaIds.add(t.area_id)
+  }
+
+  const projectNames = new Map<string, string>()
+  const areaNames = new Map<string, string>()
+  for (const pid of projectIds) {
+    const p = await localDb.projects.get(pid)
+    if (p) projectNames.set(pid, p.title)
+  }
+  for (const aid of areaIds) {
+    const a = await localDb.areas.get(aid)
+    if (a) areaNames.set(aid, a.title)
+  }
+
+  const result: Task[] = []
+  for (const t of tasks) {
+    const plain = taskToPlain(t)
+    if (t.project_id && !plain.project_name) {
+      plain.project_name = projectNames.get(t.project_id) ?? null
+    }
+    if (t.area_id && !plain.area_name) {
+      plain.area_name = areaNames.get(t.area_id) ?? null
+    }
+    if (!plain.first_schedule_time) {
+      const schedules = await localDb.schedules
+        .where('task_id')
+        .equals(t.id)
+        .filter((s) => !s.completed)
+        .sortBy('sort_order')
+      if (schedules.length > 0 && schedules[0].start_time) {
+        plain.first_schedule_time = schedules[0].start_time
+        plain.first_schedule_end_time = schedules[0].end_time ?? null
+        plain.schedule_entry_id = schedules[0].id
+      }
+    }
+    result.push(plain)
+  }
+  return result
+}
+
 function projectToPlain(p: LocalProject): Project {
   return stripSyncMeta(p) as Project
 }
@@ -133,11 +216,11 @@ export function useLocalInbox(reviewAfterDays?: number | null, reviewIncludeRecu
         .toArray()
 
       stale.sort((a, b) => (a.updated_at ?? '').localeCompare(b.updated_at ?? ''))
-      review = stale.map(taskToPlain)
+      review = await enrichTasks(stale)
     }
 
     return {
-      tasks: tasks.map(taskToPlain),
+      tasks: await enrichTasks(tasks),
       review,
     } satisfies InboxView
   }, [reviewAfterDays, reviewIncludeRecurring])
@@ -147,11 +230,12 @@ export function useLocalInbox(reviewAfterDays?: number | null, reviewIncludeRecu
  * Group tasks by project_id, resolving project names from the local DB.
  */
 async function groupByProject(tasks: LocalTask[]): Promise<TodayViewGroup[]> {
+  const enriched = await enrichTasks(tasks)
   const projectMap = new Map<string | null, Task[]>()
-  for (const t of tasks) {
+  for (const t of enriched) {
     const key = t.project_id ?? null
     if (!projectMap.has(key)) projectMap.set(key, [])
-    projectMap.get(key)!.push(taskToPlain(t))
+    projectMap.get(key)!.push(t)
   }
 
   const projectIds = [...projectMap.keys()].filter((k): k is string => k !== null)
@@ -260,9 +344,9 @@ export function useLocalToday(eveningStartsAt = '18:00'): TodayView | undefined 
 
     return {
       sections,
-      overdue: overdueTasks.map(taskToPlain),
-      earlier: earlierTasks.map(taskToPlain),
-      completed: completedTasks.map(taskToPlain),
+      overdue: await enrichTasks(overdueTasks),
+      earlier: await enrichTasks(earlierTasks),
+      completed: await enrichTasks(completedTasks),
     } satisfies TodayView
   }, [eveningStartsAt])
 }
@@ -277,28 +361,50 @@ export function useLocalUpcoming(): UpcomingView | undefined {
   return useLiveQuery(async () => {
     const today = todayString()
 
-    // Use aboveOrEqual to include today's date
+    // Collect tasks with when_date >= today, then expand per schedule entry
     const tasks = await localDb.tasks
       .where('when_date')
       .aboveOrEqual(today)
       .filter((t) => t.status === 'open' && !t.deleted_at && t.when_date !== 'someday')
       .sortBy('when_date')
 
-    // Group by date
-    const dateMap = new Map<string, LocalTask[]>()
+    // Expand tasks: for each task, get its uncompleted schedule entries.
+    // A task with multiple schedule entries appears once per entry date.
+    const dateMap = new Map<string, Task[]>()
     const dateOrder: string[] = []
+
     for (const t of tasks) {
-      const d = t.when_date!
-      if (!dateMap.has(d)) {
-        dateMap.set(d, [])
-        dateOrder.push(d)
+      const schedules = await localDb.schedules
+        .where('task_id')
+        .equals(t.id)
+        .filter((s) => !s.completed && s.when_date >= today && s.when_date !== 'someday')
+        .sortBy('when_date')
+
+      if (schedules.length === 0) {
+        // No schedule entries — use task's when_date
+        const d = t.when_date!
+        if (!dateMap.has(d)) { dateMap.set(d, []); dateOrder.push(d) }
+        const enriched = await enrichTask(t)
+        dateMap.get(d)!.push(enriched)
+      } else {
+        // One entry per schedule
+        for (const s of schedules) {
+          const d = s.when_date
+          if (!dateMap.has(d)) { dateMap.set(d, []); dateOrder.push(d) }
+          const enriched = await enrichTask(t)
+          // Override schedule fields for this specific entry
+          enriched.first_schedule_time = s.start_time ?? null
+          enriched.first_schedule_end_time = s.end_time ?? null
+          enriched.schedule_entry_id = s.id
+          dateMap.get(d)!.push(enriched)
+        }
       }
-      dateMap.get(d)!.push(t)
     }
 
+    dateOrder.sort()
     const dates: UpcomingViewDate[] = dateOrder.map((date) => ({
       date,
-      tasks: (dateMap.get(date) ?? []).map(taskToPlain),
+      tasks: dateMap.get(date) ?? [],
     }))
 
     // Overdue: open tasks with deadline < today
@@ -329,9 +435,9 @@ export function useLocalUpcoming(): UpcomingView | undefined {
     )
 
     return {
-      overdue: overdueTasks.map(taskToPlain),
+      overdue: await enrichTasks(overdueTasks),
       dates,
-      earlier: earlierTasks.map(taskToPlain),
+      earlier: await enrichTasks(earlierTasks),
     } satisfies UpcomingView
   })
 }
@@ -428,11 +534,11 @@ async function buildAnytimeShape(
       const projName = projectTitles.get(pId) ?? pId
       projects.push({
         project: { id: pId, title: projName },
-        tasks: ptasks.map(taskToPlain),
+        tasks: await enrichTasks(ptasks),
       })
     }
 
-    const standaloneTasks = (pMap.get(null) ?? []).map(taskToPlain)
+    const standaloneTasks = await enrichTasks(pMap.get(null) ?? [])
 
     areas.push({
       area: { id: aId, title: areaName },
@@ -448,12 +554,12 @@ async function buildAnytimeShape(
   if (noAreaProjectMap) {
     for (const [pId, ptasks] of noAreaProjectMap.entries()) {
       if (pId === null) {
-        noAreaStandalone.push(...ptasks.map(taskToPlain))
+        noAreaStandalone.push(...await enrichTasks(ptasks))
       } else {
         const projName = projectTitles.get(pId) ?? pId
         noAreaProjects.push({
           project: { id: pId, title: projName },
-          tasks: ptasks.map(taskToPlain),
+          tasks: await enrichTasks(ptasks),
         })
       }
     }
@@ -489,12 +595,13 @@ export function useLocalLogbook(): LogbookView | undefined {
     })
 
     // Group by calendar date of completion
+    const enriched = await enrichTasks(allDone)
     const dateMap = new Map<string, Task[]>()
-    for (const t of allDone) {
+    for (const t of enriched) {
       const ts = t.completed_at ?? t.canceled_at ?? t.updated_at ?? ''
       const dateKey = ts ? ts.slice(0, 10) : 'unknown'
       if (!dateMap.has(dateKey)) dateMap.set(dateKey, [])
-      dateMap.get(dateKey)!.push(taskToPlain(t))
+      dateMap.get(dateKey)!.push(t)
     }
 
     const groups = [...dateMap.entries()].map(([date, groupTasks]) => ({ date, tasks: groupTasks }))
@@ -515,11 +622,12 @@ export function useLocalTrash(): TrashView | undefined {
 
     deleted.sort((a, b) => (b.deleted_at ?? '').localeCompare(a.deleted_at ?? ''))
 
+    const enriched = await enrichTasks(deleted)
     const dateMap = new Map<string, Task[]>()
-    for (const t of deleted) {
-      const dateKey = t.deleted_at!.slice(0, 10)
+    for (const t of enriched) {
+      const dateKey = (t.deleted_at ?? '').slice(0, 10)
       if (!dateMap.has(dateKey)) dateMap.set(dateKey, [])
-      dateMap.get(dateKey)!.push(taskToPlain(t))
+      dateMap.get(dateKey)!.push(t)
     }
 
     const groups = [...dateMap.entries()].map(([date, groupTasks]) => ({ date, tasks: groupTasks }))
@@ -756,7 +864,7 @@ export function useLocalProjectTasks(projectId: string): Task[] | undefined {
       .filter((t) => t.status === 'open' && !t.deleted_at)
       .sortBy('sort_order_project')
 
-    return tasks.map(taskToPlain)
+    return enrichTasks(tasks)
   }, [projectId])
 }
 
@@ -773,7 +881,7 @@ export function useLocalAreaTasks(areaId: string): Task[] | undefined {
       .filter((t) => t.status === 'open' && !t.deleted_at)
       .sortBy('sort_order_today')
 
-    return tasks.map(taskToPlain)
+    return enrichTasks(tasks)
   }, [areaId])
 }
 
@@ -798,7 +906,7 @@ export function useLocalTagTasks(tagId: string): Task[] | undefined {
       )
       .toArray()
 
-    return tasks.map(taskToPlain)
+    return enrichTasks(tasks)
   }, [tagId])
 }
 
@@ -835,18 +943,22 @@ export function useLocalProjectDetail(projectId: string): ProjectDetail | undefi
     )
 
     // Split open tasks by heading
-    const tasksWithoutHeading = openTasks
-      .filter((t: LocalTask) => !t.heading_id)
-      .sort((a: LocalTask, b: LocalTask) => (a.sort_order_project ?? 0) - (b.sort_order_project ?? 0))
-      .map(taskToPlain)
+    const tasksWithoutHeading = await enrichTasks(
+      openTasks
+        .filter((t: LocalTask) => !t.heading_id)
+        .sort((a: LocalTask, b: LocalTask) => (a.sort_order_project ?? 0) - (b.sort_order_project ?? 0)),
+    )
 
-    const headingsWithTasks: HeadingWithTasks[] = headings.map((h: LocalHeading) => ({
-      ...stripSyncMeta(h),
-      tasks: openTasks
+    const headingsWithTasks: HeadingWithTasks[] = []
+    for (const h of headings) {
+      const hTasks = openTasks
         .filter((t: LocalTask) => t.heading_id === h.id)
         .sort((a: LocalTask, b: LocalTask) => (a.sort_order_project ?? 0) - (b.sort_order_project ?? 0))
-        .map(taskToPlain),
-    }))
+      headingsWithTasks.push({
+        ...stripSyncMeta(h),
+        tasks: await enrichTasks(hTasks),
+      })
+    }
 
     // Resolve area for the project
     const area = project.area_id
@@ -860,7 +972,7 @@ export function useLocalProjectDetail(projectId: string): ProjectDetail | undefi
       completed_task_count: completedTasks.length,
       headings: headingsWithTasks,
       tasks_without_heading: tasksWithoutHeading,
-      completed_tasks: completedTasks.map(taskToPlain),
+      completed_tasks: await enrichTasks(completedTasks),
     } as ProjectDetail
   }, [projectId])
 }
@@ -920,8 +1032,8 @@ export function useLocalAreaDetail(areaId: string): AreaDetail | undefined {
       task_count: openTasks.length + completedTasks.length,
       standalone_task_count: openTasks.length,
       projects: projectsWithCounts,
-      tasks: openTasks.map(taskToPlain),
-      completed_tasks: completedTasks.map(taskToPlain),
+      tasks: await enrichTasks(openTasks),
+      completed_tasks: await enrichTasks(completedTasks),
     } as AreaDetail
   }, [areaId])
 }
