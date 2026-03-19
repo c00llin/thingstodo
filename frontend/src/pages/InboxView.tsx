@@ -1,12 +1,14 @@
 import { useEffect } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import { useLocalInbox } from '../hooks/localQueries'
+import { useSettings } from '../hooks/queries'
 import { SortableTaskList } from '../components/SortableTaskList'
 import { TaskItem } from '../components/TaskItem'
 import { useAppStore } from '../stores/app'
 
 export function InboxView() {
-  const data = useLocalInbox()
+  const { data: settings } = useSettings()
+  const data = useLocalInbox(settings?.review_after_days)
   const isLoading = data === undefined
   const hasTasks = (data?.tasks.length ?? 0) > 0
   const hasReview = (data?.review.length ?? 0) > 0

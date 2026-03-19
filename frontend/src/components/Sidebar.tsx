@@ -273,8 +273,8 @@ const countKeyMap: Record<string, keyof import('../api/types').ViewCounts | null
 }
 
 function SmartListNav() {
-  const counts = useLocalViewCounts()
   const { data: settings } = useSettings()
+  const counts = useLocalViewCounts(settings?.review_after_days)
   const overdueCount = counts?.overdue ?? 0
   const reviewCount = counts?.review ?? 0
   const showCounts = settings?.show_count_main !== false
@@ -1151,7 +1151,8 @@ export function Sidebar() {
   const mobileSidebarOpen = useAppStore((s) => s.mobileSidebarOpen)
   const closeMobileSidebar = useAppStore((s) => s.closeMobileSidebar)
   const navigate = useNavigate()
-  const counts = useLocalViewCounts()
+  const { data: sidebarSettings } = useSettings()
+  const counts = useLocalViewCounts(sidebarSettings?.review_after_days)
   const overdueCount = counts?.overdue ?? 0
   const reviewCount = counts?.review ?? 0
 

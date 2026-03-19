@@ -95,10 +95,9 @@ function tagToPlain(t: LocalTag): Tag {
 
 /**
  * Inbox: open tasks with no project_id, no area_id, no when_date, not deleted.
- * Returns an InboxView shape with tasks and an empty review array.
- * (Review requires server-side settings; we surface it as empty for now.)
+ * Review: open tasks not updated in `reviewAfterDays`, excluding inbox tasks.
  */
-export function useLocalInbox(): InboxView | undefined {
+export function useLocalInbox(reviewAfterDays?: number | null): InboxView | undefined {
   return useLiveQuery(async () => {
     const tasks = await localDb.tasks
       .where('status')
@@ -112,11 +111,34 @@ export function useLocalInbox(): InboxView | undefined {
       )
       .toArray()
 
+    const inboxIds = new Set(tasks.map((t) => t.id))
+
+    let review: Task[] = []
+    if (reviewAfterDays && reviewAfterDays > 0) {
+      const cutoff = new Date()
+      cutoff.setDate(cutoff.getDate() - reviewAfterDays)
+      const cutoffStr = cutoff.toISOString().slice(0, 10)
+
+      const stale = await localDb.tasks
+        .where('status')
+        .equals('open')
+        .filter(
+          (t) =>
+            !t.deleted_at &&
+            !inboxIds.has(t.id) &&
+            (t.updated_at ?? '').slice(0, 10) < cutoffStr,
+        )
+        .toArray()
+
+      stale.sort((a, b) => (a.updated_at ?? '').localeCompare(b.updated_at ?? ''))
+      review = stale.map(taskToPlain)
+    }
+
     return {
       tasks: tasks.map(taskToPlain),
-      review: [],
+      review,
     } satisfies InboxView
-  })
+  }, [reviewAfterDays])
 }
 
 /**
@@ -586,9 +608,8 @@ export function useLocalTags(): Tag[] | undefined {
 
 /**
  * View counts for sidebar badges — mirrors ViewCounts from the server.
- * Review count is 0 for now (requires settings).
  */
-export function useLocalViewCounts(): ViewCounts | undefined {
+export function useLocalViewCounts(reviewAfterDays?: number | null): ViewCounts | undefined {
   return useLiveQuery(async () => {
     const today = todayString()
 
@@ -651,17 +672,46 @@ export function useLocalViewCounts(): ViewCounts | undefined {
       )
       .count()
 
+    // Review: open tasks not updated in reviewAfterDays, excluding inbox tasks
+    let reviewCount = 0
+    if (reviewAfterDays && reviewAfterDays > 0) {
+      const cutoff = new Date()
+      cutoff.setDate(cutoff.getDate() - reviewAfterDays)
+      const cutoffStr = cutoff.toISOString().slice(0, 10)
+
+      // Inbox tasks: open, no project, no area, no when_date, not deleted
+      const inboxIds = new Set(
+        (await localDb.tasks
+          .where('status')
+          .equals('open')
+          .filter((t) => !t.project_id && !t.area_id && !t.when_date && !t.deleted_at)
+          .toArray()
+        ).map((t) => t.id),
+      )
+
+      reviewCount = await localDb.tasks
+        .where('status')
+        .equals('open')
+        .filter(
+          (t) =>
+            !t.deleted_at &&
+            !inboxIds.has(t.id) &&
+            (t.updated_at ?? '').slice(0, 10) < cutoffStr,
+        )
+        .count()
+    }
+
     return {
       inbox: inboxCount,
       today: todayCount + overdueCount,
       overdue: overdueCount,
-      review: 0,
+      review: reviewCount,
       anytime: anytimeCount,
       someday: somedayCount,
       logbook: logbookCount,
       trash: trashCount,
     } satisfies ViewCounts
-  })
+  }, [reviewAfterDays])
 }
 
 // ---------------------------------------------------------------------------
