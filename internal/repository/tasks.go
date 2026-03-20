@@ -256,7 +256,10 @@ func (r *TaskRepository) Update(id string, input model.UpdateTaskInput) (*model.
 		args = append(args, input.HeadingID)
 	}
 
-	if len(sets) > 0 {
+	// Always bump updated_at when there are field changes,
+	// or when updated_at is explicitly requested (e.g. review task)
+	_, hasUpdatedAt := input.Raw["updated_at"]
+	if len(sets) > 0 || hasUpdatedAt {
 		sets = append(sets, "updated_at = datetime('now')")
 		args = append(args, id)
 		_, err := r.db.Exec(
