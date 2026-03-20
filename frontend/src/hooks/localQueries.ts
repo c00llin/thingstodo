@@ -953,13 +953,11 @@ export function useLocalViewCounts(reviewAfterDays?: number | null, reviewInclud
       )
       .count()
 
-    // Overdue: open tasks with when_date < today, not deleted
+    // Overdue: open tasks with deadline < today, not deleted
     const overdueCount = await localDb.tasks
-      .where('when_date')
+      .where('deadline')
       .below(today)
-      .filter(
-        (t) => t.status === 'open' && !t.deleted_at && !!t.when_date && t.when_date !== 'someday',
-      )
+      .filter((t) => t.status === 'open' && !t.deleted_at && !!t.deadline)
       .count()
 
     // Review: open tasks not updated in reviewAfterDays, excluding inbox tasks
