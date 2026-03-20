@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.12.1] - 2026-03-20
+
+### Fixed
+- Sidebar overdue badge now uses deadline (not when_date), matching the server and Today/Upcoming views
+- Review task tick mark now persists — server was silently skipping the updated_at bump, causing sync to revert it
+- Completing a timeblock (schedule entry) now removes the task from Today view — local query was missing the completed-schedule check
+- SiYuan system tag hidden from tag selection dropdowns (QuickEntry, TaskDetail, BulkAction)
+- Change_log entries added for all 17 missing mutation paths
+- Change_log entries logged for schedule mutations in syncFirstScheduleDate
+- Theme/logout buttons always visible on mobile, hover-only on desktop
+
 ## [0.12.0] - 2026-03-19
 
 ### Added
