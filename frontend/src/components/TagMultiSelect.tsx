@@ -3,6 +3,7 @@ import { Tag, X, Check, Plus } from 'lucide-react'
 import { useCreateTag, useUpdateTask } from '../hooks/queries'
 import { useLocalTags } from '../hooks/localQueries'
 import { getTagPillClasses } from '../lib/tag-colors'
+import { isSiYuanTag } from '../lib/siyuan'
 import type { TaskDetail } from '../api/types'
 
 interface TagMultiSelectBaseProps {
@@ -148,7 +149,7 @@ export function TagMultiSelect(props: TagMultiSelectProps) {
 
   const searchLower = search.trim().toLowerCase()
   const filteredTags = allTags?.filter((tag) =>
-    tag.title.toLowerCase().includes(searchLower)
+    !isSiYuanTag(tag.title) && tag.title.toLowerCase().includes(searchLower)
   )
   const exactMatch = allTags?.some(
     (tag) => tag.title.toLowerCase() === searchLower
