@@ -345,14 +345,23 @@ export function useLocalToday(eveningStartsAt = '18:00'): TodayView | undefined 
     const seenIds = new Set<string>()
     const candidates: LocalTask[] = []
 
-    // 1) when_date = today
+    // 1) when_date = today — only if task has no schedules for today,
+    //    or has at least one uncompleted schedule for today
     const byWhenDate = await localDb.tasks
       .where('when_date')
       .equals(today)
       .filter((t) => t.status === 'open' && !t.deleted_at)
       .toArray()
     for (const t of byWhenDate) {
-      if (!seenIds.has(t.id)) { seenIds.add(t.id); candidates.push(t) }
+      if (seenIds.has(t.id)) continue
+      const todayScheds = await localDb.schedules
+        .where('task_id')
+        .equals(t.id)
+        .filter((s) => s.when_date === today)
+        .toArray()
+      if (todayScheds.length === 0 || todayScheds.some((s) => !s.completed)) {
+        seenIds.add(t.id); candidates.push(t)
+      }
     }
 
     // 2) deadline = today
