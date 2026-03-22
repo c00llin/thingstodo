@@ -17,6 +17,7 @@ import { TaskStatusIcon } from './TaskStatusIcon'
 export function TaskDetailModal() {
   const expandedTaskId = useAppStore((s) => s.expandedTaskId)
   const closeModal = useAppStore((s) => s.closeModal)
+  const hasMultiSelect = useAppStore((s) => s.selectedTaskIds.size > 0)
 
   const modalRef = useRef<HTMLDivElement>(null)
 
@@ -162,7 +163,7 @@ function ModalContent({ taskId }: { taskId: string }) {
     onToggleLink: useCallback(() => setDetailFocusField('link'), [setDetailFocusField]),
     onToggleFile: useCallback(() => setDetailFocusField('file'), [setDetailFocusField]),
     onTogglePriority: handleTogglePriority,
-    enabled: !!task,
+    enabled: !!task && !hasMultiSelect,
   })
 
   async function saveTitle() {
