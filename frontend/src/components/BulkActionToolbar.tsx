@@ -48,7 +48,7 @@ export function BulkActionToolbar() {
       ids.map((id) => localDb.tasks.get(id))
     ).then((tasks) => tasks.some((t) => t?.high_priority))
     // If any are high priority → set all high; if none are → remove all
-    handleAction('set_priority', { high_priority: !anyHighPriority })
+    handleAction('set_priority', { high_priority: anyHighPriority })
   }
 
   // Alt+key shortcuts — only active when bulk toolbar is visible and not in review section
