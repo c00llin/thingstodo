@@ -17,7 +17,6 @@ import { TaskStatusIcon } from './TaskStatusIcon'
 export function TaskDetailModal() {
   const expandedTaskId = useAppStore((s) => s.expandedTaskId)
   const closeModal = useAppStore((s) => s.closeModal)
-  const hasMultiSelect = useAppStore((s) => s.selectedTaskIds.size > 0)
 
   const modalRef = useRef<HTMLDivElement>(null)
 
@@ -88,6 +87,7 @@ function ModalContent({ taskId }: { taskId: string }) {
   const editingTaskId = useAppStore((s) => s.editingTaskId)
   const startEditingTask = useAppStore((s) => s.startEditingTask)
   const setDetailFocusField = useAppStore((s) => s.setDetailFocusField)
+  const hasMultiSelect = useAppStore((s) => s.selectedTaskIds.size > 0)
 
   const [editing, setEditing] = useState(false)
   const [scheduleConfirmPending, setScheduleConfirmPending] = useState(false)
