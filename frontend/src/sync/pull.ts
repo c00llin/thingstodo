@@ -115,6 +115,21 @@ async function applyChange(
       await table.delete(change.entity_id)
     }
   } else {
+    // For schedule creates, remove any local-only schedules for the same task
+    // to prevent duplicates (frontend creates a temporary local schedule for
+    // immediate UI display; the server creates the canonical one).
+    if (change.entity === 'schedule' && change.action === 'create' && data.task_id) {
+      const localSchedules = await localDb.schedules
+        .where('task_id')
+        .equals(data.task_id)
+        .toArray()
+      for (const ls of localSchedules) {
+        if (ls.id !== change.entity_id && !ls._serverSeq) {
+          await localDb.schedules.delete(ls.id)
+        }
+      }
+    }
+
     // create or update — upsert with sync metadata
     const record = {
       ...data,

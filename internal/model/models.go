@@ -270,7 +270,6 @@ type CreateTaskInput struct {
 	AreaID      *string  `json:"area_id"`
 	HeadingID   *string  `json:"heading_id"`
 	TagIDs      []string `json:"tag_ids"`
-	SkipScheduleSync bool `json:"-"` // skip schedule creation (sync handler manages schedules separately)
 }
 
 type UpdateTaskInput struct {
@@ -285,7 +284,6 @@ type UpdateTaskInput struct {
 	TagIDs      []string `json:"tag_ids"`
 	// Use json.RawMessage tracking to detect explicit null vs absent
 	Raw map[string]json.RawMessage `json:"-"`
-	SkipScheduleSync bool `json:"-"` // skip schedule sync (sync handler manages schedules separately)
 }
 
 type ReorderItem struct {
