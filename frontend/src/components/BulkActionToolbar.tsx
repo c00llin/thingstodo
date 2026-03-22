@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import * as Popover from '@radix-ui/react-popover'
 import {
@@ -44,7 +44,6 @@ export function BulkActionToolbar() {
 
   // Intercept Escape at the native capture phase when a popover is open,
   // so useHotkeys (document-level) never sees it and doesn't clear selection.
-  const toolbarRef = useRef<HTMLDivElement>(null)
   useEffect(() => {
     if (!anyPopoverOpen) return
     function handleEscape(e: KeyboardEvent) {
