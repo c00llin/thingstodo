@@ -40,6 +40,10 @@ coverage/
 # Built binary
 /server
 
+# MCP Server
+mcp/node_modules/
+mcp/dist/
+
 # Other
 notes.md
 plan.md
