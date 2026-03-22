@@ -24,14 +24,14 @@ const globalShortcuts = [
 
 const taskShortcuts = [
   { keys: 'Space', action: 'Toggle task detail' },
-  { keys: 'Enter', action: 'Edit task title' },
+  { keys: 'Enter', action: 'Open task detail' },
   { keys: 'Escape', action: 'Close detail / deselect' },
   { keys: '↑ / ↓', action: 'Navigate tasks' },
   { keys: 'Delete', action: 'Delete task' },
 ]
 
 const detailShortcuts = [
-  { keys: 'Alt + E', action: 'Edit title' },
+  { keys: 'Enter / Alt + E', action: 'Edit title' },
   { keys: 'Alt + A', action: 'Area / project' },
   { keys: 'Alt + T', action: 'Tags' },
   { keys: 'Alt + W', action: 'When date' },
