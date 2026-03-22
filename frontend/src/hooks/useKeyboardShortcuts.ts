@@ -254,6 +254,8 @@ export function useTaskShortcuts() {
   // Escape closes modal; if multi-selected, clears selection first; if no modal, deselects
   useHotkeys('escape', (e) => {
     if (isFocusInFilterBar()) return
+    // If a component already handled this Escape (e.g. closing a dropdown), don't also clear selection
+    if (e.defaultPrevented) return
     e.preventDefault()
     const { selectedTaskIds, clearSelection } = useAppStore.getState()
     if (selectedTaskIds.size > 0) {
