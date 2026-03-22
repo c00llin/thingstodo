@@ -95,8 +95,11 @@ export function TaskDetail({ taskId, isModal, toolbarPortalEl }: TaskDetailProps
   }, [editingNotes])
 
   // Handle focus field signal from Alt+key shortcuts and title triggers
+  // Only handles fields owned by TaskDetail — tags/area/title/priority are handled by ModalContent
+  const DETAIL_FIELDS = new Set(['notes', 'when', 'deadline', 'checklist', 'reminder', 'file', 'link'])
   useEffect(() => {
     if (!detailFocusField || !task) return
+    if (!DETAIL_FIELDS.has(detailFocusField)) return // let ModalContent handle it
     const field = detailFocusField
     setDetailFocusField(null)
     // Only set triggeredByTitleRef for legacy trigger-char fields (not Alt+key)

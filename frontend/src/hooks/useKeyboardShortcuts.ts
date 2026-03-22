@@ -229,7 +229,7 @@ export function useTaskShortcuts() {
     setDetailFocusField(field)
   }
 
-  useHotkeys('alt+e', (e) => { e.preventDefault(); if (selectedTaskId) { expandTask(selectedTaskId, selectedScheduleEntryId); startEditingTask(selectedTaskId) } }, { enabled: inlineEnabled })
+  useHotkeys('alt+e', (e) => { e.preventDefault(); openAndFocus('title') }, { enabled: inlineEnabled })
   useHotkeys('alt+a', (e) => { e.preventDefault(); openAndFocus('area') }, { enabled: inlineEnabled })
   useHotkeys('alt+t', (e) => { e.preventDefault(); openAndFocus('tags') }, { enabled: inlineEnabled })
   useHotkeys('alt+w', (e) => { e.preventDefault(); openAndFocus('when') }, { enabled: inlineEnabled })
