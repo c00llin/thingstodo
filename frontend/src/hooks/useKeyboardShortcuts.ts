@@ -4,7 +4,7 @@ import { useNavigate, useLocation } from 'react-router'
 import { useAppStore } from '../stores/app'
 import { useFilterStore } from '../stores/filters'
 import { hasFilters } from '../lib/filter-tasks'
-import { useDeleteTask, useSavedFilters } from './queries'
+import { useDeleteTask, useUpdateTask, useSavedFilters } from './queries'
 
 /** Maps route pathname to the view name used for saved filters. */
 const FILTERABLE_VIEWS: Record<string, string> = {
@@ -216,6 +216,40 @@ export function useTaskShortcuts() {
       startEditingTask(selectedTaskId)
     }
   }, { enabled })
+
+  // Alt+key shortcuts for detail fields — when a task is selected but modal is not open,
+  // open the modal and activate the relevant field. Alt+H toggles priority inline.
+  const inlineEnabled = enabled && !expandedTaskId && !hasMultiSelection
+  const setDetailFocusField = useAppStore((s) => s.setDetailFocusField)
+  const updateTask = useUpdateTask()
+
+  function openAndFocus(field: Parameters<typeof setDetailFocusField>[0]) {
+    if (!selectedTaskId) return
+    expandTask(selectedTaskId, selectedScheduleEntryId)
+    setDetailFocusField(field)
+  }
+
+  useHotkeys('alt+e', (e) => { e.preventDefault(); if (selectedTaskId) { expandTask(selectedTaskId, selectedScheduleEntryId); startEditingTask(selectedTaskId) } }, { enabled: inlineEnabled })
+  useHotkeys('alt+a', (e) => { e.preventDefault(); openAndFocus('area') }, { enabled: inlineEnabled })
+  useHotkeys('alt+t', (e) => { e.preventDefault(); openAndFocus('tags') }, { enabled: inlineEnabled })
+  useHotkeys('alt+w', (e) => { e.preventDefault(); openAndFocus('when') }, { enabled: inlineEnabled })
+  useHotkeys('alt+d', (e) => { e.preventDefault(); openAndFocus('deadline') }, { enabled: inlineEnabled })
+  useHotkeys('alt+n', (e) => { e.preventDefault(); openAndFocus('notes') }, { enabled: inlineEnabled })
+  useHotkeys('alt+c', (e) => { e.preventDefault(); openAndFocus('checklist') }, { enabled: inlineEnabled })
+  useHotkeys('alt+r', (e) => { e.preventDefault(); openAndFocus('reminder') }, { enabled: inlineEnabled })
+  useHotkeys('alt+u', (e) => { e.preventDefault(); openAndFocus('link') }, { enabled: inlineEnabled })
+  useHotkeys('alt+f', (e) => { e.preventDefault(); openAndFocus('file') }, { enabled: inlineEnabled })
+  useHotkeys('alt+h', (e) => {
+    e.preventDefault()
+    if (!selectedTaskId) return
+    import('../db/index').then(({ localDb }) => {
+      localDb.tasks.get(selectedTaskId).then((task) => {
+        if (task) {
+          updateTask.mutate({ id: selectedTaskId, data: { high_priority: !task.high_priority } })
+        }
+      })
+    })
+  }, { enabled: inlineEnabled })
 
   // Escape closes modal; if multi-selected, clears selection first; if no modal, deselects
   useHotkeys('escape', (e) => {

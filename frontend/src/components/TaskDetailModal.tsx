@@ -130,6 +130,24 @@ function ModalContent({ taskId }: { taskId: string }) {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [editingTaskId, taskId, startEditingTask])
 
+  // Respond to detailFocusField for fields handled by ModalContent (not TaskDetail)
+  const detailFocusField = useAppStore((s) => s.detailFocusField)
+  useEffect(() => {
+    if (!detailFocusField || !task) return
+    if (detailFocusField === 'tags') {
+      setDetailFocusField(null)
+      setTagsOpen(true)
+    } else if (detailFocusField === 'area') {
+      setDetailFocusField(null)
+      setAreaOpen(true)
+    } else if (detailFocusField === 'title') {
+      setDetailFocusField(null)
+      setTitle(getEditTitle())
+      setEditing(true)
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [detailFocusField, task])
+
   // Alt+key shortcuts for detail fields
   const handleFocusTitle = useCallback(() => {
     setTitle(getEditTitle())
