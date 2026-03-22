@@ -208,7 +208,7 @@ func (r *TaskRepository) Create(input model.CreateTaskInput) (*model.TaskDetail,
 	}
 
 	// Create first schedule entry if when_date is set
-	if input.WhenDate != nil {
+	if input.WhenDate != nil && !input.SkipScheduleSync {
 		_ = r.syncFirstScheduleDate(id, input.WhenDate)
 	}
 
@@ -276,7 +276,7 @@ func (r *TaskRepository) Update(id string, input model.UpdateTaskInput) (*model.
 	}
 
 	// Sync first schedule entry when when_date changes
-	if _, ok := input.Raw["when_date"]; ok {
+	if _, ok := input.Raw["when_date"]; ok && !input.SkipScheduleSync {
 		if err := r.syncFirstScheduleDate(id, input.WhenDate); err != nil {
 			return nil, err
 		}

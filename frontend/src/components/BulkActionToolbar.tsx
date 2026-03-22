@@ -48,7 +48,7 @@ export function BulkActionToolbar() {
       const task = findTaskInViewCache(queryClient, taskId)
       return task?.high_priority
     })
-    handleAction('set_priority', { priority: allHighPriority ? 0 : 1 })
+    handleAction('set_priority', { high_priority: !allHighPriority })
   }
 
   // Alt+key shortcuts — only active when bulk toolbar is visible and not in review section

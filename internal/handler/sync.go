@@ -375,6 +375,7 @@ func (h *SyncHandler) applyTaskChange(change SyncChange) SyncPushResult {
 			}
 		}
 
+		input.SkipScheduleSync = true // frontend manages schedules separately
 		task, err := h.tasks.Create(input)
 		if err != nil {
 			result.Status = "error"
@@ -534,6 +535,7 @@ func (h *SyncHandler) applyTaskChange(change SyncChange) SyncPushResult {
 			}
 		}
 
+		input.SkipScheduleSync = true // frontend manages schedules separately
 		if len(input.Raw) > 0 {
 			_, err = h.tasks.Update(change.EntityID, input)
 			if err != nil {

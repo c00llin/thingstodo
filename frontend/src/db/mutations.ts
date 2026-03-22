@@ -33,9 +33,8 @@ export function generateNanoid(): string {
 }
 
 /**
- * Replicate server's syncFirstScheduleDate logic locally (IndexedDB only).
- * Does NOT queue sync changes — the server handles schedule sync itself
- * via its own syncFirstScheduleDate when it processes the task's when_date change.
+ * Sync the first task_schedules entry with the task's when_date locally
+ * and queue a sync change so the server receives the schedule update.
  *
  * - when_date is null → delete all schedules for the task
  * - first schedule exists → update its when_date
@@ -47,6 +46,7 @@ async function syncFirstScheduleDate(taskId: string, whenDate: string | null): P
     const schedules = await localDb.schedules.where('task_id').equals(taskId).toArray()
     for (const s of schedules) {
       await localDb.schedules.delete(s.id)
+      await queueChange('schedule', s.id, 'delete', { id: s.id })
     }
     return
   }
@@ -74,6 +74,7 @@ async function syncFirstScheduleDate(taskId: string, whenDate: string | null): P
       _localUpdatedAt: timestamp,
     }
     await localDb.schedules.put(schedule)
+    await queueChange('schedule', id, 'create', schedule as unknown as Record<string, unknown>)
   } else if (existing.length === 1) {
     // Only update the first entry when there's a single schedule.
     // Multi-schedule tasks are managed independently by ScheduleEditor.
@@ -87,6 +88,7 @@ async function syncFirstScheduleDate(taskId: string, whenDate: string | null): P
         _localUpdatedAt: timestamp,
       }
       await localDb.schedules.put(updated)
+      await queueChange('schedule', first.id, 'update', { when_date: whenDate }, ['when_date'])
     }
   }
 }
