@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.12.3] - 2026-03-22
+
+### Fixed
+- **Critical: tasks with when_date missing from Upcoming** — reverted SkipScheduleSync approach that prevented the backend from creating schedule entries during sync, causing tasks to be invisible in date-based views
+- Sync pull now deduplicates local-only schedules when the server's canonical schedule arrives, preventing duplicate schedule entries
+
 ## [0.12.2] - 2026-03-22
 
 ### Added
