@@ -98,9 +98,12 @@ export function TagMultiSelect(props: TagMultiSelectProps) {
   // Auto-focus search input when dropdown opens
   useEffect(() => {
     if (open) {
-      requestAnimationFrame(() => inputRef.current?.focus())
+      // Use a short delay to ensure the input is rendered and focusable
+      // (animated containers or portals may delay DOM availability)
+      const timer = setTimeout(() => inputRef.current?.focus(), 50)
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setHighlightIndex(-1)
+      return () => clearTimeout(timer)
     }
   }, [open])
 

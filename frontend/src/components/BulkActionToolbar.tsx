@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import * as Popover from '@radix-ui/react-popover'
 import {
@@ -40,6 +40,27 @@ export function BulkActionToolbar() {
   const [deadlineOpen, setDeadlineOpen] = useState(false)
   const [projectOpen, setProjectOpen] = useState(false)
   const [tagOpen, setTagOpen] = useState(false)
+  const anyPopoverOpen = whenOpen || deadlineOpen || projectOpen || tagOpen
+
+  // Intercept Escape at the native capture phase when a popover is open,
+  // so useHotkeys (document-level) never sees it and doesn't clear selection.
+  const toolbarRef = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    if (!anyPopoverOpen) return
+    function handleEscape(e: KeyboardEvent) {
+      if (e.key === 'Escape') {
+        e.stopPropagation()
+        // Close whichever popover is open
+        setWhenOpen(false)
+        setDeadlineOpen(false)
+        setProjectOpen(false)
+        setTagOpen(false)
+      }
+    }
+    // Use capture phase on document so we fire before useHotkeys' bubble-phase listener
+    document.addEventListener('keydown', handleEscape, true)
+    return () => document.removeEventListener('keydown', handleEscape, true)
+  }, [anyPopoverOpen])
 
   async function handleTogglePriority() {
     const ids = Array.from(selectedTaskIds)
