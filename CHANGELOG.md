@@ -1,5 +1,21 @@
 # Changelog
 
+## [0.12.2] - 2026-03-22
+
+### Added
+- **Inline detail shortcuts** — Alt+key shortcuts (Alt+A, Alt+W, Alt+D, Alt+N, etc.) now work when a task is selected without the detail panel open; opens the modal and activates the relevant field (#47)
+- **Inline priority toggle** — Alt+H toggles high priority directly from the task list without opening the detail modal
+
+### Fixed
+- Bulk priority toggle now correctly reads task state from IndexedDB instead of stale view cache
+- Bulk priority toggle param mismatch (`priority` vs `high_priority`) that silently prevented changes
+- Duplicate schedule creation when setting when_date — frontend and backend both independently created schedule entries; now frontend manages schedules via sync queue and backend skips schedule creation during sync
+- Bulk toolbar Escape no longer clears multi-selection when closing a dropdown (tags, project picker, etc.)
+- Tag picker in bulk toolbar now auto-focuses the search input on open
+- Detail panel Alt+H shortcut disabled during multi-select to avoid conflict with bulk toolbar
+- Keyboard shortcuts help: Enter correctly labeled "Open task detail"; "Enter / Alt+E" for edit title in detail section
+- `detailFocusField` ownership: TaskDetail no longer clears signals meant for ModalContent (tags, area, title)
+
 ## [0.12.1] - 2026-03-20
 
 ### Fixed
