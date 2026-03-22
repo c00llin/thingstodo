@@ -44,11 +44,10 @@ export function BulkActionToolbar() {
   async function handleTogglePriority() {
     const ids = Array.from(selectedTaskIds)
     const { localDb } = await import('../db/index')
-    const anyHighPriority = await Promise.all(
-      ids.map((id) => localDb.tasks.get(id))
-    ).then((tasks) => tasks.some((t) => t?.high_priority))
-    // If any are high priority → set all high; if none are → remove all
-    handleAction('set_priority', { high_priority: anyHighPriority })
+    const tasks = await Promise.all(ids.map((id) => localDb.tasks.get(id)))
+    const allHighPriority = tasks.every((t) => t?.high_priority)
+    // All high → remove priority; otherwise → set all high
+    handleAction('set_priority', { high_priority: !allHighPriority })
   }
 
   // Alt+key shortcuts — only active when bulk toolbar is visible and not in review section
