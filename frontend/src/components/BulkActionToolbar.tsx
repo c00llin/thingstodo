@@ -24,7 +24,6 @@ export function BulkActionToolbar() {
   const selectionSection = useAppStore((s) => s.selectionSection)
   const count = selectedTaskIds.size
   const bulk = useBulkAction()
-  const queryClient = useQueryClient()
 
   function handleAction(action: BulkActionType, params?: Record<string, unknown>) {
     bulk.mutate({
@@ -43,12 +42,7 @@ export function BulkActionToolbar() {
   const [tagOpen, setTagOpen] = useState(false)
 
   function handleTogglePriority() {
-    const ids = Array.from(selectedTaskIds)
-    const allHighPriority = ids.every((taskId) => {
-      const task = findTaskInViewCache(queryClient, taskId)
-      return task?.high_priority
-    })
-    handleAction('set_priority', { high_priority: !allHighPriority })
+    handleAction('toggle_priority')
   }
 
   // Alt+key shortcuts — only active when bulk toolbar is visible and not in review section
