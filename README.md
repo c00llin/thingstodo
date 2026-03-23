@@ -135,6 +135,48 @@ No env vars required — ntfy is configured entirely from the Settings UI:
 
 Use the **Send Test** button to verify your setup.
 
+## MCP Server (Claude Code Integration)
+
+ThingsToDo includes an MCP (Model Context Protocol) server that lets you manage tasks directly from Claude Code or any MCP-compatible client. The server exposes 40+ tools covering views, tasks, projects, areas, tags, headings, checklists, attachments, and schedules.
+
+### Setup
+
+1. Set an `API_KEY` in your ThingsToDo environment
+2. Build the MCP server:
+   ```sh
+   cd mcp && npm install && npm run build
+   ```
+3. Add to your Claude Code MCP config (e.g. `~/.claude/settings.json`):
+   ```json
+   {
+     "mcpServers": {
+       "thingstodo": {
+         "command": "node",
+         "args": ["/path/to/thingstodo/mcp/dist/index.js"],
+         "env": {
+           "THINGSTODO_URL": "http://localhost:2999",
+           "THINGSTODO_API_KEY": "your-api-key"
+         }
+       }
+     }
+   }
+   ```
+
+### Available Tools
+
+| Domain | Tools | Description |
+|---|---|---|
+| Views | `get_today`, `get_upcoming`, `get_inbox`, `get_anytime`, `get_someday`, `get_logbook` | Read task views |
+| Tasks | `search_tasks`, `get_task`, `create_task`, `update_task`, `complete_task`, `cancel_task`, `wontdo_task`, `reopen_task`, `delete_task`, `purge_task`, `restore_task` | Full task CRUD |
+| Bulk | `bulk_action` | Apply actions to multiple tasks |
+| Projects | `list_projects`, `get_project`, `create_project`, `update_project`, `delete_project` | Manage projects |
+| Areas | `list_areas`, `get_area`, `create_area`, `update_area`, `delete_area` | Manage areas |
+| Tags | `list_tags`, `create_tag`, `update_tag`, `delete_tag` | Manage tags |
+| Headings | `list_headings`, `create_heading`, `update_heading`, `delete_heading` | Project sub-sections |
+| Checklists | `add_checklist_item`, `update_checklist_item`, `delete_checklist_item` | Task sub-items |
+| Attachments | `add_link`, `delete_attachment` | Link management |
+| Schedules | `add_schedule`, `update_schedule`, `delete_schedule` | Multi-date scheduling |
+
 ## Development
 
 ```sh

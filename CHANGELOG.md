@@ -1,5 +1,21 @@
 # Changelog
 
+## [0.13.0] - 2026-03-23
+
+### Added
+- **MCP Server** — a Model Context Protocol server that exposes the ThingsToDo API as 40+ tools for use in Claude Code and other MCP-compatible clients
+  - **View tools** — read-only access to Today, Upcoming, Inbox, Anytime, Someday, and Logbook views
+  - **Task tools** — full CRUD: create, update, complete, cancel, won't-do, reopen, delete, purge, restore, and search tasks
+  - **Bulk actions** — apply actions (complete, set priority, move project, add/remove tags, etc.) to multiple tasks at once
+  - **Project tools** — list, create, update, and delete projects
+  - **Area tools** — list, create, update, and delete areas
+  - **Tag tools** — list, create, update, and delete tags
+  - **Heading tools** — manage project sub-sections
+  - **Checklist tools** — add, update, and delete checklist items within tasks
+  - **Attachment tools** — add links and delete attachments
+  - **Schedule tools** — add, update, and delete multi-date schedule entries
+- MCP server is a standalone TypeScript package in `mcp/` using `@modelcontextprotocol/sdk` and Zod schema validation
+
 ## [0.12.3] - 2026-03-22
 
 ### Fixed
