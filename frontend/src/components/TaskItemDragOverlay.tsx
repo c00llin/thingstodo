@@ -2,8 +2,8 @@ import { Check, Calendar, Flag, StickyNote, Link, Paperclip, RefreshCw } from 'l
 import type { Task } from '../api/types'
 import { useSettings } from '../hooks/queries'
 import { getTagPillClasses, getTagIconClass } from '../lib/tag-colors'
-import { isSiYuanTag } from '../lib/siyuan'
-import { SiYuanIcon } from './SiYuanIcon'
+import { isReservedTag, isObsidianTag } from '../lib/reserved-tags'
+import { ReservedTagIcon } from './ReservedTagIcon'
 import { TaskStatusIcon } from './TaskStatusIcon'
 
 interface TaskItemDragOverlayProps {
@@ -54,10 +54,10 @@ export function TaskItemDragOverlay({ task, count = 1 }: TaskItemDragOverlayProp
             >
               {task.title}
             </span>
-            {task.tags.filter((t) => isSiYuanTag(t.title)).map((tag) => (
-              <SiYuanIcon key={tag.id} size={14} className={getTagIconClass(tag.color) || 'text-neutral-400'} />
+            {task.tags.filter((t) => isReservedTag(t.title)).map((tag) => (
+              <ReservedTagIcon key={tag.id} tagTitle={tag.title} size={14} className={getTagIconClass(tag.color) || (isObsidianTag(tag.title) ? 'text-purple-500' : 'text-neutral-400')} />
             ))}
-            {task.tags.filter((t) => !isSiYuanTag(t.title)).map((tag) => (
+            {task.tags.filter((t) => !isReservedTag(t.title)).map((tag) => (
               <span
                 key={tag.id}
                 className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs ${getTagPillClasses(tag.color)}`}
@@ -69,7 +69,7 @@ export function TaskItemDragOverlay({ task, count = 1 }: TaskItemDragOverlayProp
               <span className="flex items-center gap-1.5 text-neutral-400">
                 {task.has_repeat_rule && <RefreshCw size={12} className="text-red-500" />}
                 {task.has_notes && <StickyNote size={12} />}
-                {task.has_links && !task.tags.some((t) => isSiYuanTag(t.title)) && <Link size={12} />}
+                {task.has_links && !task.tags.some((t) => isReservedTag(t.title)) && <Link size={12} />}
                 {task.has_files && <Paperclip size={12} />}
               </span>
             )}

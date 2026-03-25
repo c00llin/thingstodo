@@ -14,8 +14,8 @@ import { ConfirmDialog } from './ConfirmDialog'
 import { useResolveTags } from '../hooks/useResolveTags'
 import { formatRelativeDate } from '../lib/format-date'
 import { getTagPillClasses, getTagIconClass } from '../lib/tag-colors'
-import { isSiYuanTag } from '../lib/siyuan'
-import { SiYuanIcon } from './SiYuanIcon'
+import { isReservedTag, isObsidianTag } from '../lib/reserved-tags'
+import { ReservedTagIcon } from './ReservedTagIcon'
 import { TagAutocomplete } from './TagAutocomplete'
 import { ProjectAutocomplete } from './ProjectAutocomplete'
 import { PriorityAutocomplete } from './PriorityAutocomplete'
@@ -84,16 +84,16 @@ export function SortableTaskItem({
 
   const [editing, setEditing] = useState(false)
   const [title, setTitle] = useState(task.title)
-  const [siyuanError, setSiyuanError] = useState<string | null>(null)
+  const [reservedError, setReservedError] = useState<string | null>(null)
   const [scheduleConfirmPending, setScheduleConfirmPending] = useState(false)
   const [swipeTrayOpen, setSwipeTrayOpen] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
   const skipBlurRef = useRef(false)
   const triggerCursorRef = useRef<number | null>(null)
-  const siyuanErrorTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const reservedErrorTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   function getEditTitle() {
-    const tagSuffix = task.tags.filter((t) => !isSiYuanTag(t.title)).map((t) => `#${t.title}`).join(' ')
+    const tagSuffix = task.tags.filter((t) => !isReservedTag(t.title)).map((t) => `#${t.title}`).join(' ')
     return task.title + (tagSuffix ? ' ' + tagSuffix : '')
   }
 
@@ -226,12 +226,12 @@ export function SortableTaskItem({
       setTitle(task.title)
       return
     }
-    const siyuanTagIds = task.tags.filter((t) => isSiYuanTag(t.title)).map((t) => t.id)
+    const reservedTagIds = task.tags.filter((t) => isReservedTag(t.title)).map((t) => t.id)
     updateTask.mutate({
       id: task.id,
       data: {
         title: cleanTitle,
-        tag_ids: [...tagIds, ...siyuanTagIds],
+        tag_ids: [...tagIds, ...reservedTagIds],
         project_id: hasDollarToken ? projectId : task.project_id,
         area_id: hasDollarToken ? areaId : task.area_id,
       },
@@ -259,12 +259,13 @@ export function SortableTaskItem({
       return
     }
 
-    // Detect #siyuan token
+    // Detect reserved tag tokens
     const tagMatches = [...value.matchAll(/#([\w-]+)/g)]
-    if (tagMatches.some((m) => m[1].toLowerCase() === 'siyuan')) {
-      if (siyuanErrorTimerRef.current) clearTimeout(siyuanErrorTimerRef.current)
-      setSiyuanError('"siyuan" is a reserved tag')
-      siyuanErrorTimerRef.current = setTimeout(() => setSiyuanError(null), 2000)
+    const reservedMatch = tagMatches.find((m) => isReservedTag(m[1]))
+    if (reservedMatch) {
+      if (reservedErrorTimerRef.current) clearTimeout(reservedErrorTimerRef.current)
+      setReservedError(`"${reservedMatch[1]}" is a reserved tag`)
+      reservedErrorTimerRef.current = setTimeout(() => setReservedError(null), 2000)
     }
 
     setTitle(value)
@@ -413,10 +414,10 @@ export function SortableTaskItem({
                 {task.title}
               </span>
             )}
-            {!editing && task.tags.filter((t) => isSiYuanTag(t.title)).map((tag) => (
-              <SiYuanIcon key={tag.id} size={14} className={getTagIconClass(tag.color) || 'text-neutral-400'} />
+            {!editing && task.tags.filter((t) => isReservedTag(t.title)).map((tag) => (
+              <ReservedTagIcon key={tag.id} tagTitle={tag.title} size={14} className={getTagIconClass(tag.color) || (isObsidianTag(tag.title) ? 'text-purple-500' : 'text-neutral-400')} />
             ))}
-            {!editing && task.tags.filter((t) => !isSiYuanTag(t.title)).map((tag) => (
+            {!editing && task.tags.filter((t) => !isReservedTag(t.title)).map((tag) => (
               <span
                 key={tag.id}
                 className={`group/tag inline-flex items-center gap-0.5 rounded-full py-0.5 pl-2 pr-1.5 text-xs ${getTagPillClasses(tag.color)}`}
@@ -440,7 +441,7 @@ export function SortableTaskItem({
               <span className="flex items-center gap-1.5 text-neutral-400">
                 {task.has_repeat_rule && <RefreshCw size={12} className="text-red-500" />}
                 {task.has_notes && <StickyNote size={12} />}
-                {task.has_links && !task.tags.some((t) => isSiYuanTag(t.title)) && <Link size={12} />}
+                {task.has_links && !task.tags.some((t) => isReservedTag(t.title)) && <Link size={12} />}
                 {task.has_files && <Paperclip size={12} />}
               </span>
             )}
@@ -486,8 +487,8 @@ export function SortableTaskItem({
               )}
             </p>
           )}
-          {siyuanError && (
-            <p className="mt-0.5 text-xs text-red-500">{siyuanError}</p>
+          {reservedError && (
+            <p className="mt-0.5 text-xs text-red-500">{reservedError}</p>
           )}
         </div>
       </div>
