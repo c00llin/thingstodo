@@ -2,6 +2,7 @@ package handler
 
 import (
 	"errors"
+	"fmt"
 	"net/http"
 	"strings"
 
@@ -40,8 +41,8 @@ func (h *TagHandler) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	input.Title = strings.ToLower(input.Title)
-	if input.Title == "siyuan" {
-		writeError(w, http.StatusForbidden, `"siyuan" is a reserved tag name`, "RESERVED")
+	if input.Title == "siyuan" || input.Title == "obsidian" {
+		writeError(w, http.StatusForbidden, fmt.Sprintf("%q is a reserved tag name", input.Title), "RESERVED")
 		return
 	}
 	tag, err := h.repo.Create(input)
@@ -69,8 +70,8 @@ func (h *TagHandler) Update(w http.ResponseWriter, r *http.Request) {
 	if input.Title != nil {
 		lower := strings.ToLower(*input.Title)
 		input.Title = &lower
-		if lower == "siyuan" {
-			writeError(w, http.StatusForbidden, `"siyuan" is a reserved tag name`, "RESERVED")
+		if lower == "siyuan" || lower == "obsidian" {
+			writeError(w, http.StatusForbidden, fmt.Sprintf("%q is a reserved tag name", lower), "RESERVED")
 			return
 		}
 	}
