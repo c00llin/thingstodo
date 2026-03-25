@@ -37,8 +37,8 @@ import { useAppStore } from '../stores/app'
 import { ThemeToggle } from './ThemeToggle'
 import { SidebarDropTarget } from './SidebarDropTarget'
 import { TAG_COLORS, getTagIconClass, getTagDropClasses } from '../lib/tag-colors'
-import { isSiYuanTag } from '../lib/siyuan'
-import { SiYuanIcon } from './SiYuanIcon'
+import { isReservedTag, isObsidianTag } from '../lib/reserved-tags'
+import { ReservedTagIcon } from './ReservedTagIcon'
 import { SyncStatus } from './SyncStatus'
 
 const indicatorTransition = { type: 'spring' as const, stiffness: 400, damping: 35 }
@@ -736,8 +736,8 @@ function TagSidebarItem({
               transition={indicatorTransition}
             />
           )}
-          {isSiYuanTag(tag.title) ? (
-            <SiYuanIcon size={iconSize} className={`relative z-10 ${iconColorClass || 'text-neutral-400'}`} />
+          {isReservedTag(tag.title) ? (
+            <ReservedTagIcon tagTitle={tag.title} size={iconSize} className={`relative z-10 ${iconColorClass || (isObsidianTag(tag.title) ? 'text-purple-500' : 'text-neutral-400')}`} />
           ) : (
             <Tag size={iconSize} className={`relative z-10 ${iconColorClass}`} />
           )}
@@ -797,10 +797,10 @@ function TagSidebarItem({
               <button
                 ref={iconRef}
                 onClick={handleIconClick}
-                className={`relative z-10 ${iconColorClass || (isSiYuanTag(tag.title) ? 'text-neutral-400' : '')}`}
+                className={`relative z-10 ${iconColorClass || (isReservedTag(tag.title) ? (isObsidianTag(tag.title) ? 'text-purple-500' : 'text-neutral-400') : '')}`}
                 title="Double-click to set color"
               >
-                {isSiYuanTag(tag.title) ? <SiYuanIcon size={iconSize} /> : <Tag size={iconSize} />}
+                {isReservedTag(tag.title) ? <ReservedTagIcon tagTitle={tag.title} size={iconSize} /> : <Tag size={iconSize} />}
               </button>
             </Popover.Anchor>
             <span
@@ -910,7 +910,7 @@ function TagList() {
               <SortableContext items={tagIds} strategy={verticalListSortingStrategy}>
               {rootTags.map((tag) => {
                   const children = tags.filter((t) => t.parent_tag_id === tag.id)
-                  const isSiyuan = isSiYuanTag(tag.title)
+                  const isReserved = isReservedTag(tag.title)
                   const tagItem = (
                     <TagSidebarItem
                       tag={tag}
@@ -923,7 +923,7 @@ function TagList() {
                   )
                   return (
                     <SortableSidebarItem key={tag.id} id={`sort-tag-${tag.id}`}>
-                      {isSiyuan ? (
+                      {isReserved ? (
                         <div>{tagItem}</div>
                       ) : (
                         <SidebarDropTarget id={`sidebar-tag-${tag.id}`} dropClasses={getTagDropClasses(tag.color)}>
@@ -931,7 +931,7 @@ function TagList() {
                         </SidebarDropTarget>
                       )}
                       {children.map((child) => {
-                        const isChildSiyuan = isSiYuanTag(child.title)
+                        const isChildReserved = isReservedTag(child.title)
                         const childItem = (
                           <TagSidebarItem
                             tag={child}
@@ -943,7 +943,7 @@ function TagList() {
                             showCounts={showCounts}
                           />
                         )
-                        return isChildSiyuan ? (
+                        return isChildReserved ? (
                           <div key={child.id}>{childItem}</div>
                         ) : (
                           <SidebarDropTarget key={child.id} id={`sidebar-tag-${child.id}`} dropClasses={getTagDropClasses(child.color)}>
