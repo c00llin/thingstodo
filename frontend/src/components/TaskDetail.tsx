@@ -26,7 +26,7 @@ import { getFileUrl } from '../api/attachments'
 import { RepeatRulePicker } from './RepeatRulePicker'
 import { formatRepeatRule } from '../lib/format-repeat'
 import type { ChecklistItem, Attachment, Reminder, ReminderType } from '../api/types'
-import { isSiYuanLink, hasSiYuanLink, isReservedAnchor } from '../lib/siyuan'
+import { isReservedLink, hasReservedLink, isReservedAnchor } from '../lib/reserved-tags'
 import { formatReminderLabel } from '../lib/format-reminder'
 
 interface TaskDetailProps {
@@ -292,7 +292,7 @@ export function TaskDetail({ taskId, isModal, toolbarPortalEl }: TaskDetailProps
   const hasReminders = (task.reminders?.length ?? 0) > 0
   const hasRepeatRule = !!task.repeat_rule
   const hasMultipleSchedules = (task.schedules?.length ?? 0) > 1
-  const hasSiYuan = hasSiYuanLink(task.attachments)
+  const hasReserved = hasReservedLink(task.attachments)
 
   // Shared notes content (used in both modes)
   const notesContent = (
@@ -439,12 +439,12 @@ export function TaskDetail({ taskId, isModal, toolbarPortalEl }: TaskDetailProps
           <CircleAlert size={16} />
         </button>
       )}
-      {hasSiYuan || hasMultipleSchedules ? (
+      {hasReserved || hasMultipleSchedules ? (
         <button
           disabled
           className="rounded-md p-2 md:p-1 text-neutral-300 cursor-not-allowed dark:text-neutral-600"
-          aria-label={hasMultipleSchedules ? 'Recurring not available with multiple dates' : hasRepeatRule ? 'Recurring disabled — remove SiYuan link to edit' : 'Recurring not available for SiYuan-linked tasks'}
-          title={hasMultipleSchedules ? 'Recurring not available with multiple dates' : hasRepeatRule ? 'Has a repeat rule — remove SiYuan link to edit' : 'Recurring not available for SiYuan-linked tasks'}
+          aria-label={hasMultipleSchedules ? 'Recurring not available with multiple dates' : hasRepeatRule ? 'Has a repeat rule — remove reserved link to edit' : 'Recurring not available for linked tasks'}
+          title={hasMultipleSchedules ? 'Recurring not available with multiple dates' : hasRepeatRule ? 'Has a repeat rule — remove reserved link to edit' : 'Recurring not available for linked tasks'}
         >
           <RefreshCw size={16} />
         </button>
@@ -764,7 +764,7 @@ function AttachmentList({
               ({(att.file_size / 1024 / 1024).toFixed(1)} MB)
             </span>
           )}
-          {!isSiYuanLink(att) && (
+          {!isReservedLink(att) && (
             <button
               onClick={() => deleteAttachment.mutate(att.id)}
               className="ml-auto shrink-0 text-neutral-400 opacity-0 hover:text-red-500 group-hover/att:opacity-100"
@@ -830,7 +830,7 @@ function LinkAddButton({ taskId }: { taskId: string }) {
     if (!url) return
     const title = linkTitle.trim() || url
     if (isReservedAnchor(title)) {
-      setLinkError('"SiYuan" is a reserved link name')
+      setLinkError(`"${title}" is a reserved link name`)
       return
     }
     addLink.mutate({ type: 'link', title, url })
