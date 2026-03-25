@@ -2,7 +2,7 @@ import { useCallback } from 'react'
 import { useCreateTag } from './queries'
 import { useLocalTags, useLocalProjects, useLocalAreas } from './localQueries'
 import { parseTitleTokens } from '../lib/parse-tags'
-import { isSiYuanTag } from '../lib/siyuan'
+import { isReservedTag } from '../lib/reserved-tags'
 
 /**
  * Returns a function that parses #tags and $project/area from input text,
@@ -35,7 +35,7 @@ export function useResolveTags() {
       const existingTags = tagsArr ?? []
       const ids: string[] = []
       for (const name of tagNames) {
-        if (isSiYuanTag(name)) continue
+        if (isReservedTag(name)) continue
         const existing = existingTags.find(
           (t) => t.title.toLowerCase() === name.toLowerCase(),
         )
