@@ -312,7 +312,7 @@ export async function createProject(data: CreateProjectData): Promise<string> {
  * When a project's title or area changes, update denormalized fields on tasks.
  */
 async function cascadeProjectToTasks(projectId: string, fields: Partial<Omit<LocalProject, 'id' | '_syncStatus' | '_localUpdatedAt'>>): Promise<void> {
-  const updates: Record<string, unknown> = {}
+  const updates: Partial<LocalTask> = {}
   if ('title' in fields) updates.project_name = fields.title
   if ('area_id' in fields) {
     const area = fields.area_id ? await localDb.areas.get(fields.area_id) : null
