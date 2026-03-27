@@ -308,6 +308,28 @@ export async function createProject(data: CreateProjectData): Promise<string> {
   return id
 }
 
+/**
+ * When a project's title or area changes, update denormalized fields on tasks.
+ */
+async function cascadeProjectToTasks(projectId: string, fields: Partial<Omit<LocalProject, 'id' | '_syncStatus' | '_localUpdatedAt'>>): Promise<void> {
+  const updates: Record<string, unknown> = {}
+  if ('title' in fields) updates.project_name = fields.title
+  if ('area_id' in fields) {
+    const area = fields.area_id ? await localDb.areas.get(fields.area_id) : null
+    updates.area_id = fields.area_id ?? null
+    updates.area_name = area?.title ?? null
+  }
+  if (Object.keys(updates).length === 0) return
+
+  const tasks = await localDb.tasks
+    .where('project_id')
+    .equals(projectId)
+    .toArray()
+  for (const task of tasks) {
+    await localDb.tasks.update(task.id, updates)
+  }
+}
+
 export async function updateProject(
   id: string,
   fields: Partial<Omit<LocalProject, 'id' | '_syncStatus' | '_localUpdatedAt'>>,
@@ -330,6 +352,9 @@ export async function updateProject(
     fields as unknown as Record<string, unknown>,
     Object.keys(fields),
   )
+
+  // Cascade title/area changes to denormalized fields on tasks
+  await cascadeProjectToTasks(id, fields)
 }
 
 export async function deleteProject(id: string): Promise<void> {
@@ -365,6 +390,21 @@ export async function createArea(data: CreateAreaData): Promise<string> {
   return id
 }
 
+/**
+ * When an area's title changes, update denormalized area_name on all tasks in this area.
+ */
+async function cascadeAreaToTasks(areaId: string, updates: { title?: string }): Promise<void> {
+  if (!('title' in updates)) return
+
+  const tasks = await localDb.tasks
+    .where('area_id')
+    .equals(areaId)
+    .toArray()
+  for (const task of tasks) {
+    await localDb.tasks.update(task.id, { area_name: updates.title })
+  }
+}
+
 export async function updateArea(
   id: string,
   fields: Partial<Omit<LocalArea, 'id' | '_syncStatus' | '_localUpdatedAt'>>,
@@ -387,6 +427,9 @@ export async function updateArea(
     fields as unknown as Record<string, unknown>,
     Object.keys(fields),
   )
+
+  // Cascade title changes to denormalized area_name on tasks
+  await cascadeAreaToTasks(id, fields)
 }
 
 // ---------------------------------------------------------------------------
@@ -481,7 +524,7 @@ async function refreshChecklistCounts(taskId: string): Promise<void> {
 }
 
 /** Recompute has_links and has_files on the parent task. */
-async function refreshAttachmentFlags(taskId: string): Promise<void> {
+export async function refreshAttachmentFlags(taskId: string): Promise<void> {
   const task = await localDb.tasks.get(taskId)
   if (!task) return
   const attachments = await localDb.attachments.where('task_id').equals(taskId).toArray()
@@ -489,6 +532,28 @@ async function refreshAttachmentFlags(taskId: string): Promise<void> {
   const hasFiles = attachments.some((a) => a.type === 'file')
   if (task.has_links !== hasLinks || task.has_files !== hasFiles) {
     await localDb.tasks.update(taskId, { has_links: hasLinks, has_files: hasFiles })
+  }
+}
+
+/** Recompute has_reminders and first_reminder_* on the parent task. */
+async function refreshReminderFlags(taskId: string): Promise<void> {
+  const task = await localDb.tasks.get(taskId)
+  if (!task) return
+  const reminders = await localDb.reminders.where('task_id').equals(taskId).sortBy('created_at')
+  const hasReminders = reminders.length > 0
+  const update: Partial<LocalTask> = {
+    has_reminders: hasReminders,
+    first_reminder_type: hasReminders ? (reminders[0].type ?? null) : null,
+    first_reminder_value: hasReminders ? (reminders[0].value ?? null) : null,
+    first_reminder_exact_at: hasReminders ? (reminders[0].exact_at ?? null) : null,
+  }
+  if (
+    task.has_reminders !== update.has_reminders ||
+    task.first_reminder_type !== update.first_reminder_type ||
+    task.first_reminder_value !== update.first_reminder_value ||
+    task.first_reminder_exact_at !== update.first_reminder_exact_at
+  ) {
+    await localDb.tasks.update(taskId, update)
   }
 }
 
@@ -736,6 +801,7 @@ export async function createReminder(data: CreateReminderData): Promise<string> 
   }
   await localDb.reminders.put(reminder)
   await queueChange('reminder', id, 'create', reminder as unknown as Record<string, unknown>)
+  await refreshReminderFlags(data.task_id)
   return id
 }
 
@@ -760,6 +826,7 @@ export async function updateReminder(
     fields as unknown as Record<string, unknown>,
     Object.keys(fields),
   )
+  await refreshReminderFlags(existing.task_id)
 }
 
 export async function deleteReminder(id: string): Promise<void> {
@@ -767,4 +834,5 @@ export async function deleteReminder(id: string): Promise<void> {
   if (!existing) return
   await localDb.reminders.delete(id)
   await queueChange('reminder', id, 'delete', { id })
+  await refreshReminderFlags(existing.task_id)
 }

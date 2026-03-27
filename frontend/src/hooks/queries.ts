@@ -744,6 +744,7 @@ export function useUploadFile(taskId: string) {
           _syncStatus: 'synced',
           _localUpdatedAt: new Date().toISOString(),
         } as never)
+        await localMutations.refreshAttachmentFlags(taskId)
       }
       return result
     },
@@ -774,6 +775,7 @@ export function useUpdateAttachment(taskId: string) {
     mutationFn: async ({ id, data }: { id: string; data: UpdateAttachmentRequest }) => {
       const result = await attachmentsApi.updateAttachment(id, data)
       await localDb.attachments.update(id, data)
+      await localMutations.refreshAttachmentFlags(taskId)
       return result
     },
     onSuccess: () => {
