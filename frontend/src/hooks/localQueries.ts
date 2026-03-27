@@ -870,7 +870,25 @@ export function useLocalProjects(): Project[] | undefined {
       .equals('open')
       .sortBy('sort_order')
 
-    return projects.map(projectToPlain)
+    // Compute task counts live from tasks table
+    const result: Project[] = []
+    for (const p of projects) {
+      const tasks = await localDb.tasks
+        .where('project_id')
+        .equals(p.id)
+        .filter((t: LocalTask) => !t.deleted_at)
+        .toArray()
+      const taskCount = tasks.length
+      const completedCount = tasks.filter(
+        (t: LocalTask) => t.status === 'completed' || t.status === 'canceled' || t.status === 'wont_do',
+      ).length
+      result.push({
+        ...projectToPlain(p),
+        task_count: taskCount,
+        completed_task_count: completedCount,
+      })
+    }
+    return result
   })
 }
 
@@ -880,7 +898,21 @@ export function useLocalProjects(): Project[] | undefined {
 export function useLocalAreas(): Area[] | undefined {
   return useLiveQuery(async () => {
     const areas = await localDb.areas.orderBy('sort_order').toArray()
-    return areas.map(areaToPlain)
+
+    const result: Area[] = []
+    for (const a of areas) {
+      // standalone_task_count: open tasks in this area with no project
+      const count = await localDb.tasks
+        .where('area_id')
+        .equals(a.id)
+        .filter((t: LocalTask) => t.status === 'open' && !t.deleted_at && !t.project_id)
+        .count()
+      result.push({
+        ...areaToPlain(a),
+        standalone_task_count: count,
+      })
+    }
+    return result
   })
 }
 
@@ -890,7 +922,21 @@ export function useLocalAreas(): Area[] | undefined {
 export function useLocalTags(): Tag[] | undefined {
   return useLiveQuery(async () => {
     const tags = await localDb.tags.orderBy('sort_order').toArray()
-    return tags.map(tagToPlain)
+
+    const result: Tag[] = []
+    for (const tag of tags) {
+      // Count open, non-deleted tasks that reference this tag
+      const count = await localDb.tasks
+        .where('status')
+        .equals('open')
+        .filter((t: LocalTask) => !t.deleted_at && t.tags?.some((tr) => tr.id === tag.id))
+        .count()
+      result.push({
+        ...tagToPlain(tag),
+        task_count: count,
+      })
+    }
+    return result
   })
 }
 

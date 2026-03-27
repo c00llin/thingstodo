@@ -413,6 +413,26 @@ export async function createTag(data: CreateTagData): Promise<string> {
   return id
 }
 
+/**
+ * When a tag's color or title changes, update the denormalized TagRef
+ * embedded in every task that references this tag.
+ */
+async function cascadeTagToTasks(tagId: string, updates: { title?: string; color?: string | null }): Promise<void> {
+  // Find all tasks that embed this tag
+  const tasks = await localDb.tasks
+    .filter((t) => t.tags?.some((tr) => tr.id === tagId))
+    .toArray()
+
+  for (const task of tasks) {
+    const updatedTags = task.tags.map((tr) =>
+      tr.id === tagId ? { ...tr, ...updates } : tr,
+    )
+    // Direct DB update — no sync queue entry needed since the server
+    // will cascade on its own when it processes the tag update
+    await localDb.tasks.update(task.id, { tags: updatedTags })
+  }
+}
+
 export async function updateTag(
   id: string,
   fields: Partial<Omit<LocalTag, 'id' | '_syncStatus' | '_localUpdatedAt'>>,
@@ -434,6 +454,14 @@ export async function updateTag(
     fields as unknown as Record<string, unknown>,
     Object.keys(fields),
   )
+
+  // Cascade color/title changes to denormalized TagRefs on tasks
+  const cascadeFields: { title?: string; color?: string | null } = {}
+  if ('color' in fields) cascadeFields.color = fields.color ?? null
+  if ('title' in fields) cascadeFields.title = fields.title
+  if (Object.keys(cascadeFields).length > 0) {
+    await cascadeTagToTasks(id, cascadeFields)
+  }
 }
 
 // ---------------------------------------------------------------------------
