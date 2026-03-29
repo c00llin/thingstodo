@@ -6,9 +6,12 @@ import (
 	"strconv"
 	"time"
 
+	"log"
+
 	mw "github.com/collinjanssen/thingstodo/internal/middleware"
 	"github.com/collinjanssen/thingstodo/internal/model"
 	"github.com/collinjanssen/thingstodo/internal/repository"
+	"github.com/collinjanssen/thingstodo/internal/scheduler"
 )
 
 const (
@@ -29,6 +32,7 @@ type SyncHandler struct {
 	schedules   *repository.ScheduleRepository
 	reminders   *repository.ReminderRepository
 	repeatRules *repository.RepeatRuleRepository
+	scheduler   *scheduler.Scheduler
 }
 
 // NewSyncHandler creates a new SyncHandler.
@@ -44,6 +48,7 @@ func NewSyncHandler(
 	schedules *repository.ScheduleRepository,
 	reminders *repository.ReminderRepository,
 	repeatRules *repository.RepeatRuleRepository,
+	sched *scheduler.Scheduler,
 ) *SyncHandler {
 	return &SyncHandler{
 		changeLog:   changeLog,
@@ -57,6 +62,7 @@ func NewSyncHandler(
 		schedules:   schedules,
 		reminders:   reminders,
 		repeatRules: repeatRules,
+		scheduler:   sched,
 	}
 }
 
@@ -479,18 +485,26 @@ func (h *SyncHandler) applyTaskChange(change SyncChange) SyncPushResult {
 				if s, ok := val.(string); ok {
 					switch s {
 					case "completed":
+						h.cleanupSchedules(change.EntityID)
 						if _, cErr := h.tasks.Complete(change.EntityID); cErr != nil {
 							result.Status = "error"
 							result.Error = cErr.Error()
 							return result
 						}
+						if h.scheduler != nil {
+							h.scheduler.HandleTaskDone(change.EntityID)
+						}
 						result.Status = status
 						return result
 					case "canceled":
+						h.cleanupSchedules(change.EntityID)
 						if _, cErr := h.tasks.Cancel(change.EntityID); cErr != nil {
 							result.Status = "error"
 							result.Error = cErr.Error()
 							return result
+						}
+						if h.scheduler != nil {
+							h.scheduler.HandleTaskDone(change.EntityID)
 						}
 						result.Status = status
 						return result
@@ -503,10 +517,14 @@ func (h *SyncHandler) applyTaskChange(change SyncChange) SyncPushResult {
 						result.Status = status
 						return result
 					case "wont_do":
+						h.cleanupSchedules(change.EntityID)
 						if _, cErr := h.tasks.WontDo(change.EntityID); cErr != nil {
 							result.Status = "error"
 							result.Error = cErr.Error()
 							return result
+						}
+						if h.scheduler != nil {
+							h.scheduler.HandleTaskDone(change.EntityID)
 						}
 						result.Status = status
 						return result
@@ -1168,4 +1186,13 @@ func parseTimes(clientUpdatedAt, serverUpdatedAt string) (time.Time, time.Time) 
 		serverTime, _ = time.Parse(time.RFC3339, serverUpdatedAt)
 	}
 	return clientTime, serverTime
+}
+
+// cleanupSchedules completes past uncompleted schedule entries and deletes
+// today + future entries when a task is completed/canceled/wontdo.
+func (h *SyncHandler) cleanupSchedules(taskID string) {
+	today := time.Now().Format("2006-01-02")
+	if err := h.schedules.CleanupOnTaskDone(taskID, today); err != nil {
+		log.Printf("schedule cleanup for task %s: %v", taskID, err)
+	}
 }
