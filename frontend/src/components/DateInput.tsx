@@ -156,10 +156,22 @@ export function DateInput({ value, onChange, variant, autoFocus, onComplete, hid
     }
   }
 
+  function handleContainerKeyDown(e: React.KeyboardEvent) {
+    if (e.key === 'Escape' && (active || showCalendar)) {
+      e.preventDefault()
+      e.stopPropagation()
+      setActive(false)
+      setText('')
+      setShowCalendar(false)
+      inputRef.current?.blur()
+      onComplete?.(value || null)
+    }
+  }
+
   // Display mode: show friendly text when not active
   if (!active && value) {
     return (
-      <div ref={containerRef} className="relative">
+      <div ref={containerRef} className="relative" onKeyDown={handleContainerKeyDown}>
         <div className={`flex w-full items-center rounded-md border text-sm ${fieldClassName ?? 'border-neutral-200 bg-white dark:border-neutral-600 dark:bg-neutral-800 dark:text-neutral-100'}`}>
           <button
             type="button"
@@ -189,7 +201,7 @@ export function DateInput({ value, onChange, variant, autoFocus, onComplete, hid
   }
 
   return (
-    <div ref={containerRef} className="relative">
+    <div ref={containerRef} className="relative" onKeyDown={handleContainerKeyDown}>
       <div className="flex items-center rounded-md border border-neutral-200 bg-white dark:border-neutral-600 dark:bg-neutral-800 focus-within:border-red-400">
         <input
           ref={inputRef}
