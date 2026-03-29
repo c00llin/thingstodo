@@ -205,7 +205,11 @@ export function DateInput({ value, onChange, variant, autoFocus, onComplete, hid
         <button
           type="button"
           onMouseDown={(e) => e.preventDefault()}
-          onClick={() => setShowCalendar((v) => !v)}
+          onClick={() => {
+            setActive(true)
+            setShowCalendar((v) => !v)
+            requestAnimationFrame(() => inputRef.current?.focus())
+          }}
           className="px-1.5 py-1 text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-300"
           aria-label="Open calendar"
         >
