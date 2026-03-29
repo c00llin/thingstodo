@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.13.1] - 2026-03-29
+
+### Fixed
+- **Recurring tasks broken after offline-first migration** — completing a recurring task (mode: after completion) no longer failed to create the next instance. The sync push handler now calls `scheduler.HandleTaskDone` after completion, cancel, and won't-do, matching the original REST endpoint behavior.
+- **Repeat rule status box not updating in task detail** — saving a recurring setting now immediately writes the rule to IndexedDB so the bottom status box updates reactively, instead of waiting for the next sync pull.
+- **Denormalized data not cascading on local mutations** — sidebar counts, tag colors, and other denormalized fields now update correctly across all local mutation paths.
+- **Build error with cascade update types** — fixed `Partial<LocalTask>` typing for cascade updates.
+
+### Added
+- **Obsidian reserved tag support** — Obsidian tags are now protected (same as SiYuan), with a dedicated icon in task rows, sidebar, and task detail.
+- **Generalized reserved-tags module** — SiYuan helpers refactored into a shared reserved-tags system supporting multiple integrations.
+
 ## [0.13.0] - 2026-03-23
 
 ### Added
