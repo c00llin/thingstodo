@@ -800,6 +800,7 @@ export function useUpsertRepeatRule(taskId: string) {
       const result = await repeatApi.upsertRepeatRule(taskId, data)
       await localDb.repeatRules.put({
         ...result,
+        task_id: taskId,
         _syncStatus: 'synced' as const,
         _localUpdatedAt: new Date().toISOString(),
       })
