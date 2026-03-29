@@ -798,6 +798,11 @@ export function useUpsertRepeatRule(taskId: string) {
   return useMutation({
     mutationFn: async (data: UpsertRepeatRuleRequest) => {
       const result = await repeatApi.upsertRepeatRule(taskId, data)
+      await localDb.repeatRules.put({
+        ...result,
+        _syncStatus: 'synced' as const,
+        _localUpdatedAt: new Date().toISOString(),
+      })
       await localDb.tasks.update(taskId, { has_repeat_rule: true })
       return result
     },
