@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.13.2] - 2026-04-08
+
+### Fixed
+- **"Include recurring tasks in Review" setting not working** — when repeat rules were synced via the changelog, the parent task's `has_repeat_rule` flag in the local DB was not updated, causing recurring tasks to leak into the inbox review section even when the setting was disabled
+- **Escape in date input closes modal instead of field** — pressing Escape while editing a date input or calendar now closes the date field first, rather than dismissing the entire modal
+- **Calendar icon click requires input focus** — clicking the calendar icon now opens the date picker directly without requiring the input to be focused first
+
 ## [0.13.1] - 2026-03-29
 
 ### Fixed
