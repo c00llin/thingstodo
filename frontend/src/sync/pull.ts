@@ -114,6 +114,11 @@ async function applyChange(
     } else {
       await table.delete(change.entity_id)
     }
+
+    // When a repeat_rule is deleted, mark the parent task accordingly
+    if (change.entity === 'repeat_rule' && data.task_id) {
+      await localDb.tasks.update(data.task_id, { has_repeat_rule: false })
+    }
   } else {
     // For schedule creates, remove any local-only schedules for the same task
     // to prevent duplicates (frontend creates a temporary local schedule for
@@ -139,6 +144,11 @@ async function applyChange(
       _serverSeq: change.seq,
     }
     await table.put(record)
+
+    // When a repeat_rule is created/updated, mark the parent task accordingly
+    if (change.entity === 'repeat_rule' && data.task_id) {
+      await localDb.tasks.update(data.task_id, { has_repeat_rule: true })
+    }
   }
 }
 
