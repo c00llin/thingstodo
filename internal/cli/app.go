@@ -11,7 +11,6 @@ import (
 	"net/http"
 	"net/url"
 	"os"
-	"sort"
 	"strings"
 	"time"
 
@@ -878,8 +877,6 @@ func (a *App) renderError(err error) int {
 		code = 4
 	case isAmbiguous(err):
 		code = 3
-	case isUsageError(err):
-		code = 2
 	default:
 		var apiErr *APIError
 		if errors.As(err, &apiErr) {
@@ -932,10 +929,6 @@ func (a *App) fail(code int, message string) int {
 func isAmbiguous(err error) bool {
 	var ambiguous *AmbiguousError
 	return errors.As(err, &ambiguous)
-}
-
-func isUsageError(err error) bool {
-	return false
 }
 
 func extractGlobalFlags(args []string) (GlobalFlags, []string, error) {
@@ -1039,12 +1032,6 @@ func (s *stringList) String() string {
 func (s *stringList) Set(value string) error {
 	*s = append(*s, value)
 	return nil
-}
-
-func sortMatches(in []string) []string {
-	out := append([]string{}, in...)
-	sort.Strings(out)
-	return out
 }
 
 func normalizeFlagArgs(args []string, boolFlags map[string]bool) []string {
