@@ -1,7 +1,6 @@
 package cli
 
 import (
-	"os"
 	"path/filepath"
 	"testing"
 )
@@ -95,8 +94,5 @@ func TestParseConfigFileMissing(t *testing.T) {
 	}
 	if found {
 		t.Fatal("expected missing config file")
-	}
-	if _, err := os.Stat(filepath.Dir(path)); err == nil {
-		// no-op; only here to keep temp dir in use for Windows-like FS behavior
 	}
 }
