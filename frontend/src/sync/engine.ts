@@ -1,5 +1,5 @@
 import { localDb } from '../db/index'
-import { pushChanges } from './push'
+import { formatPushFailures, pushChanges } from './push'
 import { pullChanges, fullSync } from './pull'
 import { useSyncStore } from './status'
 import { ApiError } from '../api/client'
@@ -38,7 +38,7 @@ export async function syncNow(): Promise<void> {
 
   try {
     // Push first, then pull
-    const pushedCount = await pushChanges(deviceId)
+    const pushSummary = await pushChanges(deviceId)
 
     // Update pending count after push
     const remainingPending = await localDb.syncQueue.count()
@@ -60,16 +60,23 @@ export async function syncNow(): Promise<void> {
     }
 
     store.setLastSync(new Date().toISOString())
-    store.setStatus('idle')
+    const pushError = formatPushFailures(pushSummary.failures)
+    if (pushError) {
+      store.setError(pushError, pushSummary.failures.length)
+      store.setStatus('error')
+    } else {
+      store.setError(null, 0)
+      store.setStatus('idle')
+    }
 
-    if (pushedCount > 0) {
+    if (pushSummary.processedCount > 0) {
       // Re-check pending after successful push
       const pending = await localDb.syncQueue.count()
       store.setPendingCount(pending)
     }
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err)
-    store.setError(message)
+    store.setError(message, 0)
     store.setStatus('error')
   }
 }

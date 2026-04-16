@@ -414,7 +414,7 @@ func TestSyncPushMultipleChanges(t *testing.T) {
 }
 
 func TestSyncPushCreateArea(t *testing.T) {
-	client, _, _ := setupSyncRouter(t)
+	client, _, _, db := setupSyncRouterWithDB(t)
 
 	body := map[string]interface{}{
 		"device_id": "dev1",
@@ -439,10 +439,18 @@ func TestSyncPushCreateArea(t *testing.T) {
 	if result.Results[0].Status != "applied" {
 		t.Errorf("expected 'applied', got %q (error: %s)", result.Results[0].Status, result.Results[0].Error)
 	}
+
+	var count int
+	if err := db.QueryRow("SELECT COUNT(*) FROM areas WHERE id = ?", "a1").Scan(&count); err != nil {
+		t.Fatalf("failed to query created area: %v", err)
+	}
+	if count != 1 {
+		t.Fatalf("expected synced area id to be preserved, count=%d", count)
+	}
 }
 
 func TestSyncPushCreateTag(t *testing.T) {
-	client, _, _ := setupSyncRouter(t)
+	client, _, _, db := setupSyncRouterWithDB(t)
 
 	body := map[string]interface{}{
 		"device_id": "dev1",
@@ -466,6 +474,101 @@ func TestSyncPushCreateTag(t *testing.T) {
 
 	if result.Results[0].Status != "applied" {
 		t.Errorf("expected 'applied', got %q (error: %s)", result.Results[0].Status, result.Results[0].Error)
+	}
+
+	var count int
+	if err := db.QueryRow("SELECT COUNT(*) FROM tags WHERE id = ?", "tag1").Scan(&count); err != nil {
+		t.Fatalf("failed to query created tag: %v", err)
+	}
+	if count != 1 {
+		t.Fatalf("expected synced tag id to be preserved, count=%d", count)
+	}
+}
+
+func TestSyncPushCreateProjectPreservesClientID(t *testing.T) {
+	client, _, _, db := setupSyncRouterWithDB(t)
+
+	if _, err := db.Exec(`INSERT INTO areas (id, title, sort_order) VALUES ('area1', 'Work', 0)`); err != nil {
+		t.Fatalf("failed to seed area: %v", err)
+	}
+
+	body := map[string]interface{}{
+		"device_id": "dev1",
+		"changes": []map[string]interface{}{
+			{
+				"entity":    "project",
+				"entity_id": "project1",
+				"action":    "create",
+				"data": map[string]interface{}{
+					"title":   "Roadmap",
+					"area_id": "area1",
+				},
+				"fields":            []string{"title", "area_id"},
+				"client_updated_at": "2026-01-01T00:00:00Z",
+			},
+		},
+	}
+
+	resp := client.Post("/api/sync/push", body)
+	testutil.AssertStatus(t, resp, http.StatusOK)
+
+	var result handler.SyncPushResponse
+	resp.JSON(t, &result)
+
+	if result.Results[0].Status != "applied" {
+		t.Errorf("expected 'applied', got %q (error: %s)", result.Results[0].Status, result.Results[0].Error)
+	}
+
+	var count int
+	if err := db.QueryRow("SELECT COUNT(*) FROM projects WHERE id = ?", "project1").Scan(&count); err != nil {
+		t.Fatalf("failed to query created project: %v", err)
+	}
+	if count != 1 {
+		t.Fatalf("expected synced project id to be preserved, count=%d", count)
+	}
+}
+
+func TestSyncPushCreateProjectIsIdempotent(t *testing.T) {
+	client, _, _, db := setupSyncRouterWithDB(t)
+
+	if _, err := db.Exec(`INSERT INTO areas (id, title, sort_order) VALUES ('area1', 'Work', 0)`); err != nil {
+		t.Fatalf("failed to seed area: %v", err)
+	}
+
+	body := map[string]interface{}{
+		"device_id": "dev1",
+		"changes": []map[string]interface{}{
+			{
+				"entity":    "project",
+				"entity_id": "project1",
+				"action":    "create",
+				"data": map[string]interface{}{
+					"title":   "Roadmap",
+					"area_id": "area1",
+				},
+				"fields":            []string{"title", "area_id"},
+				"client_updated_at": "2026-01-01T00:00:00Z",
+			},
+		},
+	}
+
+	firstResp := client.Post("/api/sync/push", body)
+	testutil.AssertStatus(t, firstResp, http.StatusOK)
+	secondResp := client.Post("/api/sync/push", body)
+	testutil.AssertStatus(t, secondResp, http.StatusOK)
+
+	var result handler.SyncPushResponse
+	secondResp.JSON(t, &result)
+	if result.Results[0].Status != "applied" {
+		t.Errorf("expected idempotent replay to stay 'applied', got %q (error: %s)", result.Results[0].Status, result.Results[0].Error)
+	}
+
+	var count int
+	if err := db.QueryRow("SELECT COUNT(*) FROM projects WHERE id = ?", "project1").Scan(&count); err != nil {
+		t.Fatalf("failed to query created project: %v", err)
+	}
+	if count != 1 {
+		t.Fatalf("expected exactly one project row after replay, count=%d", count)
 	}
 }
 

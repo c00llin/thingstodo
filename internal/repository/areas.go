@@ -145,7 +145,10 @@ func (r *AreaRepository) GetByID(id string) (*model.AreaDetail, error) {
 }
 
 func (r *AreaRepository) Create(input model.CreateAreaInput) (*model.Area, error) {
-	id := model.NewID()
+	id := input.ID
+	if id == "" {
+		id = model.NewID()
+	}
 	var maxSort float64
 	_ = r.db.QueryRow("SELECT COALESCE(MAX(sort_order), 0) FROM areas").Scan(&maxSort)
 

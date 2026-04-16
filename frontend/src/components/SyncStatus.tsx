@@ -3,7 +3,7 @@ import { useSyncStore } from '../sync/status'
 import { syncNow } from '../sync/engine'
 
 export function SyncStatus() {
-  const { status, pendingCount, error } = useSyncStore()
+  const { status, pendingCount, error, failedCount } = useSyncStore()
 
   function handleClick() {
     void syncNow()
@@ -23,7 +23,13 @@ export function SyncStatus() {
     title = 'Offline — click to retry'
   } else if (status === 'error') {
     icon = <AlertCircle size={14} />
-    label = 'Sync error'
+    if (pendingCount > 0) {
+      label = `${pendingCount} blocked`
+    } else if (failedCount > 0) {
+      label = `${failedCount} failed`
+    } else {
+      label = 'Sync error'
+    }
     title = error ?? 'Sync error — click to retry'
   } else if (pendingCount > 0) {
     icon = <Upload size={14} />

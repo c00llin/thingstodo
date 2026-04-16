@@ -39,8 +39,26 @@ func (r *TagRepository) List() ([]model.Tag, error) {
 	return tags, rows.Err()
 }
 
+func (r *TagRepository) GetByID(id string) (*model.Tag, error) {
+	var t model.Tag
+	err := r.db.QueryRow(
+		"SELECT id, title, color, parent_tag_id, sort_order FROM tags WHERE id = ?",
+		id,
+	).Scan(&t.ID, &t.Title, &t.Color, &t.ParentTagID, &t.SortOrder)
+	if err == sql.ErrNoRows {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	return &t, nil
+}
+
 func (r *TagRepository) Create(input model.CreateTagInput) (*model.Tag, error) {
-	id := model.NewID()
+	id := input.ID
+	if id == "" {
+		id = model.NewID()
+	}
 	var maxSort float64
 	_ = r.db.QueryRow("SELECT COALESCE(MAX(sort_order), 0) FROM tags").Scan(&maxSort)
 

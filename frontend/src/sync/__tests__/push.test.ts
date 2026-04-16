@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, test, vi } from 'vitest'
 import { localDb } from '../../db/index'
-import { pushChanges } from '../push'
+import { formatPushFailures, pushChanges } from '../push'
 import type { SyncQueueEntry } from '../../db/schema'
 
 // Mock the API client
@@ -40,8 +40,8 @@ describe('pushChanges', () => {
   })
 
   test('returns 0 and does not call API when queue is empty', async () => {
-    const count = await pushChanges('device-1')
-    expect(count).toBe(0)
+    const summary = await pushChanges('device-1')
+    expect(summary).toEqual({ processedCount: 0, failures: [] })
     expect(mockPost).not.toHaveBeenCalled()
   })
 
@@ -56,9 +56,9 @@ describe('pushChanges', () => {
       ],
     })
 
-    const count = await pushChanges('device-1')
+    const summary = await pushChanges('device-1')
 
-    expect(count).toBe(2)
+    expect(summary).toEqual({ processedCount: 2, failures: [] })
     expect(mockPost).toHaveBeenCalledWith('/sync/push', expect.objectContaining({
       device_id: 'device-1',
     }))
@@ -73,17 +73,36 @@ describe('pushChanges', () => {
 
     mockPost.mockResolvedValueOnce({
       results: [
-        { entity_id: 'task-ok', status: 'applied' },
-        { entity_id: 'task-fail', status: 'error', error: 'conflict' },
+        { entity: 'task', entity_id: 'task-ok', status: 'applied' },
+        { entity: 'task', entity_id: 'task-fail', status: 'error', error: 'conflict' },
       ],
     })
 
-    const count = await pushChanges('device-1')
+    const summary = await pushChanges('device-1')
 
-    expect(count).toBe(1)
+    expect(summary.processedCount).toBe(1)
+    expect(summary.failures).toEqual([
+      {
+        entity: 'task',
+        entityId: 'task-fail',
+        error: 'conflict',
+        count: 1,
+      },
+    ])
     const remaining = await localDb.syncQueue.toArray()
     expect(remaining).toHaveLength(1)
     expect(remaining[0].entityId).toBe('task-fail')
+  })
+
+  test('groups repeated failures into a readable message', () => {
+    const message = formatPushFailures([
+      { entity: 'task', entityId: 'task-1', error: 'constraint failed', count: 2 },
+      { entity: 'task', entityId: 'task-2', error: 'task not found', count: 1 },
+    ])
+
+    expect(message).toContain('3 sync changes failed.')
+    expect(message).toContain('task task-1 (2x): constraint failed')
+    expect(message).toContain('task task-2: task not found')
   })
 
   test('sends correct change payload shape', async () => {

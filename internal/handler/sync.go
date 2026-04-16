@@ -586,7 +586,14 @@ func (h *SyncHandler) applyProjectChange(change SyncChange) SyncPushResult {
 
 	switch change.Action {
 	case "create":
+		existing, err := h.projects.GetByID(change.EntityID)
+		if err == nil && existing != nil {
+			result.Status = "applied"
+			return result
+		}
+
 		input := model.CreateProjectInput{
+			ID:    change.EntityID,
 			Title: stringFromData(change.Data, "title"),
 			Notes: stringFromData(change.Data, "notes"),
 		}
@@ -603,7 +610,7 @@ func (h *SyncHandler) applyProjectChange(change SyncChange) SyncPushResult {
 			input.Deadline = &s
 		}
 
-		_, err := h.projects.Create(input)
+		_, err = h.projects.Create(input)
 		if err != nil {
 			result.Status = "error"
 			result.Error = err.Error()
@@ -697,10 +704,17 @@ func (h *SyncHandler) applyAreaChange(change SyncChange) SyncPushResult {
 
 	switch change.Action {
 	case "create":
+		existing, err := h.areas.GetByID(change.EntityID)
+		if err == nil && existing != nil {
+			result.Status = "applied"
+			return result
+		}
+
 		input := model.CreateAreaInput{
+			ID:    change.EntityID,
 			Title: stringFromData(change.Data, "title"),
 		}
-		_, err := h.areas.Create(input)
+		_, err = h.areas.Create(input)
 		if err != nil {
 			result.Status = "error"
 			result.Error = err.Error()
@@ -768,14 +782,21 @@ func (h *SyncHandler) applyTagChange(change SyncChange) SyncPushResult {
 
 	switch change.Action {
 	case "create":
+		existing, err := h.tags.GetByID(change.EntityID)
+		if err == nil && existing != nil {
+			result.Status = "applied"
+			return result
+		}
+
 		input := model.CreateTagInput{
+			ID:    change.EntityID,
 			Title: stringFromData(change.Data, "title"),
 		}
 		if v, ok := change.Data["parent_tag_id"]; ok && v != nil {
 			s := v.(string)
 			input.ParentTagID = &s
 		}
-		_, err := h.tags.Create(input)
+		_, err = h.tags.Create(input)
 		if err != nil {
 			result.Status = "error"
 			result.Error = err.Error()

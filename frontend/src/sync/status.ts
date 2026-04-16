@@ -5,10 +5,11 @@ interface SyncState {
   lastSyncAt: string | null
   pendingCount: number
   error: string | null
+  failedCount: number
   setStatus: (status: SyncState['status']) => void
   setLastSync: (at: string) => void
   setPendingCount: (count: number) => void
-  setError: (error: string | null) => void
+  setError: (error: string | null, failedCount?: number) => void
 }
 
 export const useSyncStore = create<SyncState>((set) => ({
@@ -16,8 +17,9 @@ export const useSyncStore = create<SyncState>((set) => ({
   lastSyncAt: null,
   pendingCount: 0,
   error: null,
+  failedCount: 0,
   setStatus: (status) => set({ status }),
   setLastSync: (at) => set({ lastSyncAt: at }),
   setPendingCount: (count) => set({ pendingCount: count }),
-  setError: (error) => set({ error }),
+  setError: (error, failedCount = 0) => set({ error, failedCount }),
 }))

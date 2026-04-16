@@ -154,7 +154,10 @@ func (r *ProjectRepository) GetByID(id string) (*model.ProjectDetail, error) {
 }
 
 func (r *ProjectRepository) Create(input model.CreateProjectInput) (*model.ProjectDetail, error) {
-	id := model.NewID()
+	id := input.ID
+	if id == "" {
+		id = model.NewID()
+	}
 	var maxSort float64
 	_ = r.db.QueryRow("SELECT COALESCE(MAX(sort_order), 0) FROM projects").Scan(&maxSort)
 
