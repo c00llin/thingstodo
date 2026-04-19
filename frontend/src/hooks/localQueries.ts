@@ -950,70 +950,35 @@ export function useLocalTags(): Tag[] | undefined {
 export function useLocalViewCounts(reviewAfterDays?: number | null, reviewIncludeRecurring = true): ViewCounts | undefined {
   return useLiveQuery(async () => {
     const today = todayString()
+    // Read the whole task table once so the badge query reruns on any task
+    // mutation, including changes only visible through JS filters.
+    const tasks = await localDb.tasks.toArray()
+    const openTasks = tasks.filter((t) => t.status === 'open' && !t.deleted_at)
+    const inboxTasks = openTasks.filter((t) => !t.project_id && !t.area_id && !t.when_date)
 
-    const [inboxCount, , , , somedayCount, logbookCount, trashCount] =
-      await Promise.all([
-        // inbox: open, no project, no area, no when_date, not deleted
-        localDb.tasks
-          .where('status')
-          .equals('open')
-          .filter((t) => !t.project_id && !t.area_id && !t.when_date && !t.deleted_at)
-          .count(),
-
-        Promise.resolve(0), // today — computed below
-        Promise.resolve(0), // unused
-        Promise.resolve(0), // anytime — computed below
-
-        // someday: open, when_date === 'someday', not deleted
-        localDb.tasks
-          .where('when_date')
-          .equals('someday')
-          .filter((t) => t.status === 'open' && !t.deleted_at)
-          .count(),
-
-        // logbook: completed/canceled, not deleted
-        localDb.tasks
-          .filter(
-            (t) =>
-              !t.deleted_at &&
-              (t.status === 'completed' || t.status === 'canceled' || t.status === 'wont_do'),
-          )
-          .count(),
-
-        // trash: deleted_at set
-        localDb.tasks.filter((t) => !!t.deleted_at).count(),
-      ])
+    const inboxCount = inboxTasks.length
+    const somedayCount = openTasks.filter((t) => t.when_date === 'someday').length
+    const logbookCount = tasks.filter(
+      (t) =>
+        !t.deleted_at &&
+        (t.status === 'completed' || t.status === 'canceled' || t.status === 'wont_do'),
+    ).length
+    const trashCount = tasks.filter((t) => !!t.deleted_at).length
 
     // today: open, (when_date = today OR deadline = today), not deleted
-    const todayCount = await localDb.tasks
-      .where('status')
-      .equals('open')
-      .filter(
-        (t) =>
-          !t.deleted_at &&
-          (t.when_date === today || t.deadline === today) &&
-          (t.deadline === null || t.deadline === undefined || t.deadline >= today),
-      )
-      .count()
+    const todayCount = openTasks.filter(
+      (t) =>
+        (t.when_date === today || t.deadline === today) &&
+        (t.deadline === null || t.deadline === undefined || t.deadline >= today),
+    ).length
 
     // anytime: open, no when_date, (has project or area or deadline), not deleted
-    const anytimeCount = await localDb.tasks
-      .where('status')
-      .equals('open')
-      .filter(
-        (t) =>
-          !t.when_date &&
-          !t.deleted_at &&
-          (!!t.project_id || !!t.area_id || !!t.deadline),
-      )
-      .count()
+    const anytimeCount = openTasks.filter(
+      (t) => !t.when_date && (!!t.project_id || !!t.area_id || !!t.deadline),
+    ).length
 
     // Overdue: open tasks with deadline < today, not deleted
-    const overdueCount = await localDb.tasks
-      .where('deadline')
-      .below(today)
-      .filter((t) => t.status === 'open' && !t.deleted_at && !!t.deadline)
-      .count()
+    const overdueCount = openTasks.filter((t) => !!t.deadline && t.deadline < today).length
 
     // Review: open tasks not updated in reviewAfterDays, excluding inbox tasks
     let reviewCount = 0
@@ -1021,28 +986,14 @@ export function useLocalViewCounts(reviewAfterDays?: number | null, reviewInclud
       const cutoff = new Date()
       cutoff.setDate(cutoff.getDate() - reviewAfterDays)
       const cutoffStr = cutoff.toISOString().slice(0, 10)
+      const inboxIds = new Set(inboxTasks.map((t) => t.id))
 
-      // Inbox tasks: open, no project, no area, no when_date, not deleted
-      const inboxIds = new Set(
-        (await localDb.tasks
-          .where('status')
-          .equals('open')
-          .filter((t) => !t.project_id && !t.area_id && !t.when_date && !t.deleted_at)
-          .toArray()
-        ).map((t) => t.id),
-      )
-
-      reviewCount = await localDb.tasks
-        .where('status')
-        .equals('open')
-        .filter(
-          (t) =>
-            !t.deleted_at &&
-            !inboxIds.has(t.id) &&
-            (t.updated_at ?? '').slice(0, 10) < cutoffStr &&
-            (reviewIncludeRecurring || !t.has_repeat_rule),
-        )
-        .count()
+      reviewCount = openTasks.filter(
+        (t) =>
+          !inboxIds.has(t.id) &&
+          (t.updated_at ?? '').slice(0, 10) < cutoffStr &&
+          (reviewIncludeRecurring || !t.has_repeat_rule),
+      ).length
     }
 
     return {
